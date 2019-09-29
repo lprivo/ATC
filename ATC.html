@@ -1,0 +1,1374 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+	<title>Privo ATC Simulator</title>
+	<meta charset="utf-8" />
+	<meta http-equiv="Cache-Control" content="no-cache">
+    <style type="text/css">
+      html, body { width: 100%; height: 100%; margin: 0px; padding: 0px; overflow: hidden; background-color: #105868; }
+	  #myCanvas { margin: 0px 310px 0px 0px; display: inline-block; float: right; background-color: #103848; background-repeat: no-repeat; background-size: contain; }
+	  #psFrame { position: relative; width: 100%; height: 390px; margin: 0px; padding: 0px; overflow: auto; font-family: Arial; font-size: 12px; background: #ccc; }
+	  #controlPanel { width: 310px; height: 100%; display: inline-block; top: 0; right: 0; position: absolute; margin: 0px; background-color: #909090; }
+	  #instructionText { width: 145px; }
+	  #transmitBtn { float: left; display: inline-block; margin-bottom: 4px; width: 70px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
+	  #transmitBtn:active { background-color: #eee; border: inset 1px #505050; }
+	  #pauseBtn { float: right; display: inline-block; margin-bottom: 4px; width: 70px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
+	  #pauseBtn:active { background-color: #eee; border: inset 1px #505050; }
+	  #helpBtn { float: left; display: inline-block; margin-bottom: 4px; width: 70px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
+	  #helpBtn:active { background-color: #eee; border: inset 1px #505050; }
+	  #statsBtn { float: right; display: inline-block; margin-bottom: 4px; width: 70px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
+	  #statsBtn:active { background-color: #eee; border: inset 1px #505050; }
+	  #console { width: 143px; height: 200px; background-color: #eee; font-family: Arial; font-size: 12px; }
+	  #endBtn { display: block; margin: 0px auto 4px auto; width: 100px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
+	  #endBtn:active { background-color: #eee; border: inset 1px #505050; }
+	  #infoScreen { position: relative; margin: 0px; padding: 0px; width: 304px; height: 310px; display: none; overflow-y: auto; background-color: #ccc; font-family: Arial; font-size: 13px; }
+	  #statScreen { position: absolute; margin: 0px; padding: 0px; top: 405px; width: 304px; height: 310px; display: none; background-color: #ccc; font-family: Arial; font-size: 13px; }
+	  #endTable { width: 90%; }
+	  #backbtn { width: 110px; height: 18px; margin: auto; border: 1 solid black; border-radius: 3px; background-color: #ddd; font-size: 14px; }
+	  #backbtn:active ( background-color: #eee; )
+	  .returnButton { margin: 5px auto 10px auto; }
+	  .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgb(0,0,0); background-color: rgba(0,0,0,0.4); }
+	  .modal-content { background-color: #709090; margin: 15% auto; padding: 20px; border: 1px solid #888; border-radius: 5px; width: 13%; }
+	  .endModal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgb(0,0,0); background-color: rgba(0,0,0,0.4); }
+	  .endModal-content { background-color: #709090; margin: 10% auto; padding: 20px; border: 1px solid #888; border-radius: 5px; width: 25%; color: white; }
+	  .endTd ( width: 250px; )
+	  .endTd2 { width: 20px; }
+	  .psArrival { margin: 2px 0px 2px 0px; padding: 0px; height: 34px; display: block; cursor: pointer; background-color: #fce4d6; }
+	  .psArrival:active { background-color: #fff; }
+	  .psDeparture { margin: 2px 0px 2px 0px; padding: 0px; height: 34px; display: block; cursor: pointer; background-color: #c1eede; }
+	  .psDeparture:active { background-color: #fff; }
+	  .flightData { font-family: Arial; font-size: 12px; }
+	  .pad3 { padding: 3px; }
+	  .block2 { height: 2px; font-size: 1px; line-height: 1px; }
+	  .block4 { height: 4px; font-size: 1px; line-height: 1px; }
+	  .block10 { height: 10px; font-size: 1px; line-height: 1px; }
+	  .panels { width: 155px; height: 405px; display: inline-block; float: left; position: relative; background-color: #909090; }
+	  .pstd { width: 90px; }
+	  h5 { margin: 5px 2px 2px 2px; font-weight: bold; font-family: Courier; }
+	  h6 { margin: 2px; font-size: 12px; font-weight: bold; font-family: Courier; }
+	  
+    </style>
+	<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+	<link rel="icon" href="Images/ATC_logo_icon.png">
+  </head>
+  <body>
+	<div id="startModal" class="modal">
+		<div class="modal-content">
+			<form id="startform" method="post" action="">
+				<table>
+				<tr><td>
+					<select id="Airports">
+						<option hidden="true">Please select an airport</option>
+						<option value="LHBP" selected="selected">Budapest - Liszt Ferenc</option>
+						<option value="EGLL">London - Heathrow</option>
+						<option value="EPWA">Warsaw - Chopin</option>
+						<option value="KSEA">Seattle-Tacoma Intl.</option>
+					</select>
+				</td></tr>
+				<tr><td>
+					<select id="Difficulty">
+						<option hidden="true">Please select a difficulty</option>
+						<option value="4000">Easy</option>
+						<option value="3000" selected="selected">Normal</option>
+						<option value="2000">Rush hour</option>
+					</select>
+				</td></tr>
+				<tr><td>
+					<select id="GameMode">
+						<option hidden="true">Please select a game mode</option>
+						<option value=".5" selected="selected">Arrivals & Departures</option>
+						<option value="1.0">Arrivals only</option>
+						<option value="0">Departures only</option>
+					</select>
+				</td></tr>
+				<tr><td>
+					<input type="button" id="startbutton" value="Start simulation" onclick="setOpts()" autofocus />
+				</td></tr>
+				</table>
+			</form>
+		</div>
+	</div>
+
+	<div id="endModal" class="endModal">
+		<div class="endModal-content">
+			<form id="endform" method="post" action="index.html">
+				<table id="endTable">
+				<tr><td class="endTd">Thanks for trying out my ATC simulator!</td></tr>
+				<tr><td class="endTd">Your final results are below:</td></tr>
+				<tr><td class="endTd">Successful landings: </td><td id="successfulLandings" class="endTd2"></td></tr>
+				<tr><td class="endTd">Successful handoffs: </td><td id="successfulHandoffs" class="endTd2"></td></tr>
+				<tr><td class="endTd">Missed approaches: </td><td id="missedApproaches" class="endTd2"></td></tr>
+				<tr><td class="endTd">Improper exits: </td><td id="improperExits" class="endTd2"></td></tr>
+				<tr><td class="endTd">Separation violation: </td><td id="sepViolation" class="endTd2"></td><td class="endTd2">sec</td></tr>
+				<tr><td class="returnButton">
+					<!-- <input type="submit" id="returnButton" value="Back to Start Page" autofocus /> -->
+				</td></tr>
+				</table>
+			</form>
+			<div id="backbtn"><a href="index.html">Back to Start Page</a></div>
+		</div>
+	</div>
+	
+	<div id="controlPanel">
+		<div class="panels"><div class="pad3">
+			<div id="psFrame"></div>
+			<div class="block4"></div>
+		</div></div>
+		<div class="panels"><div class="pad3">
+			<div id="titleDiv">
+				<h5 id="titleAirport">Airport</h5>
+				<h6 id="titleCode">ICAO:     | IATA:</h6>
+				<h6 id="titleElev">Elevation:</h6>
+			</div>
+			<div class="block10"></div>
+			<div><input type="text" id="instructionText" placeholder="instructions"  onfocus="txtfocus=true" onblur="txtfocus=false" autocomplete="off"></div>
+			<div class="block4"></div>
+			<div>
+				<input type="button" id="transmitBtn" class="btns" value="Transmit" onClick="doInstruction()">
+				<input type="button" id="pauseBtn" class="btns" value="Pause" onClick="fnPausing()">
+			</div>
+			<div class="block4"></div>
+			<div><textarea readonly id="console"></textarea></div>
+			<div class="block4"></div>
+			<div>			
+				<input type="button" id="helpBtn" class="btns" value="Help" onClick="showInfoscreen()">
+				<input type="button" id="statsBtn" class="btns" value="Stats" onClick="showStatscreen()">
+			</div>
+			<div class="block4"></div>
+			<div><input type="button" id="endBtn" value="End Simulation" onClick="endSim()"></div>
+		</div></div>
+		<div class="block4"></div>
+		<div><div class="pad3">
+			<textarea readonly id="infoScreen">
+
+	Commands consist of 2-5 parts divided by space(s).
+First part is the flight number (e.g. "AA001")
+Followed by the clearance type and its parameters as below:
+
+- "A" to change ALTITUDE followed by the required altitude in 100 feet beetween 20 and 400. (e.g.: AA001 A 40)
+
+- "S" to change SPEED followed by the required speed in 10 knots between 16 and 30. (e.g.: AA001 S 20)
+
+- "H" to change HEADING followed by either the required heading direction in degrees (1-360), where 360 is North, 180 is South (e.g.: AA001 H 150) or the destination navigation object. (e.g.: B H wOD)
+ For instructing an aircraft to start holding procedure at a navigation object write an additional "HP" after the navigation object code. (e.g.: AA001 H WOD HP)
+ 
+- "L" to clear an aircraft for LANDING followed by the runway ID. (e.g.: AA001 L 27L)
+ Landing clearance must only be given when an aircraft's actual heading is within 20 degrees that of the chosen runway angle (its ID * 10) and when the aircraft is not higher than 4000 feet!
+ 
+- "T" to clear an aircraft for TAKE-OFF. (e.g.: AA001 T 27L WOD 80)
+ Following "T" type the runway intended for take-off then the exit navigation object shown on the flightstrip and finally an hand-over altitude.
+ (Note: In case the aircraft exits anywhere else other than the nav. object indicated it will count as an improper exit.)
+
+- "W" to clear an aircraft for LINING-UP AND WAITING on the runway before take-off. (e.g.: AA001 W 27L WOD 80)
+ This option is mainly for busy periods. Similarly to the take-off command, after "W" type the runway intended for take-off then the exit navigation object indicated and the hand-over altitude.
+ When an aircraft is given a waiting clearance already, for take-off clearance only type the flight ID and "T" as the exit parameters will be remembered. (e.g.: AA001 T)
+ 
+	Additional commands:
+
+- Press "P" to PAUSE/RESUME the simulation.
+
+- Type "EXIT" or press "End Simulaton" button to exit the game. Your final statistics will be shown.
+	
+	Notes: Aircraft need to be separated by at least 3NM laterally and 1000 feet vertically.
+			</textarea>
+			<div id="statScreen"></div>
+			</div>
+		</div>
+	</div>
+	<canvas id="myCanvas"></canvas>
+	<script type="text/javascript">
+	  var modal = document.getElementById('startModal');
+	  var cW = (window.innerWidth - 310);
+	  var cH = window.innerHeight;			// cH/cW=.583
+	  var cHW = cW*.6;
+      var planeNR = 0;	// body canvas - style="background: #103848" 
+      var planes = [];
+      var runways = [];
+	  var airlnrCode = [];	//operating airliners' list
+	  var airlnrDistr = [];	//operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+	  var destName;
+	  var entryPts = [];
+	  var userCommand = document.getElementById("console").value;
+      var pausing = false;
+	  var resid;
+	  var entryAlt = [40,50,50,60,60,60,70,70,70,70,80,80,80];
+	  var navObjects = [];
+	  var successfulLandings = 0;
+	  var successfulHandoffs = 0;
+	  var improperExits = 0;
+	  var missedApproaches = 0;
+	  var sepViolation = 0;
+	  var canvas = document.getElementById('myCanvas');
+      var context = canvas.getContext('2d');
+	  var psFrame = document.getElementById('psFrame');
+	  var selMode;	
+	  	
+		function initLHBP() {
+			
+			navObjects[0] = ["BADOV", Math.round(cW*.343), Math.round(cHW*.008)];
+			navObjects[1] = ["NALAG", Math.round(cW*.640), Math.round(cHW*.008)];
+			navObjects[2] = ["BABOX", Math.round(cW*.669), Math.round(cHW*.992)];
+			navObjects[3] = ["ABONY", Math.round(cW*.824), Math.round(cHW*.666)];
+			navObjects[4] = ["VEBOS", Math.round(cW*.224), Math.round(cHW*.625)];
+			navObjects[5] = ["GILEP", Math.round(cW*.057), Math.round(cHW*.429)];
+			navObjects[6] = ["NIPUR", Math.round(cW*.836), Math.round(cHW*.186)];
+			navObjects[7] = ["JBR", Math.round(cW*.785), Math.round(cHW*.421)];
+			navObjects[8] = ["TPS", Math.round(cW*.586), Math.round(cHW*.424)];
+			navObjects[9] = ["MNR", Math.round(cW*.567), Math.round(cHW*.600)];
+			navObjects[10] = ["BALUX", Math.round(cW*.443), Math.round(cHW*.591)];
+			navObjects[11] = ["ETARO", Math.round(cW*.387), Math.round(cHW*.421)];
+			navObjects[12] = ["EPARI", Math.round(cW*.378), Math.round(cHW*.210)];
+			navObjects[13] = ["NORAH", Math.round(cW*.746), Math.round(cHW*.292)];
+			navObjects[14] = ["ERLOS", Math.round(cW*.508), Math.round(cHW*.889)];
+			navObjects[15] = ["ALAMU", Math.round(cW*.090), Math.round(cHW*.149)];
+			navObjects[16] = ["BUD", Math.round(cW*.506), Math.round(cHW*.462)];
+			
+			// 0-id, 1-rw angle, 2-navPointX, 3-navPointY, 4-startPointX, 5-startPointY, 6-centreX, 7-centreY, 8-idTagX, 9-idTagY;
+			runways[0] = ["13L", 130, ((cW/2)-57), ((cHW/2)-59), ((cW/2)+3), ((cHW/2)-9), ((cW/2)+20), ((cHW/2)+5), ((cW/2)-20), ((cHW/2)-17)];
+			runways[1] = ["31R", 310, ((cW/2)+97), ((cHW/2)+69), ((cW/2)+37), ((cHW/2)+19), ((cW/2)+20), ((cHW/2)+5), ((cW/2)+37), ((cHW/2)+34)];
+			runways[2] = ["13R", 130, ((cW/2)-92), ((cHW/2)-66), ((cW/2)-29), ((cHW/2)-16), ((cW/2)-15), ((cHW/2)-5), ((cW/2)-52), ((cHW/2)-23)];
+			runways[3] = ["31L", 310, ((cW/2)+62), ((cHW/2)+59), ((cW/2)-1), ((cHW/2)+6), ((cW/2)-15), ((cHW/2)-5), ((cW/2)+4), ((cHW/2)+21)];
+			
+			{
+			var entryPt1 = new Object();
+			entryPt1.coorX = Math.round(cW*.3);
+			entryPt1.coorY = -7;
+			entryPt1.direction = 150;
+			entryPts.push(entryPt1);
+			}
+			  
+			{
+			var entryPt2 = new Object();
+			entryPt2.coorX = cW+7;
+			entryPt2.coorY = Math.round(cH*.08);
+			entryPt2.direction = 248;
+			entryPts.push(entryPt2);
+			}
+			  
+			{
+			var entryPt3 = new Object();
+			entryPt3.coorX = Math.round(cW*.85);
+			entryPt3.coorY = cH+7;
+			entryPt3.direction = 353;
+			entryPts.push(entryPt3);
+			}
+			  
+			{
+			var entryPt4 = new Object();
+			entryPt4.coorX = Math.round(cW*.15);
+			entryPt4.coorY = cH+7;
+			entryPt4.direction = 18;
+			entryPts.push(entryPt4);
+			}
+			
+			{
+			var entryPt5 = new Object();
+			entryPt5.coorX = -7;
+			entryPt5.coorY = Math.round(cH*.45);
+			entryPt5.direction = 80;
+			entryPts.push(entryPt5);
+			}
+			
+			airlnrCode = ["W6","FR","LH","U2","AF","BA","4U","LS","KL","LO","OS","SN","OK","DY","RO","TK","AB","AZ","B2","AY","LX","QR","HV","7O","PC","A3","EI","SU","BT","CA","EK","EW","LX","TP","PS","LY"];
+			airlnrDistr = [141,37,62,2,92,7,126,12];
+			destName = "BUD";
+			document.getElementById("myCanvas").style.backgroundImage = 'url("Images/LHBP_bgnd_map.png")';
+		}
+		
+		function initEGLL() {
+			
+			navObjects[0] = ["BIG", Math.round(cW*.791), Math.round(cHW*.707)];	//(20NM from centre = 378 on-screen distance)
+			navObjects[1] = ["BNN", Math.round(cW*.442), Math.round(cHW*.089)];
+			navObjects[2] = ["BPK", Math.round(cW*.688), Math.round(cHW*.041)];
+			navObjects[3] = ["WOD", Math.round(cW*.255), Math.round(cHW*.533)];
+			navObjects[4] = ["HEN", Math.round(cW*.302), Math.round(cHW*.040)];
+			navObjects[5] = ["BLK", Math.round(cW*.277), Math.round(cHW*.740)];
+			navObjects[6] = ["LAM", Math.round(cW*.851), Math.round(cHW*.200)];
+			navObjects[7] = ["OCK", Math.round(cW*.510), Math.round(cHW*.760)];
+			navObjects[8] = ["CHT", Math.round(cW*.462), Math.round(cHW*.253)];
+			navObjects[9] = ["EPM", Math.round(cW*.554), Math.round(cHW*.736)];
+			navObjects[10] = ["BUR", Math.round(cW*.372), Math.round(cHW*.423)];
+			navObjects[11] = ["LON", Math.round(cW*.494), Math.round(cHW*.469)];
+			
+			// 0-id, 1-rw angle, 2-navPointX, 3-navPointY, 4-startPointX, 5-startPointY, 6-centreX, 7-centreY, 8-idTagX, 9-idTagY;
+			runways[0] = ["9L", 90, ((cW/2)-104), ((cHW/2)-10), ((cW/2)-23), ((cHW/2)-10), ((cW/2)-4), ((cHW/2)-10), ((cW/2)-39), ((cHW/2)-7)];
+			runways[1] = ["27R", 270, ((cW/2)+96), ((cHW/2)-10), ((cW/2)+15), ((cHW/2)-10), ((cW/2)-4), ((cHW/2)-10), ((cW/2)+20), ((cHW/2)-7)];
+			runways[2] = ["9R", 90, ((cW/2)-103), ((cHW/2)+4), ((cW/2)-20), ((cHW/2)+4), ((cW/2)-3), ((cHW/2)+4), ((cW/2)-37), ((cHW/2)+7)];
+			runways[3] = ["27L", 270, ((cW/2)+97), ((cHW/2)+4), ((cW/2)+15), ((cHW/2)+4), ((cW/2)-3), ((cHW/2)+4), ((cW/2)+20), ((cHW/2)+7)];
+			
+			{
+			var entryPt1 = new Object();
+			entryPt1.coorX = 40;
+			entryPt1.coorY = -7;
+			entryPt1.direction = 125;
+			entryPts.push(entryPt1);
+			}
+			  
+			{
+			var entryPt2 = new Object();
+			entryPt2.coorX = cW+7;
+			entryPt2.coorY = Math.round(cH*.08);
+			entryPt2.direction = 245;
+			entryPts.push(entryPt2);
+			}
+			  
+			{
+			var entryPt3 = new Object();
+			entryPt3.coorX = cW+7;
+			entryPt3.coorY = cH-25;
+			entryPt3.direction = 308;
+			entryPts.push(entryPt3);
+			}
+			  
+			{
+			var entryPt4 = new Object();
+			entryPt4.coorX = Math.round(cW*.22);
+			entryPt4.coorY = cH+7;
+			entryPt4.direction = 54;
+			entryPts.push(entryPt4);
+			}
+			
+			{
+			var entryPt5 = new Object();
+			entryPt5.coorX = -7;
+			entryPt5.coorY = Math.round(cH*.68);
+			entryPt5.direction = 64;
+			entryPts.push(entryPt5);
+			}
+			
+			airlnrCode = ["BA","EI","VS","LH","AA","SK","UA","LX","DL","AC","4U","IB","KL","AF","EK","EW","BE","QR","TP","TK","AZ","CX","AY","BI","A3","OS","SQ","SU","SN","EY","9W","LO","CA","KM","CZ","QU","MS","LY","GF","FI","KU","MH","ME","WY","QF","SV","SA","TG","AH","BT","MK","NZ","JU","AM","NH","OZ","AV","J2","BG","FB","MU","ET","BR","JL","KQ","KE","JJ","PK","PR","AT","BI","RJ","UL","RO","TS","VN","VY"];
+			airlnrDistr = [700,360,480,6,540,6,620,14];	//for fn aCGen(): total no. of flights, main op. flightCount, group1-flightCount,group1-operatorCount, group2-fc, group2-op, g3-fc, g3-op, g4-fc, g4-op;
+			destName = "LON";
+			document.getElementById("myCanvas").style.backgroundImage = 'url("Images/EGLL_bgnd_map.png")';
+		}
+		
+		function initEPWA() {
+			
+			navObjects[0] = ["ULPAR", Math.round(cW*.515), Math.round(cHW*.080)];
+			navObjects[1] = ["SIE", Math.round(cW*.967), Math.round(cHW*.493)];
+			navObjects[2] = ["DEDOL", Math.round(cW*.320), Math.round(cHW*.992)];
+			navObjects[3] = ["IBARA", Math.round(cW*.006), Math.round(cHW*.680)];
+			navObjects[4] = ["IDAKO", Math.round(cW*.302), Math.round(cHW*.008)];
+			navObjects[5] = ["DODEK", Math.round(cW*.009), Math.round(cHW*.250)];
+			navObjects[6] = ["MARIA", Math.round(cW*.670), Math.round(cHW*.992)];
+			navObjects[7] = ["VEKER", Math.round(cW*.585), Math.round(cHW*.220)];
+			navObjects[8] = ["LDZ", Math.round(cW*.006), Math.round(cHW*.853)];
+			navObjects[9] = ["LIN", Math.round(cW*.570), Math.round(cHW*.720)];
+			navObjects[10] = ["KRN", Math.round(cW*.300), Math.round(cHW*.705)];
+			navObjects[11] = ["WAR", Math.round(cW*.381), Math.round(cHW*.382)];
+			navObjects[12] = ["ADLAR", Math.round(cW*.120), Math.round(cHW*.008)];
+			navObjects[13] = ["WAW", Math.round(cW*.500), Math.round(cHW*.473)];
+			
+			// 0-id, 1-rw angle, 2-navPointX, 3-navPointY, 4-startPointX, 5-startPointY, 6-centreX, 7-centreY, 8-idTagX, 9-idTagY;
+			runways[0] = ["15", 150, ((cW/2)-54), ((cHW/2)-97), ((cW/2)-14), ((cHW/2)-30), ((cW/2)-4), ((cHW/2)-10), ((cW/2)-23), ((cHW/2)-40)];
+			runways[1] = ["33", 330, ((cW/2)+46), ((cHW/2)+77), ((cW/2)+7), ((cHW/2)+10), ((cW/2)-4), ((cHW/2)-10), ((cW/2)+8), ((cHW/2)+22)];
+			runways[2] = ["11", 110, ((cW/2)-101), ((cHW/2)-46), ((cW/2)-23), ((cHW/2)-21), ((cW/2)-7), ((cHW/2)-12), ((cW/2)-40), ((cHW/2)-21)];
+			runways[3] = ["29", 290, ((cW/2)+87), ((cHW/2)+22), ((cW/2)+9), ((cHW/2)-4), ((cW/2)-7), ((cHW/2)-12), ((cW/2)+15), ((cHW/2)+2)];
+			
+			{
+			var entryPt1 = new Object();
+			entryPt1.coorX = Math.round(cW*.51);
+			entryPt1.coorY = cH+7;
+			entryPt1.direction = 20;
+			entryPts.push(entryPt1);
+			}
+			  
+			{
+			var entryPt2 = new Object();
+			entryPt2.coorX = -7;
+			entryPt2.coorY = Math.round(cH*.86);
+			entryPt2.direction = 69;
+			entryPts.push(entryPt2);
+			}
+			  
+			{
+			var entryPt3 = new Object();
+			entryPt3.coorX = Math.round(cW*.113);
+			entryPt3.coorY = -7;
+			entryPt3.direction = 149;
+			entryPts.push(entryPt3);
+			}
+			  
+			{
+			var entryPt4 = new Object();
+			entryPt4.coorX = Math.round(cW*.67);
+			entryPt4.coorY = -7;
+			entryPt4.direction = 212;
+			entryPts.push(entryPt4);
+			}
+			
+			{
+			var entryPt5 = new Object();
+			entryPt5.coorX = cW+7;
+			entryPt5.coorY = Math.round(cH*.56);
+			entryPt5.direction = 247;
+			entryPts.push(entryPt5);
+			}
+			
+			airlnrCode = ["LO","W6","LO","LH","SU","AF","OS","SN","OK","LX","KL","SK","3Z","BT","BA","EW","AY","QS","PS","JP","A3","EI","CA","AZ","B2","LY","EK","DY","QR","FR","P8","P7","TP","TK","VY"];
+			airlnrDistr = [219,122,158,2,164,1,203,15];	//for fn aCGen(): total no. of flights, main op. flightCount, group1-flightCount, group1-operatorCount, group2-fc, group2-op, g3-fc, g3-op
+			destName = "WAW";
+			document.getElementById("myCanvas").style.backgroundImage = 'url("Images/EPWA_bgnd_map.png")';
+		}
+		
+		function initKSEA() {
+			
+			navObjects[0] = ["PAE", Math.round(cW*.507), Math.round(cHW*.008)];
+			navObjects[1] = ["MODDA", Math.round(cW*.826), Math.round(cHW*.500)];
+			navObjects[2] = ["RADDY", Math.round(cW*.827), Math.round(cHW*.862)];
+			navObjects[3] = ["TAOMA", Math.round(cW*.550), Math.round(cHW*.992)];
+			navObjects[4] = ["OLM", Math.round(cW*.246), Math.round(cHW*.969)];
+			navObjects[5] = ["HAROB", Math.round(cW*.190), Math.round(cHW*.690)];
+			navObjects[6] = ["ARRIE", Math.round(cW*.010), Math.round(cHW*.040)];
+			navObjects[7] = ["LAC", Math.round(cW*.392), Math.round(cHW*.930)];
+			navObjects[8] = ["HPK", Math.round(cW*.496), Math.round(cHW*.394)];
+			navObjects[9] = ["RNT", Math.round(cW*.535), Math.round(cHW*.432)];
+			navObjects[10] = ["GRF", Math.round(cW*.372), Math.round(cHW*.780)];
+			navObjects[11] = ["PWT", Math.round(cW*.305), Math.round(cHW*.436)];
+			navObjects[12] = ["VAMPS", Math.round(cW*.632), Math.round(cHW*.565)];
+			navObjects[13] = ["SEA", Math.round(cW*.508), Math.round(cHW*.510)];
+			
+			// 0-id, 1-rw angle, 2-navPointX, 3-navPointY, 4-startPointX, 5-startPointY, 6-centreX, 7-centreY, 8-idTagX, 9-idTagY;
+			runways[0] = ["18L", 180, ((cW/2)+2), ((cHW/2)-109), ((cW/2)+2), ((cHW/2)-33), ((cW/2)+2), ((cHW/2-9)), ((cW/2)+7), ((cHW/2)-43)];
+			runways[1] = ["36R", 360, ((cW/2)+2), ((cHW/2)+91), ((cW/2)+2), ((cHW/2)+15), ((cW/2)+2), ((cHW/2-9)), ((cW/2)+7), ((cHW/2)+30)];
+			runways[2] = ["18C", 180, ((cW/2)-4), ((cHW/2)-113), ((cW/2)-4), ((cHW/2)-33), ((cW/2)-4), ((cHW/2-13)), ((cW/2)-12), ((cHW/2)-43)];
+			runways[3] = ["36C", 360, ((cW/2)-4), ((cHW/2)+87), ((cW/2)-4), ((cHW/2)+6), ((cW/2)-4), ((cHW/2)-13), ((cW/2)-12), ((cHW/2)+25)];
+			runways[4] = ["18R", 180, ((cW/2)-13), ((cHW/2)-111), ((cW/2)-13), ((cHW/2)-33), ((cW/2)-13), ((cHW/2)-15), ((cW/2)-31), ((cHW/2)-43)];
+			runways[5] = ["36L", 360, ((cW/2)-13), ((cHW/2)+89), ((cW/2)-13), ((cHW/2)+4), ((cW/2)-13), ((cHW/2)-15), ((cW/2)-31), ((cHW/2)+19)];
+			
+			{
+			var entryPt1 = new Object();
+			entryPt1.coorX = -7;
+			entryPt1.coorY = Math.round(cH*.032);
+			entryPt1.direction = 105;
+			entryPts.push(entryPt1);
+			}
+			  
+			{
+			var entryPt2 = new Object();
+			entryPt2.coorX = cW+7;
+			entryPt2.coorY = Math.round(cH*.1);
+			entryPt2.direction = 275;
+			entryPts.push(entryPt2);
+			}
+			  
+			{
+			var entryPt3 = new Object();
+			entryPt3.coorX = Math.round(cW*.75);
+			entryPt3.coorY = cH+7;
+			entryPt3.direction = 333;
+			entryPts.push(entryPt3);
+			}
+			  
+			{
+			var entryPt4 = new Object();
+			entryPt4.coorX = Math.round(cW*.41);
+			entryPt4.coorY = cH+7;
+			entryPt4.direction = 340;
+			entryPts.push(entryPt4);
+			}
+			
+			{
+			var entryPt5 = new Object();
+			entryPt5.coorX = Math.round(cW*.2);
+			entryPt5.coorY = cH+7;
+			entryPt5.direction = 357;
+			entryPts.push(entryPt5);
+			}
+			
+			airlnrCode = ["AS","DL","WN","UA","AA","FX","B6","AC","8C","NK","VX","BA","CI","HA","HU","NH","1I","A8","AM","BR","DE","EK","F9","FI","GB","KE","LH","OX","SY","VS","Y4"];
+			airlnrDistr = [556,282,417,1,513,4,531,5];	//for fn aCGen(): total no. of flights, main op. flightCount, group1-flightCount, group1-operatorCount, group2-fc, group2-op, g3-fc, g3-op
+			destName = "SEA";
+			document.getElementById("myCanvas").style.backgroundImage = 'url("Images/KSEA_bgnd_map.png")';
+		}
+		
+		function screenSize() {
+			canvas.width = cW;
+			canvas.height = cH;
+			return;
+		}
+		
+		window.addEventListener("resize", screenSize);
+		
+		function showInfoscreen() {
+			var dispInfo = document.getElementById("infoScreen").style.display;
+			var dispStat = document.getElementById("statScreen").style.display;
+			if (dispInfo === "none") {
+				if (dispStat != "none") {
+					$(document).ready(function() {
+						$('#statScreen').empty()
+						$('#statScreen').css("display", "none")
+						$('#infoScreen').css("display", "block")
+						});
+				} else {
+					$(document).ready(function() {
+						$('#infoScreen').css("display", "block")
+					});
+				};
+			} else {
+				$(document).ready(function() {
+					$('#infoScreen').css("display", "none")
+				});
+			}
+		}
+		
+		function showStatscreen() {
+			var dispInfo = document.getElementById("infoScreen").style.display;
+			var dispStat = document.getElementById("statScreen").style.display;
+			var statValues = document.getElementById("statScreen").value = "<p>Successful landings: " + successfulLandings + "</p><p>Successful handoffs: " + successfulHandoffs + "</p><p>Missed approaches: " + missedApproaches + "</p><p>Improper exits: " + improperExits + "</p><p>Separation violation (sec): " + sepViolation + "</p>";
+			if (dispStat === "none") {
+				if (dispInfo != "none") {
+					$(document).ready(function() {
+						$('#infoScreen').css("display", "none")
+						$('#statScreen').append(statValues)
+						$('#statScreen').css("display", "block")
+						
+					});
+				} else {
+					$(document).ready(function() {
+						$('#statScreen').append(statValues)
+						$('#statScreen').css("display", "block")
+				})};
+			} else {
+				$(document).ready(function() {
+					$('#statScreen').empty()
+					$('#statScreen').css("display", "none")
+				});
+			}
+		}
+		
+		function updateStatScreen() {
+			var dispInfo = document.getElementById("infoScreen").style.display;
+			var dispStat = document.getElementById("statScreen").style.display;
+			if (dispStat === "block") {
+				for (i=0; i<statScreen.childNodes.length; i++) {
+					statScreen.childNodes[i].innerHTML = " "; }
+				statScreen.appendChild(document.createElement("div"));
+				statScreen.childNodes[0].innerHTML = "<p>Successful landings: " + successfulLandings + "</p><p>Successful handoffs: " + successfulHandoffs + 
+					"</p><p>Missed approaches: " + missedApproaches + "</p><p>Improper exits: " + improperExits + "</p><p>Separation violation (sec): " + sepViolation + "</p>";
+				return;
+			}
+		}
+		
+		function getFlightid() {
+			$(document).ready(function() {
+				$('div div div div div').click(function() {
+					$('#instructionText').val(this.id + " ")
+					$('#instructionText').focus()
+				});
+			});
+		}
+	  
+		function leadingZeros(number, length) {
+			var retVal = ""
+			for (var i=number.toString().length; i<length; i++) {
+				retVal += '0';
+			}
+			return retVal + number;
+		}
+	  	  
+		function planeFreq(min, max) {
+			min = Math.ceil(min);
+			max = Math.floor(max);
+			return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
+		
+		function aCGen() {
+					var aCIndex = Math.floor(Math.random()*airlnrDistr[0]);
+					if (aCIndex <= airlnrDistr[1]) {
+						return 0;
+					} else if ((airlnrDistr[1] < aCIndex) && (aCIndex <= airlnrDistr[2])) {
+						return ((Math.floor(Math.random()*airlnrDistr[3]))+1);
+					} else if ((airlnrDistr[2] < aCIndex) && (aCIndex <= airlnrDistr[4])) {
+						return ((Math.floor(Math.random()*airlnrDistr[5]))+(airlnrDistr[3]+1));
+					} else if ((airlnrDistr[4] < aCIndex) && (aCIndex <= airlnrDistr[6])) {
+						return ((Math.floor(Math.random()*airlnrDistr[7]))+(airlnrDistr[3]+airlnrDistr[5]+1));
+					} else {
+						return ((Math.floor(Math.random()*(airlnrCode.length-(airlnrDistr[3]+airlnrDistr[5]+airlnrDistr[7]+1))))+(airlnrDistr[3]+airlnrDistr[5]+airlnrDistr[7]+1));
+					}
+				}
+		
+		function newPlane() {
+			var entryMode = Math.random();
+			if (pausing != true) {
+				var plane = new Object();
+				var idIndex = aCGen();
+				var flightNr = airlnrCode[idIndex] + (leadingZeros(Math.abs(Math.floor((Math.random()*1000)-1)),3));
+				
+				if (entryMode < selMode) {
+					var index = Math.floor(Math.random()*entryPts.length);
+					plane.curX = entryPts[index].coorX;
+					plane.curY = entryPts[index].coorY;
+					plane.id = flightNr.toString();
+					plane.heading = entryPts[index].direction;  // 0..360
+					plane.newHeading = plane.heading;
+					plane.turnStep = 3;
+					plane.altitude = entryAlt[Math.floor(Math.random()*entryAlt.length)];
+					plane.newAlt = plane.altitude;
+					plane.altStep = .5;
+					plane.speed = 24;
+					plane.newSpeed = plane.speed;
+					plane.speedStep = .5;
+					plane.destination = -1;
+					plane.destName = destName;
+					plane.destX = navObjects[11][1];
+					plane.destY = navObjects[11][2];
+					plane.distance;
+					plane.flightMode = 0;   // 0-en route, 1-in holding pattern, 2-approach, 3-final, 4-landing, 5-ready to depart, 6-line up and wait, 7-taking-off, 8-departing, 9-departed;
+					planes.push(plane);
+					plane.label = "A";
+					planeNR++;
+					
+				} else {
+					var indexT = Math.floor(Math.random()*7);
+					plane.flightMode = 5;
+					plane.id = flightNr.toString();
+					plane.heading = '-';
+					plane.newHeading = plane.heading;
+					plane.turnStep = 3;
+					plane.altitude = 0;
+					plane.newAlt = 0;
+					plane.altStep = .5;
+					plane.speed = 0;
+					plane.newSpeed = 0;
+					plane.speedStep = .5;
+					plane.destination = -1;
+					plane.destName = navObjects[indexT][0];
+					plane.distance;
+					plane.label = "D";
+					planes.push(plane);
+					planeNR++;
+				}
+			}
+		}
+		
+		
+		function progressStrips(plane) {
+			var pStrip = document.getElementById(plane.id);
+			var psAltitude = leadingZeros((Math.round(plane.altitude) * 100),5);
+			var psSpeed = leadingZeros(Math.round(plane.speed) * 10,3);
+			var psHeading = leadingZeros(plane.heading,3);
+			var newPStrip = document.createElement("div");
+			
+			if (pStrip) {
+				var found = false;
+				for (var i=0; i<planes.length; i++) {
+					if ((planes[i].id == plane.id) && (planes[i].flightMode != 9)) {
+						found = true;
+						break;
+					}
+				}
+				if (found == true) {
+					var psArrow;
+					if (plane.altitude < plane.newAlt) {
+						psArrow = "\u2191";
+					} else if (plane.altitude > plane.newAlt) {
+						psArrow = "\u2193";
+					} else {
+						psArrow = "-";
+					}
+					pStrip.childNodes[0].setAttribute("class", "flightData");
+					pStrip.childNodes[0].innerHTML = "<table><tr><td class='pstd'>" + plane.id + "</td><td class='pstd'>" + psAltitude + psArrow + "</td><td class='pstd'>" + psSpeed + "</td></tr><tr><td class='pstd'>" + plane.label + "</td><td class='pstd'>" + plane.destName + "</td><td class='pstd'>" + psHeading + "</td></tr></table>";
+				}
+			
+			} else {
+				if (plane.label == "A") {
+					newPStrip.setAttribute("id", plane.id);
+					newPStrip.setAttribute("name", plane.id);
+					newPStrip.setAttribute("class", "psArrival");
+					newPStrip.appendChild(document.createElement("div"));
+					newPStrip.childNodes[0].setAttribute("class", "flightData");
+					newPStrip.childNodes[0].innerHTML = "<table><tr><td class='pstd'>" + plane.id + "</td></tr><tr><td class='pstd'>" + plane.label + "</td></tr></table>";
+					psFrame.appendChild(newPStrip);
+					
+				} else if ((plane.label == "D") && (plane.flightMode != 9)) {
+					newPStrip.setAttribute("id", plane.id);
+					newPStrip.setAttribute("name", plane.id);
+					newPStrip.setAttribute("class", "psDeparture");
+					newPStrip.appendChild(document.createElement("div"));
+					newPStrip.childNodes[0].setAttribute("class", "flightData");
+					newPStrip.childNodes[0].innerHTML = "<table><tr><td class='pstd'>" + plane.id + "</td></tr><tr><td class='pstd'>" + plane.label + "</td></tr></table>";
+					psFrame.appendChild(newPStrip);
+				}
+			}
+		}
+	
+		function removePlane() {
+			for (var i=0; i<planes.length; i++) {
+				if ((planes[i].flightMode == 4) && (planes[i].speed == 0)) {
+					psFrame.removeChild(document.getElementById(planes[i].id));
+					planes.splice(i,1);
+					planeNR--;
+					successfulLandings++;
+					return;
+				} else if ((planes[i].flightMode == 8) && (planes[i].distance <= 3)) {
+					if (planes[i].destName == navObjects[planes[i].destination][0]) {
+						psFrame.removeChild(document.getElementById(planes[i].id));
+						planes[i].flightMode = 9;
+						destReset(planes[i]);
+						planeNR--;
+						successfulHandoffs++;
+						return;
+					} else {
+						psFrame.removeChild(document.getElementById(planes[i].id));
+						planes[i].flightMode = 9;
+						destReset(planes[i]);
+						planeNR--;
+						improperExits++;
+						return;
+					}
+				} else if ((planes[i].flightMode == 0) && ((planes[i].curX < -10) || ((cW+10) < planes[i].curX) || (planes[i].curY < -10) || ((cH+10) < planes[i].curY))) {
+					psFrame.removeChild(document.getElementById(planes[i].id));
+					planes.splice(i,1);
+					planeNR--;
+					improperExits++;
+					return;
+				} else if ((planes[i].flightMode == 9) && ((planes[i].curX < -10) || ((cW+10) < planes[i].curX) || (planes[i].curY < -10) || ((cH+10) < planes[i].curY))) {
+					planes.splice(i,1);
+					return;
+				}
+			};
+		};
+			
+		function speedChange(plane) {
+			if (plane.speed < plane.newSpeed) { plane.speed += plane.speedStep; }
+			else if (plane.speed > plane.newSpeed) { plane.speed -= plane.speedStep; }
+		}
+		  
+		function altChange(plane) {
+			if (plane.altitude < plane.newAlt) {
+				if (plane.altitude >= (plane.newAlt-1.5*plane.altStep)) {plane.altitude = plane.newAlt}
+				else {plane.altitude += plane.altStep; }}
+			else if (plane.altitude > plane.newAlt) {
+				if (plane.altitude <= (plane.newAlt+1.5*plane.altStep)) {plane.altitude = plane.newAlt}
+				else {plane.altitude -= plane.altStep; }}
+		}
+		
+		function turning(plane) {
+			// headingReset
+			if (plane.heading <= 0) {
+			  plane.heading += 360;
+			  return;
+			} else if (plane.heading > 360) {
+			  plane.heading -= 360;
+			  return;
+			}
+			// turning
+			if ((plane.heading < plane.newHeading) && (plane.newHeading <= (plane.heading + 180))) {
+			  if (plane.heading + 3 >= plane.newHeading) {
+				plane.heading = plane.newHeading;
+			  } else {
+				plane.heading += plane.turnStep;
+			  }
+			} else if (plane.newHeading > (plane.heading + 180)) {
+			  plane.heading -= plane.turnStep;
+			} else if ((plane.heading > plane.newHeading) && (plane.newHeading >= (plane.heading - 180))) {
+				if (plane.heading - 3 <= plane.newHeading) {
+				  plane.heading = plane.newHeading;
+				} else {
+				  plane.heading -= plane.turnStep;
+				}
+			} else if (plane.newHeading < (plane.heading - 180)) {
+			  plane.heading += plane.turnStep;
+			}
+		}
+		
+		function setHeading(plane) {
+		  var subX = (plane.destX - plane.curX);
+		  var subY = (plane.destY - plane.curY);
+		  var courseAngle = Math.round(Math.atan2(subY,subX) * (180/Math.PI));
+		  plane.newHeading = (0 < courseAngle) ? (courseAngle + 90) : ((courseAngle <= 0) && (-90 < courseAngle)) ? (90 + courseAngle) : (courseAngle <= -90) ? (courseAngle + 450) : courseAngle;
+		}
+		
+		// plane distance from destination
+		function distMeasure(plane) {
+			plane.distance = Math.round(Math.sqrt(Math.pow((plane.curX - plane.destX),2) + Math.pow((plane.curY - plane.destY),2)));
+		}
+		
+		function assignDest(plane) {
+			if (plane.destination != -1) {
+				setHeading(plane);
+			}
+		}
+		
+		function destReset(plane) {
+			plane.destination = -1;
+			plane.destX = 'undefined';
+			plane.destY = 'undefined';
+			plane.turnStep = 3;
+			if ((plane.flightMode != 8) && (plane.flightMode != 9)) {
+				plane.flightMode = 0;
+			}		
+		}
+		
+		function finalApproach(plane) {
+			plane.flightMode = 3;
+			plane.destX = runways[plane.destination][4];
+			plane.destY = runways[plane.destination][5];
+			plane.newAlt = 0;
+			plane.altStep = .25;
+			plane.newSpeed = 16;
+			plane.speedStep = .25;
+		}
+		
+		function landing(plane) {
+			plane.flightMode = 4;
+			plane.newHeading = runways[plane.destination][1];
+			plane.destination = -1;
+			plane.altitude = Math.round(plane.altitude);
+			plane.newAlt = 0;
+			plane.altStep = 1;
+			plane.newSpeed = 0;
+			plane.speedStep = .5;
+		}
+		
+		function waiting(resid) {
+			var userCommand = document.getElementById("instructionText").value;
+			var res = userCommand.toUpperCase().split(" ");
+				if (planes[resid].flightMode == 5) {
+					function waitingSTO() {
+						for (var i=0; i<runways.length; i++) {
+							if (res[2] == runways[i][0]) {
+								planes[resid].flightMode = 6;
+								planes[resid].curX = runways[i][4];
+								planes[resid].curY = runways[i][5];
+								planes[resid].heading = runways[i][1];
+								planes[resid].newHeading = runways[i][1];
+								planes[resid].destX = (runways[i][6]) + ((runways[i][6]) - (runways[i][4]));
+								planes[resid].destY = (runways[i][7]) + ((runways[i][7]) - (runways[i][5]));
+								planes[resid].altStep = .01;
+								planes[resid].speedStep = 1;
+								for (var j=0; j<navObjects.length; j++) {
+									if ((res[3] == navObjects[j][0]) && ((40 <= parseInt(res[4])) && (parseInt(res[4]) <= 400))) {
+										planes[resid].destination = j;
+										planes[resid].destName = navObjects[j][0];
+										planes[resid].newAlt = res[4];
+									}
+								}
+							}
+						}
+					}
+				}
+			setTimeout(waitingSTO,10000);
+			document.getElementById("console").value = planes[resid].id + " cleared for line-up\n" + document.getElementById("console").value;
+		}
+		
+		function departing(plane) {
+			plane.destX = navObjects[plane.destination][1];
+			plane.destY = navObjects[plane.destination][2];
+			plane.flightMode = 8;
+			plane.newSpeed = 24;
+			plane.speedStep = .5;
+			plane.altStep = .5
+		}
+	
+		function takeOff(resid) {
+			var userCommand = document.getElementById("instructionText").value;
+			var res = userCommand.toUpperCase().split(" ");	
+			if (planes[resid].flightMode == 5) {
+				function takeOffSTO() {
+					for (var i=0; i<runways.length; i++) {
+						if (res[2] == runways[i][0]) {
+							planes[resid].flightMode = 7;
+							planes[resid].curX = runways[i][4];
+							planes[resid].curY = runways[i][5];
+							planes[resid].heading = runways[i][1];
+							planes[resid].newHeading = runways[i][1];
+							planes[resid].destX = (runways[i][6]) + ((runways[i][6]) - (runways[i][4]));
+							planes[resid].destY = (runways[i][7]) + ((runways[i][7]) - (runways[i][5]));
+							planes[resid].altStep = .01;
+							planes[resid].newSpeed = 16;
+							planes[resid].speedStep = 1;
+							for (var j=0; j<navObjects.length; j++) {
+								if ((res[3] == navObjects[j][0]) && ((40 <= parseInt(res[4])) && (parseInt(res[4]) <= 400))) {
+									planes[resid].destination = j;
+									planes[resid].newAlt = res[4];
+								}
+							}
+						}
+					}
+				}
+				setTimeout(takeOffSTO,10000);
+				document.getElementById("console").value = planes[resid].id + " cleared for take-off\n" + document.getElementById("console").value;
+			}
+		}
+	
+		function distCheck(plane) {
+			if ((plane.flightMode == 0) && (plane.distance < 3)) {
+				destReset(plane);
+				return;
+			} else if ((plane.flightMode == 2) && (plane.distance <= 20)) {
+				if (Math.abs(runways[plane.destination][1] - plane.heading) <= 20) {
+					finalApproach(plane);
+					return;
+				} else {
+					destReset(plane);
+					plane.newAlt = 40;
+					missedApproaches++;
+					document.getElementById("console").value = plane.id + " missed approach!\n" + document.getElementById("console").value;
+					return;
+				}
+			} else if ((plane.flightMode == 3) && (plane.distance <= 10)) {
+				landing(plane);
+				return;
+			} else if ((plane.flightMode == 7) && (plane.distance <= 6)) {
+				departing(plane);
+				return;
+			}
+		}
+	
+		function usercmdToConsole(userCommand) {
+			document.getElementById("console").value = userCommand + "\n" + document.getElementById("console").value;
+			document.getElementById('instructionText').value=''; // clearing the input field
+		}
+	
+		function doInstruction() {
+			var userCommand = document.getElementById("instructionText").value;
+			if (userCommand.toUpperCase() == "P") {
+				fnPausing();
+				return;
+			} else if (userCommand.toUpperCase() == "EXIT") {
+				endSim();
+				return;
+			};
+			
+			var res = userCommand.toUpperCase().split(" ");    // splits user command at "space(S)" into tokens - creates an array of strings.
+			
+			for (var i=0; i<planes.length; i++) {
+				if (res[0] == planes[i].id) {
+					resid = i;
+				}
+			};
+			var cmd = res[1];
+			
+			if (cmd == 'H') {
+				if (planes[resid].flightMode == 9) {
+					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+				} else {
+					if ((0 < res[2]) && (res[2] <= 360)) {
+							destReset(planes[resid]);
+							planes[resid].newHeading = parseInt(res[2]);
+							usercmdToConsole(userCommand);
+							resid = -1;
+							return;
+					} else {
+						for (var i=0; i<navObjects.length; i++) {
+							if ((res[2] == navObjects[i][0]) && (res[3] != 'HP')) {
+							  planes[resid].destination = i;
+							  planes[resid].destX = navObjects[i][1];
+							  planes[resid].destY = navObjects[i][2];
+							  planes[resid].turnStep = 3;
+							  if  (planes[resid].flightMode != 8) {
+								planes[resid].flightMode = 0;
+							  }
+							  usercmdToConsole(userCommand);
+							  resid = -1;
+							  return;
+							} else if ((res[2] == navObjects[i][0]) && (res[3] == 'HP')) {
+								if  (planes[resid].flightMode == 8) {
+									document.getElementById("console").value = "Invalid Command!\n" + document.getElementById("console").value;
+									document.getElementById('instructionText').value='';
+									resid = -1;
+									return;
+								} else {
+									planes[resid].destination = i;
+									planes[resid].destX = navObjects[i][1];
+									planes[resid].destY = navObjects[i][2];
+									planes[resid].flightMode = 1;
+									planes[resid].turnStep = 6;
+									usercmdToConsole(userCommand);
+									resid = -1;
+									return;
+								}
+							}
+						}
+					}
+				}
+			} else if (cmd == 'L') {
+				if (planes[resid].flightMode == 9) {
+					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+				} else {
+					for (var i=0; i<runways.length; i++) {
+						var distToRunway = Math.round(Math.sqrt(Math.pow((planes[resid].curX - runways[i][2]),2) + Math.pow((planes[resid].curY - runways[i][3]),2)));
+						if ((res[2] == runways[i][0]) && (Math.abs(runways[i][1] - planes[resid].heading) <= 20) && (planes[resid].altitude <= 40)) {
+							planes[resid].destination = i;
+							planes[resid].destX = runways[i][2];
+							planes[resid].destY = runways[i][3];
+							planes[resid].newAlt = 20;
+							planes[resid].altStep = .5;
+							planes[resid].flightMode = 2;
+							planes[resid].newSpeed = 20;
+							planes[resid].speedStep = .5;
+							planes[resid].destName = runways[i][0];
+							usercmdToConsole(userCommand);
+							document.getElementById("console").value = planes[resid].id + " cleared for landing\n" + document.getElementById("console").value;
+							resid = -1;
+							return;
+						}
+					}
+				}
+			} else if (cmd == 'T') {
+				if (planes[resid].flightMode == 5){
+					takeOff(resid);
+					usercmdToConsole(userCommand);
+					resid = -1;
+					return;
+				} else if (planes[resid].flightMode == 6) {
+					planes[resid].flightMode = 7;
+					planes[resid].newSpeed = 16;
+					document.getElementById("console").value = planes[resid].id + " cleared for take-off\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+				} else {
+					document.getElementById("console").value = "Invalid Command!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+				}
+				
+			} else if (cmd == 'W') {
+				if (planes[resid].flightMode == 5){
+					waiting(resid);
+					usercmdToConsole(userCommand);
+					resid = -1;
+					return;
+				} else {
+					document.getElementById("console").value = "Invalid Command!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+				}
+				
+			} else if (cmd == 'S') {
+				if (planes[resid].flightMode == 9) {
+					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+				} else {
+				   if ((16 <= parseInt(res[2])) && (parseInt(res[2]) <= 30)) {
+					planes[resid].newSpeed = parseInt(res[2]);
+					usercmdToConsole(userCommand);
+					resid = -1;
+					return;
+				  } else {
+					document.getElementById("console").value = "Invalid velocity clearance!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+				  }
+			}
+			
+			} else if (cmd == 'A') {
+				if (planes[resid].flightMode == 9) {
+					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+				} else {
+					if ((20 <= parseInt(res[2])) && (parseInt(res[2]) < 400)) {
+						planes[resid].newAlt = parseInt(res[2]);
+						usercmdToConsole(userCommand);
+						resid = -1;
+					return;
+					}
+					else {
+					document.getElementById("console").value = "Invalid altitude clearance!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+					}
+			}
+					
+			} else {
+				document.getElementById("console").value = "Invalid command!\n" + document.getElementById("console").value;
+				document.getElementById('instructionText').value='';
+				resid = -1;
+				return;
+			}
+		};
+	  
+		// Transmit with 'enter' key
+		document.getElementById("instructionText").addEventListener("keyup", function(enterKey) {
+			enterKey.preventDefault();
+			if (enterKey.keyCode == 13) {
+				document.getElementById("transmitBtn").click();
+			}
+		}); 
+	  
+		function fnPausing() {
+			if (pausing == false) {
+				pausing = true;
+				document.getElementById("pauseBtn").value = "Resume";
+				document.getElementById("console").value = "Landings: " + successfulLandings +  "\n" + "Hand-offs: " + successfulHandoffs +  "\n" + "Missed approaches: " + missedApproaches +  "\n" + "Improper exits: " + improperExits + "\n" + "Separ. violation: " + sepViolation + "sec\n" + "Paused\n" + document.getElementById("console").value;
+				document.getElementById('instructionText').value='';
+				return;
+			} else {
+				pausing = false;
+				document.getElementById("pauseBtn").value = "Pause";
+				document.getElementById("console").value = "Resumed\n" + document.getElementById("console").value;
+				document.getElementById('instructionText').value='';
+				return;
+			}
+		}
+		
+		function endSim() {
+			pausing = true;
+			endModal.style.display = "block";
+			document.getElementById("successfulLandings").innerHTML = successfulLandings;
+			document.getElementById("successfulHandoffs").innerHTML = successfulHandoffs;
+			document.getElementById("missedApproaches").innerHTML = missedApproaches;
+			document.getElementById("improperExits").innerHTML = improperExits;
+			document.getElementById("sepViolation").innerHTML = sepViolation;
+		}
+	  
+		window.requestAnimFrame = (function(callback) {
+			return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+			function(callback) {
+				window.setTimeout(callback, 1000);
+			};
+		})();
+	  
+		// Runway
+		function drawRunways(context) {
+			for (var i=0; i<runways.length; i=(i+2)) {
+				context.beginPath();
+				context.moveTo(runways[i][4], runways[i][5]);
+				context.lineTo(runways[i+1][4], runways[i+1][5]);
+				context.lineWidth = 2;
+				context.strokeStyle = 'rgba(150,190,190,1)';
+				context.font="10px Arial";
+				context.fillStyle = 'rgba(150,190,190,1)';
+				context.fillText(runways[i][0], runways[i][8], runways[i][9]);
+				context.fillText(runways[i+1][0], runways[i+1][8], runways[i+1][9]);
+				context.stroke();
+			}
+		}
+
+		function drawNavObj(navObjects, context) {
+			context.beginPath();
+			context.arc(navObjects[1], navObjects[2],5,0,2*Math.PI);
+			context.moveTo(navObjects[1]-1, navObjects[2]-1);
+			context.lineTo(navObjects[1]+1, navObjects[2]-1);
+			context.lineTo(navObjects[1]+1, navObjects[2]+1);
+			context.lineTo(navObjects[1]-1, navObjects[2]+1);
+			context.lineTo(navObjects[1]-1, navObjects[2]-1);
+			context.lineWidth = 1;
+			context.strokeStyle = 'rgba(150,190,190,1)';
+			context.font="10px Arial";
+			context.fillStyle = 'rgba(150,190,190,1)';
+			context.fillText(navObjects[0],navObjects[1]+10, navObjects[2]+2);
+			context.stroke();
+		}
+	
+		// square symbol of aircraft
+		function drawPlane(plane, context) {
+			var consArrow;
+					if (plane.altitude < plane.newAlt) {
+						consArrow = "\u2191";
+					} else if (plane.altitude > plane.newAlt) {
+						consArrow = "\u2193";
+					} else {
+						consArrow = "-";
+					}
+			if (plane.flightMode == 9) {
+				context.beginPath();
+				context.moveTo(plane.curX-3, plane.curY-3);
+				context.lineTo(plane.curX+3, plane.curY-3);
+				context.lineTo(plane.curX+3, plane.curY+3);
+				context.lineTo(plane.curX-3, plane.curY+3);
+				context.lineTo(plane.curX-3, plane.curY-3);
+				context.lineWidth = 1;
+				context.strokeStyle = 'rgba(130,130,130,1)';
+				context.font="12px Sans-serif";
+				context.fillStyle = 'rgba(130,130,130,1)';
+				context.fillText(plane.id, plane.curX, plane.curY-34);
+				context.font="11px Sans-serif";
+				context.fillText(leadingZeros(Math.floor(Math.round(plane.altitude)), 3), plane.curX, plane.curY-20);
+				context.fillText(consArrow, plane.curX+20, plane.curY-20);
+				context.fillText(leadingZeros(Math.floor(Math.round(plane.speed)), 2), plane.curX+30, plane.curY-20);
+				context.stroke();
+			} else if (plane.flightMode != 5) {
+				context.beginPath();
+				context.moveTo(plane.curX-3, plane.curY-3);
+				context.lineTo(plane.curX+3, plane.curY-3);
+				context.lineTo(plane.curX+3, plane.curY+3);
+				context.lineTo(plane.curX-3, plane.curY+3);
+				context.lineTo(plane.curX-3, plane.curY-3);
+				context.lineWidth = 1;
+				context.strokeStyle = 'white';
+				context.font="12px Sans-serif";
+				context.fillStyle = 'white';
+				context.fillText(plane.id, plane.curX, plane.curY-34);
+				context.font="11px Sans-serif";
+				context.fillText(leadingZeros(Math.floor(Math.round(plane.altitude)), 3), plane.curX, plane.curY-20);
+				context.fillText(consArrow, plane.curX+20, plane.curY-20);
+				context.fillText(leadingZeros(Math.floor(Math.round(plane.speed)), 2), plane.curX+30, plane.curY-20);
+				context.stroke();	
+			}
+		}
+	  
+		// plane trail line
+		function drawTrail(plane, context) {
+			for (var i=0; i<planes.length; i++) {
+				context.beginPath();
+				context.moveTo(planes[i].curX, planes[i].curY);
+				context.lineTo(planes[i].curX - (Math.cos((planes[i].heading-90)*(Math.PI/180)) * planes[i].speed), planes[i].curY - (Math.sin((planes[i].heading-90)*(Math.PI/180)) * planes[i].speed));
+				if (planes[i].flightMode == 9) {
+					context.strokeStyle = 'rgba(110,110,110,1)'
+				} else {context.strokeStyle = 'rgba(200,200,200,1)'};
+				context.lineWidth = 1;
+				context.stroke();
+			}
+		}
+		
+		function drawSepCircle(x,y,context) {
+			context.beginPath();
+			context.arc(x,y,57,0,2*Math.PI);
+			context.linewidth = 1;
+			context.strokeStyle = 'red';
+			context.stroke();
+		}
+		
+		// Separation check
+		function fnSeparation(plane) {
+			for (var i=0; i<planes.length; i++) {
+				for (var j=0; j<planes.length; j++) {
+					var sepDist = Math.round(Math.sqrt(Math.pow((planes[i].curX - planes[j].curX),2) + Math.pow((planes[i].curY - planes[j].curY),2)));
+					var sepVert = Math.abs(planes[i].altitude - planes[j].altitude);
+					if ((planes[i].id != planes[j].id) && (sepDist < 2) && (sepVert < 2)) {
+						psFrame.removeChild(document.getElementById(planes[i].id));
+						psFrame.removeChild(document.getElementById(planes[j].id));
+						planes.splice(i,1);
+						planes.splice(j,1);
+						planeNR = planeNR-2;
+						fnPausing();
+						alert("Collision! - Game Over");
+						return;
+					} else if ((planes[i].id != planes[j].id) && (sepDist < 57) && (sepVert < 10) && ((([0,1,2,3,8].indexOf(planes[i].flightMode)) != -1) && (([0,1,2,3,8].indexOf(planes[j].flightMode)) != -1))) {
+						drawSepCircle(planes[i].curX,planes[i].curY,context);
+						drawSepCircle(planes[j].curX,planes[j].curY,context);
+						sepViolation++;
+					}
+				}
+			}
+		}
+	  
+		function heading(plane) {
+			for (var i=0; i<planes.length; i++){
+				planes[i].curX = planes[i].curX + (Math.cos((planes[i].heading-90)*(Math.PI/180)) * (planes[i].speed/10));
+				planes[i].curY = planes[i].curY + (Math.sin((planes[i].heading-90)*(Math.PI/180)) * (planes[i].speed/10));
+			}
+		}
+		
+		function animate(canvas, context, startTime, plane) {
+			// update
+			var time = (new Date()).getTime() - startTime;
+			if (time > 1000 && (pausing != true)) {
+				startTime = (new Date()).getTime();
+				
+				// window refresh
+				context.clearRect(0, 0, canvas.width, canvas.height);
+				
+				for (var i=0; i<navObjects.length; i++) {
+					drawNavObj(navObjects[i], context);
+				}
+				
+				updateStatScreen();
+				
+				getFlightid();
+				drawRunways(context);
+				heading(planes[i]);
+				drawTrail(planes[i], context);
+				removePlane();
+				fnSeparation(plane);
+				for (var i=0; i<planes.length; i++) {
+					drawPlane(planes[i], context);
+					turning(planes[i]);
+					speedChange(planes[i]);
+					altChange(planes[i]);
+					distMeasure(planes[i]);
+					distCheck(planes[i]);
+					assignDest(planes[i]);
+					progressStrips(planes[i]);
+				}
+			}
+	
+			// request new frame
+			requestAnimFrame(function() {
+				animate(canvas, context, startTime);
+			});
+		}
+		
+		window.onload = function() {
+			screenSize();
+			modal.style.display = "block";
+			document.getElementById('instructionText').focus();
+			document.getElementById("console").value = "Welcome to Privo-ATC!" + document.getElementById("console").value;
+			document.getElementById('instructionText').value='';
+			return;	
+ 		}
+		
+		function setOpts() {
+			var selDifficulty = document.getElementById("Difficulty").value;
+			var selAirport = document.getElementById("Airports").value;
+			selMode = document.getElementById("GameMode").value;
+			startSim(selDifficulty, selAirport);
+		}
+		
+		function startSim(selDifficulty, selAirport) {
+			modal.style.display = "none";
+			var startTime = (new Date()).getTime();
+			var d = document.createElement('div');
+			titleDiv.removeChild(document.getElementById('titleAirport'));
+			titleDiv.removeChild(document.getElementById('titleCode'));
+			titleDiv.removeChild(document.getElementById('titleElev'));
+			switch (selAirport) {
+				case 'LHBP':
+					initLHBP();
+					d.setAttribute('id', 'titleAirport');
+					d.appendChild(document.createElement('div'));
+					d.childNodes[0].innerHTML = '<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>';
+					titleDiv.appendChild(d);
+					break;
+				case 'EGLL':
+					initEGLL();
+					d.setAttribute('id', 'titleAirport');
+					d.appendChild(document.createElement('div'));
+					d.childNodes[0].innerHTML = '<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>';
+					titleDiv.appendChild(d);
+					break;
+				case 'EPWA':
+					initEPWA();
+					d.setAttribute('id', 'titleAirport');
+					d.appendChild(document.createElement('div'));
+					d.childNodes[0].innerHTML = '<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>';
+					titleDiv.appendChild(d);
+					break;
+				case 'KSEA':
+					initKSEA();
+					d.setAttribute('id', 'titleAirport');
+					d.appendChild(document.createElement('div'));
+					d.childNodes[0].innerHTML = '<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>';
+					titleDiv.appendChild(d);
+					break;
+			}
+			animate(canvas, context, startTime);
+			drawRunways(context);
+			newPlane();
+			setInterval(newPlane,(planeFreq(20,60) * selDifficulty));	//Easy=4000, Normal=2000, Difficult=1000
+		}
+    </script>
+  </body>
+</html>
+  
+  
+  
+	  
