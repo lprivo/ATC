@@ -639,6 +639,14 @@ Followed by the clearance type and its parameters as below:
 			}
 		}
 	
+		fuction checkHandover(resid) {
+			if (planes[resid].flightMode == 9) {
+					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
+					document.getElementById('instructionText').value='';
+					resid = -1;
+					return;
+		}
+
 		function usercmdToConsole(userCommand) {
 			document.getElementById("console").value = userCommand + "\n" + document.getElementById("console").value;
 			document.getElementById('instructionText').value=''; // clearing the input field
@@ -664,12 +672,7 @@ Followed by the clearance type and its parameters as below:
 			var cmd = res[1];
 			
 			if (cmd == 'H') {
-				if (planes[resid].flightMode == 9) {
-					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
-					document.getElementById('instructionText').value='';
-					resid = -1;
-					return;
-				} else {
+				checkHandover(resid);
 					if ((0 < res[2]) && (res[2] <= 360)) {
 							destReset(planes[resid]);
 							planes[resid].newHeading = parseInt(res[2]);
@@ -708,14 +711,8 @@ Followed by the clearance type and its parameters as below:
 							}
 						}
 					}
-				}
 			} else if (cmd == 'L') {
-				if (planes[resid].flightMode == 9) {
-					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
-					document.getElementById('instructionText').value='';
-					resid = -1;
-					return;
-				} else {
+				checkHandover(resid);
 					for (var i=0; i<runways.length; i++) {
 						var distToRunway = Math.round(Math.sqrt(Math.pow((planes[resid].curX - runways[i][2]),2) + Math.pow((planes[resid].curY - runways[i][3]),2)));
 						if ((res[2] == runways[i][0]) && (Math.abs(runways[i][1] - planes[resid].heading) <= 20) && (planes[resid].altitude <= 40)) {
@@ -734,7 +731,6 @@ Followed by the clearance type and its parameters as below:
 							return;
 						}
 					}
-				}
 			} else if (cmd == 'T') {
 				if (planes[resid].flightMode == 5){
 					takeOff(resid);
@@ -769,12 +765,7 @@ Followed by the clearance type and its parameters as below:
 				}
 				
 			} else if (cmd == 'S') {
-				if (planes[resid].flightMode == 9) {
-					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
-					document.getElementById('instructionText').value='';
-					resid = -1;
-					return;
-				} else {
+				checkHandover(resid);
 				   if ((16 <= parseInt(res[2])) && (parseInt(res[2]) <= 30)) {
 					planes[resid].newSpeed = parseInt(res[2]);
 					usercmdToConsole(userCommand);
@@ -786,15 +777,9 @@ Followed by the clearance type and its parameters as below:
 					resid = -1;
 					return;
 				  }
-			}
 			
 			} else if (cmd == 'A') {
-				if (planes[resid].flightMode == 9) {
-					document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
-					document.getElementById('instructionText').value='';
-					resid = -1;
-					return;
-				} else {
+				checkHandover(resid);
 					if ((20 <= parseInt(res[2])) && (parseInt(res[2]) < 400)) {
 						planes[resid].newAlt = parseInt(res[2]);
 						usercmdToConsole(userCommand);
@@ -807,7 +792,6 @@ Followed by the clearance type and its parameters as below:
 					resid = -1;
 					return;
 					}
-			}
 					
 			} else {
 				document.getElementById("console").value = "Invalid command!\n" + document.getElementById("console").value;
