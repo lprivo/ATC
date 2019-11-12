@@ -1,145 +1,187 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
   <head>
-	<title>Privo ATC Simulator</title>
-	<meta charset="utf-8" />
-	<meta http-equiv="Cache-Control" content="no-cache">
-    <style type="text/css">
-      html, body { width: 100%; height: 100%; margin: 0px; padding: 0px; overflow: hidden; background-color: #105868; }
-	  #myCanvas { margin: 0px 310px 0px 0px; display: inline-block; float: right; background-color: #103848; background-repeat: no-repeat; background-size: contain; }
-	  #psFrame { position: relative; width: 100%; height: 390px; margin: 0px; padding: 0px; overflow: auto; font-family: Arial; font-size: 12px; background: #ccc; }
-	  #controlPanel { width: 310px; height: 100%; display: inline-block; top: 0; right: 0; position: absolute; margin: 0px; background-color: #909090; }
-	  #instructionText { width: 145px; }
-	  #transmitBtn { float: left; display: inline-block; margin-bottom: 4px; width: 70px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
-	  #transmitBtn:active { background-color: #eee; border: inset 1px #505050; }
-	  #pauseBtn { float: right; display: inline-block; margin-bottom: 4px; width: 70px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
-	  #pauseBtn:active { background-color: #eee; border: inset 1px #505050; }
-	  #helpBtn { float: left; display: inline-block; margin-bottom: 4px; width: 70px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
-	  #helpBtn:active { background-color: #eee; border: inset 1px #505050; }
-	  #statsBtn { float: right; display: inline-block; margin-bottom: 4px; width: 70px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
-	  #statsBtn:active { background-color: #eee; border: inset 1px #505050; }
-	  #console { width: 143px; height: 200px; background-color: #eee; font-family: Arial; font-size: 12px; }
-	  #endBtn { display: block; margin: 0px auto 4px auto; width: 100px; padding: 3px 7px; border: outset 1px #202020; border-radius: 3px; color: #202020; font-family: Arial; font-size: 12px; font-weight: bold; text-decoration: none; text-shadow: none; background-color: #bbb; cursor: pointer; }
-	  #endBtn:active { background-color: #eee; border: inset 1px #505050; }
-	  #infoScreen { position: relative; margin: 0px; padding: 0px; width: 304px; height: 310px; display: none; overflow-y: auto; background-color: #ccc; font-family: Arial; font-size: 13px; }
-	  #statScreen { position: absolute; margin: 0px; padding: 0px; top: 405px; width: 304px; height: 310px; display: none; background-color: #ccc; font-family: Arial; font-size: 13px; }
-	  #endTable { width: 90%; }
-	  #backbtn { width: 110px; height: 18px; margin: auto; border: 1 solid black; border-radius: 3px; background-color: #ddd; font-size: 14px; }
-	  #backbtn:active { background-color: #eee; }
-	  .returnButton { margin: 5px auto 10px auto; }
-	  .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgb(0,0,0); background-color: rgba(0,0,0,0.4); }
-	  .modal-content { background-color: #709090; margin: 15% auto; padding: 20px; border: 1px solid #888; border-radius: 5px; width: 13%; }
-	  .endModal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgb(0,0,0); background-color: rgba(0,0,0,0.4); }
-	  .endModal-content { background-color: #709090; margin: 10% auto; padding: 20px; border: 1px solid #888; border-radius: 5px; width: 25%; color: white; }
-	  .endTd { width: 250px; }
-	  .endTd2 { width: 20px; }
-	  .psArrival { margin: 2px 0px 2px 0px; padding: 0px; height: 34px; display: block; cursor: pointer; background-color: #fce4d6; }
-	  .psArrival:active { background-color: #fff; }
-	  .psDeparture { margin: 2px 0px 2px 0px; padding: 0px; height: 34px; display: block; cursor: pointer; background-color: #c1eede; }
-	  .psDeparture:active { background-color: #fff; }
-	  .flightData { font-family: Arial; font-size: 12px; }
-	  .pad3 { padding: 3px; }
-	  .block2 { height: 2px; font-size: 1px; line-height: 1px; }
-	  .block4 { height: 4px; font-size: 1px; line-height: 1px; }
-	  .block10 { height: 10px; font-size: 1px; line-height: 1px; }
-	  .panels { width: 155px; height: 405px; display: inline-block; float: left; position: relative; background-color: #909090; }
-	  .pstd { width: 90px; }
-	  h5 { margin: 5px 2px 2px 2px; font-weight: bold; font-family: Courier; }
-	  h6 { margin: 2px; font-size: 12px; font-weight: bold; font-family: Courier; }
-	  
-    </style>
-	<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-	<link rel="icon" href="Images/ATC_logo_icon.png">
+    <title>Privo ATC Simulator</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <link rel="stylesheet" type="text/css" href="./src/theme/atc.css" />
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <link rel="icon" href="./src/Images/ATC_logo_icon.png" />
   </head>
   <body>
-	<div id="startModal" class="modal">
-		<div class="modal-content">
-			<form id="startform" method="post" action="">
-				<table>
-				<tr><td>
-					<select id="Airports">
-						<option hidden="true">Please select an airport</option>
-						<option value="LHBP" selected="selected">Budapest - Liszt Ferenc</option>
-						<option value="EGLL">London - Heathrow</option>
-						<option value="EPWA">Warsaw - Chopin</option>
-						<option value="KSEA">Seattle-Tacoma Intl.</option>
-					</select>
-				</td></tr>
-				<tr><td>
-					<select id="Difficulty">
-						<option hidden="true">Please select a difficulty</option>
-						<option value="4000">Easy</option>
-						<option value="3000" selected="selected">Normal</option>
-						<option value="2000">Rush hour</option>
-					</select>
-				</td></tr>
-				<tr><td>
-					<select id="GameMode">
-						<option hidden="true">Please select a game mode</option>
-						<option value=".5" selected="selected">Arrivals & Departures</option>
-						<option value="1.0">Arrivals only</option>
-						<option value="0">Departures only</option>
-					</select>
-				</td></tr>
-				<tr><td>
-					<input type="button" id="startbutton" value="Start simulation" onclick="setOpts()" autofocus />
-				</td></tr>
-				</table>
-			</form>
-		</div>
-	</div>
+    <div id="startModal" class="modal">
+      <div class="modal-content">
+        <form id="startform" method="post" action="">
+          <table>
+            <tr>
+              <td>
+                <select id="Airports">
+                  <option hidden="true">Please select an airport</option>
+                  <option value="LHBP" selected="selected"
+                    >Budapest - Liszt Ferenc</option
+                  >
+                  <option value="EGLL">London - Heathrow</option>
+                  <option value="EPWA">Warsaw - Chopin</option>
+                  <option value="KSEA">Seattle-Tacoma Intl.</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <select id="Difficulty">
+                  <option hidden="true">Please select a difficulty</option>
+                  <option value="4000">Easy</option>
+                  <option value="3000" selected="selected">Normal</option>
+                  <option value="2000">Rush hour</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <select id="GameMode">
+                  <option hidden="true">Please select a game mode</option>
+                  <option value=".5" selected="selected"
+                    >Arrivals & Departures</option
+                  >
+                  <option value="1.0">Arrivals only</option>
+                  <option value="0">Departures only</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input
+                  type="button"
+                  id="startbutton"
+                  value="Start simulation"
+                  onclick="setOpts()"
+                  autofocus
+                />
+              </td>
+            </tr>
+          </table>
+        </form>
+      </div>
+    </div>
 
-	<div id="endModal" class="endModal">
-		<div class="endModal-content">
-			<form id="endform" method="post" action="index.html">
-				<table id="endTable">
-				<tr><td class="endTd">Thanks for trying out my ATC simulator!</td></tr>
-				<tr><td class="endTd">Your final results are below:</td></tr>
-				<tr><td class="endTd">Successful landings: </td><td id="successfulLandings" class="endTd2"></td></tr>
-				<tr><td class="endTd">Successful handoffs: </td><td id="successfulHandoffs" class="endTd2"></td></tr>
-				<tr><td class="endTd">Missed approaches: </td><td id="missedApproaches" class="endTd2"></td></tr>
-				<tr><td class="endTd">Improper exits: </td><td id="improperExits" class="endTd2"></td></tr>
-				<tr><td class="endTd">Separation violation: </td><td id="sepViolation" class="endTd2"></td><td class="endTd2">sec</td></tr>
-				<tr><td class="returnButton">
-					<!-- <input type="submit" id="returnButton" value="Back to Start Page" autofocus /> -->
-				</td></tr>
-				</table>
-			</form>
-			<div id="backbtn"><a href="index.html">Back to Start Page</a></div>
-		</div>
-	</div>
-	
-	<div id="controlPanel">
-		<div class="panels"><div class="pad3">
-			<div id="psFrame"></div>
-			<div class="block4"></div>
-		</div></div>
-		<div class="panels"><div class="pad3">
-			<div id="titleDiv">
-				<h5 id="titleAirport">Airport</h5>
-				<h6 id="titleCode">ICAO:     | IATA:</h6>
-				<h6 id="titleElev">Elevation:</h6>
-			</div>
-			<div class="block10"></div>
-			<div><input type="text" id="instructionText" placeholder="instructions"  onfocus="txtfocus=true" onblur="txtfocus=false" autocomplete="off"></div>
-			<div class="block4"></div>
-			<div>
-				<input type="button" id="transmitBtn" class="btns" value="Transmit" onClick="doInstruction()">
-				<input type="button" id="pauseBtn" class="btns" value="Pause" onClick="fnPausing()">
-			</div>
-			<div class="block4"></div>
-			<div><textarea readonly id="console"></textarea></div>
-			<div class="block4"></div>
-			<div>			
-				<input type="button" id="helpBtn" class="btns" value="Help" onClick="showInfoscreen()">
-				<input type="button" id="statsBtn" class="btns" value="Stats" onClick="showStatscreen()">
-			</div>
-			<div class="block4"></div>
-			<div><input type="button" id="endBtn" value="End Simulation" onClick="endSim()"></div>
-		</div></div>
-		<div class="block4"></div>
-		<div><div class="pad3">
-			<textarea readonly id="infoScreen">
+    <div id="endModal" class="endModal">
+      <div class="endModal-content">
+        <form id="endform" method="post" action="index.html">
+          <table id="endTable">
+            <tr>
+              <td class="endTd">Thanks for trying out my ATC simulator!</td>
+            </tr>
+            <tr>
+              <td class="endTd">Your final results are below:</td>
+            </tr>
+            <tr>
+              <td class="endTd">Successful landings:</td>
+              <td id="successfulLandings" class="endTd2"></td>
+            </tr>
+            <tr>
+              <td class="endTd">Successful handoffs:</td>
+              <td id="successfulHandoffs" class="endTd2"></td>
+            </tr>
+            <tr>
+              <td class="endTd">Missed approaches:</td>
+              <td id="missedApproaches" class="endTd2"></td>
+            </tr>
+            <tr>
+              <td class="endTd">Improper exits:</td>
+              <td id="improperExits" class="endTd2"></td>
+            </tr>
+            <tr>
+              <td class="endTd">Separation violation:</td>
+              <td id="sepViolation" class="endTd2"></td>
+              <td class="endTd2">sec</td>
+            </tr>
+            <tr>
+              <td class="returnButton">
+                <!-- <input type="submit" id="returnButton" value="Back to Start Page" autofocus /> -->
+              </td>
+            </tr>
+          </table>
+        </form>
+        <div id="backbtn"><a href="index.html">Back to Start Page</a></div>
+      </div>
+    </div>
+
+    <div id="controlPanel">
+      <div class="panels">
+        <div class="pad3">
+          <div id="psFrame"></div>
+          <div class="block4"></div>
+        </div>
+      </div>
+      <div class="panels">
+        <div class="pad3">
+          <div id="titleDiv">
+            <h5 id="titleAirport">Airport</h5>
+            <h6 id="titleCode">ICAO: | IATA:</h6>
+            <h6 id="titleElev">Elevation:</h6>
+          </div>
+          <div class="block10"></div>
+          <div>
+            <input
+              type="text"
+              id="instructionText"
+              placeholder="instructions"
+              onfocus="txtfocus=true"
+              onblur="txtfocus=false"
+              autocomplete="off"
+            />
+          </div>
+          <div class="block4"></div>
+          <div>
+            <input
+              type="button"
+              id="transmitBtn"
+              class="btns"
+              value="Transmit"
+              onClick="doInstruction()"
+            />
+            <input
+              type="button"
+              id="pauseBtn"
+              class="btns"
+              value="Pause"
+              onClick="fnPausing()"
+            />
+          </div>
+          <div class="block4"></div>
+          <div><textarea readonly id="console"></textarea></div>
+          <div class="block4"></div>
+          <div>
+            <input
+              type="button"
+              id="helpBtn"
+              class="btns"
+              value="Help"
+              onClick="showInfoscreen()"
+            />
+            <input
+              type="button"
+              id="statsBtn"
+              class="btns"
+              value="Stats"
+              onClick="showStatscreen()"
+            />
+          </div>
+          <div class="block4"></div>
+          <div>
+            <input
+              type="button"
+              id="endBtn"
+              value="End Simulation"
+              onClick="endSim()"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="block4"></div>
+      <div>
+        <div class="pad3">
+          <textarea readonly id="infoScreen">
 
 	Commands consist of 2-5 parts divided by space(s).
 First part is the flight number (e.g. "AA001")
@@ -170,83 +212,86 @@ Followed by the clearance type and its parameters as below:
 - Type "EXIT" or press "End Simulaton" button to exit the game. Your final statistics will be shown.
 	
 	Notes: Aircraft need to be separated by at least 3NM laterally and 1000 feet vertically.
-			</textarea>
-			<div id="statScreen"></div>
-			</div>
-		</div>
-	</div>
-	<canvas id="myCanvas"></canvas>
-	<script type="text/javascript" src="SimControl.js"></script>
-	<script type="text/javascript" src="init_Airports.js"></script>
-	<script type="text/javascript" src="DrawObjects.js"></script>
-	<script type="text/javascript" src="UserInstructions.js"></script>
-	<script type="text/javascript" src="AircraftMovements.js"></script>
-	<script type="text/javascript" src="FlightModes.js"></script>
-	<script type="text/javascript">
-	  var modal = document.getElementById('startModal');
-	  var cW = (window.innerWidth - 310);
-	  var cH = window.innerHeight;			// cH/cW=.583
-	  var cHW = cW*.6;
-      var planeNR = 0;	// body canvas - style="background: #103848" 
+			</textarea
+          >
+          <div id="statScreen"></div>
+        </div>
+      </div>
+    </div>
+    <canvas id="myCanvas"></canvas>
+    <script type="text/javascript" src="SimControl.js"></script>
+    <script type="text/javascript" src="init_Airports.js"></script>
+    <script type="text/javascript" src="DrawObjects.js"></script>
+    <script type="text/javascript" src="UserInstructions.js"></script>
+    <script type="text/javascript" src="AircraftMovements.js"></script>
+    <script type="text/javascript" src="FlightModes.js"></script>
+    <script type="text/javascript">
+      var modal = document.getElementById("startModal");
+      var cW = window.innerWidth - 310;
+      var cH = window.innerHeight; // cH/cW=.583
+      var cHW = cW * 0.6;
+      var planeNR = 0; // body canvas - style="background: #103848"
       var planes = [];
       var runways = [];
-	  var airlnrCode = [];	//operating airliners' list
-	  var airlnrDistr = [];	//operating airliners's distribution - main operator + 4 groups by no. of aircrafts
-	  var destName;
-	  var entryPts = [];
-	  //var consoleText = document.getElementById('console').value;
-	  var userCommand;	// = document.getElementById("instructionText").value;
-	  var splitCommand = [];
+      var airlnrCode = []; //operating airliners' list
+      var airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+      var destName;
+      var entryPts = [];
+      //var consoleText = document.getElementById('console').value;
+      var userCommand; // = document.getElementById("instructionText").value;
+      var splitCommand = [];
       var pausing = false;
-	  var resid;
-	  var entryAlt = [50,50,60,60,60,70,70,70,70,80,80,80];
-	  var navObjects = [];
-	  var successfulLandings = 0;
-	  var successfulHandoffs = 0;
-	  var improperExits = 0;
-	  var missedApproaches = 0;
-	  var sepViolation = 0;
-	  var canvas = document.getElementById('myCanvas');
-      var context = canvas.getContext('2d');
-	  var psFrame = document.getElementById('psFrame');
-	  var selMode;	
-		  
-	  window.requestAnimFrame = (function(callback) {
-			return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
-			function(callback) {
-				window.setTimeout(callback, 1000);
-			};
-		})();
-		
-		function screenSize() {
-			canvas.width = cW;
-			canvas.height = cH;
-			return;
-		}
-		
-		window.addEventListener("resize", screenSize);
+      var resid;
+      var entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
+      var navObjects = [];
+      var successfulLandings = 0;
+      var successfulHandoffs = 0;
+      var improperExits = 0;
+      var missedApproaches = 0;
+      var sepViolation = 0;
+      var canvas = document.getElementById("myCanvas");
+      var context = canvas.getContext("2d");
+      var psFrame = document.getElementById("psFrame");
+      var selMode;
 
-		function promptInvalidCommTest() {
-			document.getElementById("console").value = "TEST Invalid Command!\n" + document.getElementById("console").value;
-			document.getElementById('instructionText').value='';
-			resid = -1;
-			return;
-		}
-	  
-		window.onload = function() {
-			screenSize();
-			modal.style.display = "block";
-			document.getElementById('instructionText').focus();
-			document.getElementById("console").value = "Welcome to Privo-ATC!" + document.getElementById("console").value;
-			document.getElementById('instructionText').value='';
-			return;	
- 		}
-		
+      window.requestAnimFrame = (function(callback) {
+        return (
+          window.requestAnimationFrame ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          window.oRequestAnimationFrame ||
+          window.msRequestAnimationFrame ||
+          function(callback) {
+            window.setTimeout(callback, 1000);
+          }
+        );
+      })();
 
+      function screenSize() {
+        canvas.width = cW;
+        canvas.height = cH;
+        return;
+      }
+
+      window.addEventListener("resize", screenSize);
+
+      function promptInvalidCommTest() {
+        document.getElementById("console").value =
+          "TEST Invalid Command!\n" + document.getElementById("console").value;
+        document.getElementById("instructionText").value = "";
+        resid = -1;
+        return;
+      }
+
+      window.onload = function() {
+        screenSize();
+        modal.style.display = "block";
+        document.getElementById("instructionText").focus();
+        document.getElementById("console").value =
+          "Welcome to Privo-ATC!" + document.getElementById("console").value;
+        document.getElementById("instructionText").value = "";
+        return;
+      };
     </script>
   </body>
 </html>
-  
-  
-  
-	  

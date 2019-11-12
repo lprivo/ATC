@@ -1,80 +1,297 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
   <head>
-	<title>Privo ATC Start Page</title>
-	<meta charset="utf-8" />
-	<meta http-equiv="Cache-Control" content="no-cache">
-    <style type="text/css">
-      html, body { width: 100%; height: 100%; margin: 0px; padding: 0px; overflow: auto; font-family: verdana, courier; background-image: url("Images/backgroundRW.jpg"); background-repeat: no-repeat; background-color: #151515; }
-	  #all { width: 70%; height: 99%; margin: auto; }
-	  #header { width: 100%; height: 150px; margin: 0px auto auto auto; padding: 0px; top: 0px; background-image: url("Images/Header_background_small_ATC.jpg"); background-repeat: no-repeat; background-color: #ffd999; text-align: center; }
-	  #main { width: 100%; height: 75%; position: relative; margin: 0px auto; background-color: #f9f1e0; opacity: .7; }
-	  #startbutton { display: inline-block; position: absolute; margin: 0 0 0 30%; padding: 10px; top: 85%; width: 130px; height: 20px; border: 1px solid black; border-radius: 7px; background-color: #40dd80; opacity: 1; color: #ff5041; font-size: 14px; text-align: center; cursor: pointer; z-index: 1; }
-	  #startbutton:active { padding: 10px; background-color: #20bb60; }
-	  #footer { width: 100%; height: 5%; margin: 0px auto; padding: 0px; top: 95%; color: #fff; font-family: times; background-color: #353535; opacity: .8; z-index: 1; }
-	  #date { display: inline-block; width: 50px; height: 15px; margin: 0px auto; text-align: center; float: right; }
-	  #email { display: inline-block; width: 150px; height: 15px; margin: 0px auto; text-align: center; float: left: }
-	  #about { width: 47%; height: 75%; padding: 10px; display: inline-block; float: left; overflow-x: hidden; overflow-y: scroll; font-size: 14px; font-family: courier; border-right: 1px #cc4040; }
-	  #userguide { width: 47%; height: 75%; padding: 10px; display: inline-block; float: right; overflow-x: hidden; overflow-y: scroll; font-size: 14px; font-family: courier; border-left: 1px #cc4040; }
-	  h3 { position: relative; width: 300px; text-align: center; color: #cc4040; }
-	</style>
-	<link rel="icon" href="Images/ATC_logo_icon.png">
-	<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-	<script></script>
+    <title>Privo ATC Simulator</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <link rel="stylesheet" type="text/css" href="./src/theme/atc.css" />
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <link rel="icon" href="./src/Images/ATC_logo_icon.png" />
   </head>
   <body>
-	<div id="all">
-		<div id="header">
-		</div>
-		<div id="main">
-			<div id="about">
-				<h3>About this project</h3>
-				<p>I have always been interested in programming but never actually got any closer to it than that. But not so long ago I decided to
-				pick it up as a hobby - just when I have the least time in my life alongside family-life and my day-to-day work. :)</p>
-				<p>The idea of this project comes from my long-term interest in aviation especially in air traffic control and when I had found
-				the <a target="_blank" href="http://atc-sim.com/">ATC-SIM</a> website (great stuff, check it out!). After starting playing it
-				I got hooked instantly and soon I decided that something like this would make a perfect first project for me,
-				so with some help from a couple of friends I started building my own ATC simulator game.</p>
-				<p>I know it is not a finished project and I have loads of ideas that I intend to build in it yet let alone introducing a few more
-				airports to make it more enjoyable. But for the first time I think it is at the stage when it can deliver some gaming experience.</p>
-				<p>The rest will follow as I have time to spare...</p>
-				<p>Please give it a go if you have some time and let me know what you think. Thank you and enjoy!</p>
-			</div>
-			<div id="userguide">
-				<h3>User Guide</h3>
-				<p>The aim of the simulation is to land the aircrafts on approach onto the runways and directing for take-off the departing ones while separating them in space maintaining a safe distance from eachother, that means aircraft need to be separated by at least 3NM laterally and 1000 feet vertically.</p>
-				<p>Instructions consist of 2-5 parts divided by space(s).</p>
-				<p>First part is the flight number ("AA001", "BA182", "NZ515" etc. For convenience, by clicking on the aircraft's progress strip this appears in the text box.</p>
-				<p>Followed by the clearance type and its parameters as below:</p>
-				<p>- "A" to change ALTITUDE followed by the required altitude in 100 feet beetween 2000 and 40000 feet. (e.g.: "AA001 A 40" for 4000 feet)</p>
-				<p>- "S" to change SPEED followed by the required speed in 10 knots between 160 and 300. (e.g.: "AA001 S 20" for 200 knots)</p>
-				<p>- "H" to change HEADING	followed by either the required heading direction in degrees (1-360), where 360 is North, 180 is South (e.g.: "AA001 H 150") or the destination navigation object. (e.g.: "B H wOD")</p>
-				<p>For instructing an aircraft to start holding procedure at a navigation object write an additional "HP" after the navigation object code. (e.g.: "AA001 H WOD HP")</p>
-				<p>- "L" to clear an aircraft for LANDING followed by the runway number. (e.g.: "AA001 L 27L")</p>
-				<p>Landing clearance must only be given when an aircraft's actual heading is within 20 degrees that of the chosen runway angle (runway ID * 10) and when the aircraft is not higher than 4000 feet!</p>
-				<p>- "T" to clear an aircraft for TAKE-OFF. (e.g.: "AA001 T 27L WOD 80")</p>
-				<p>Following "T" type the runway intended for take-off then the exit navigation object shown on the flightstrip and finally a departure altitude.</p>
-				<p>Note: In case the aircraft exits anywhere else other than the nav. object indicated it will count as an improper exit. So make sure that you assign the requested exit to the aircraft before it exits!</p>
-				<p>After the aircraft reaches the assigned exit navigation object it is handed-over to the next controller. The aircraft remains visible on the radar as a dimmed object and you still need to
-				follow the separation procedures for them until they are visible on the screen but you will have no control over them anymore!
-				<p>- "W" to clear an aircraft for LINING-UP AND WAITING on the runway before take-off. (e.g.: "AA001 W 27L WOD 80")</p>
-				<p>This option is mainly for busy periods. Similarly to the take-off command, after "W" type the runway intended for take-off then the exit navigation object indicated and the departure altitude.</p>
-				<p>When an aircraft is given a waiting clearance already, for take-off clearance only type the flight ID and "T" as the exit parameters will be remembered. (e.g.: "AA001 T")</p>
-				<p>Progress strip example:</p>
-				<img src="Images/ProgressStrip.png" alt="Progress Strip">
-				<p>Progress strips of arrival aircraft are orange while the departure ones are green.</p>
-				<p>Additional commands:</p>
-				<p>- Press "P" to PAUSE/RESUME the simulation.</p>
-				<p>- Type "EXIT" or press "End Simulaton" button to exit the game. Your final statistics will be shown.</p>
-			</div>
-		</div>
-		<div id="startbutton"><a href="ATC.html">Go to simulator</a></div>
-		<div id="footer">
-			<p id="email">Email: atc@privo.hu</p>
-			<p id="date">2017</p>
-		</div>
-	</div>
+    <div id="startModal" class="modal">
+      <div class="modal-content">
+        <form id="startform" method="post" action="">
+          <table>
+            <tr>
+              <td>
+                <select id="Airports">
+                  <option hidden="true">Please select an airport</option>
+                  <option value="LHBP" selected="selected"
+                    >Budapest - Liszt Ferenc</option
+                  >
+                  <option value="EGLL">London - Heathrow</option>
+                  <option value="EPWA">Warsaw - Chopin</option>
+                  <option value="KSEA">Seattle-Tacoma Intl.</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <select id="Difficulty">
+                  <option hidden="true">Please select a difficulty</option>
+                  <option value="4000">Easy</option>
+                  <option value="3000" selected="selected">Normal</option>
+                  <option value="2000">Rush hour</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <select id="GameMode">
+                  <option hidden="true">Please select a game mode</option>
+                  <option value=".5" selected="selected"
+                    >Arrivals & Departures</option
+                  >
+                  <option value="1.0">Arrivals only</option>
+                  <option value="0">Departures only</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input
+                  type="button"
+                  id="startbutton"
+                  value="Start simulation"
+                  onclick="setOpts()"
+                  autofocus
+                />
+              </td>
+            </tr>
+          </table>
+        </form>
+      </div>
+    </div>
+
+    <div id="endModal" class="endModal">
+      <div class="endModal-content">
+        <form id="endform" method="post" action="index.html">
+          <table id="endTable">
+            <tr>
+              <td class="endTd">Thanks for trying out my ATC simulator!</td>
+            </tr>
+            <tr>
+              <td class="endTd">Your final results are below:</td>
+            </tr>
+            <tr>
+              <td class="endTd">Successful landings:</td>
+              <td id="successfulLandings" class="endTd2"></td>
+            </tr>
+            <tr>
+              <td class="endTd">Successful handoffs:</td>
+              <td id="successfulHandoffs" class="endTd2"></td>
+            </tr>
+            <tr>
+              <td class="endTd">Missed approaches:</td>
+              <td id="missedApproaches" class="endTd2"></td>
+            </tr>
+            <tr>
+              <td class="endTd">Improper exits:</td>
+              <td id="improperExits" class="endTd2"></td>
+            </tr>
+            <tr>
+              <td class="endTd">Separation violation:</td>
+              <td id="sepViolation" class="endTd2"></td>
+              <td class="endTd2">sec</td>
+            </tr>
+            <tr>
+              <td class="returnButton">
+                <!-- <input type="submit" id="returnButton" value="Back to Start Page" autofocus /> -->
+              </td>
+            </tr>
+          </table>
+        </form>
+        <div id="backbtn"><a href="index.html">Back to Start Page</a></div>
+      </div>
+    </div>
+
+    <div id="controlPanel">
+      <div class="panels">
+        <div class="pad3">
+          <div id="psFrame"></div>
+          <div class="block4"></div>
+        </div>
+      </div>
+      <div class="panels">
+        <div class="pad3">
+          <div id="titleDiv">
+            <h5 id="titleAirport">Airport</h5>
+            <h6 id="titleCode">ICAO: | IATA:</h6>
+            <h6 id="titleElev">Elevation:</h6>
+          </div>
+          <div class="block10"></div>
+          <div>
+            <input
+              type="text"
+              id="instructionText"
+              placeholder="instructions"
+              onfocus="txtfocus=true"
+              onblur="txtfocus=false"
+              autocomplete="off"
+            />
+          </div>
+          <div class="block4"></div>
+          <div>
+            <input
+              type="button"
+              id="transmitBtn"
+              class="btns"
+              value="Transmit"
+              onClick="doInstruction()"
+            />
+            <input
+              type="button"
+              id="pauseBtn"
+              class="btns"
+              value="Pause"
+              onClick="fnPausing()"
+            />
+          </div>
+          <div class="block4"></div>
+          <div><textarea readonly id="console"></textarea></div>
+          <div class="block4"></div>
+          <div>
+            <input
+              type="button"
+              id="helpBtn"
+              class="btns"
+              value="Help"
+              onClick="showInfoscreen()"
+            />
+            <input
+              type="button"
+              id="statsBtn"
+              class="btns"
+              value="Stats"
+              onClick="showStatscreen()"
+            />
+          </div>
+          <div class="block4"></div>
+          <div>
+            <input
+              type="button"
+              id="endBtn"
+              value="End Simulation"
+              onClick="endSim()"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="block4"></div>
+      <div>
+        <div class="pad3">
+          <textarea readonly id="infoScreen">
+
+	Commands consist of 2-5 parts divided by space(s).
+First part is the flight number (e.g. "AA001")
+Followed by the clearance type and its parameters as below:
+
+- "A" to change ALTITUDE followed by the required altitude in 100 feet beetween 20 and 400. (e.g.: AA001 A 40)
+
+- "S" to change SPEED followed by the required speed in 10 knots between 16 and 30. (e.g.: AA001 S 20)
+
+- "H" to change HEADING followed by either the required heading direction in degrees (1-360), where 360 is North, 180 is South (e.g.: AA001 H 150) or the destination navigation object. (e.g.: B H wOD)
+ For instructing an aircraft to start holding procedure at a navigation object write an additional "HP" after the navigation object code. (e.g.: AA001 H WOD HP)
+ 
+- "L" to clear an aircraft for LANDING followed by the runway ID. (e.g.: AA001 L 27L)
+ Landing clearance must only be given when an aircraft's actual heading is within 20 degrees that of the chosen runway angle (its ID * 10) and when the aircraft is not higher than 4000 feet!
+ 
+- "T" to clear an aircraft for TAKE-OFF. (e.g.: AA001 T 27L WOD 80)
+ Following "T" type the runway intended for take-off then the exit navigation object shown on the flightstrip and finally an hand-over altitude.
+ (Note: In case the aircraft exits anywhere else other than the nav. object indicated it will count as an improper exit.)
+
+- "W" to clear an aircraft for LINING-UP AND WAITING on the runway before take-off. (e.g.: AA001 W 27L WOD 80)
+ This option is mainly for busy periods. Similarly to the take-off command, after "W" type the runway intended for take-off then the exit navigation object indicated and the hand-over altitude.
+ When an aircraft is given a waiting clearance already, for take-off clearance only type the flight ID and "T" as the exit parameters will be remembered. (e.g.: AA001 T)
+ 
+	Additional commands:
+
+- Press "P" to PAUSE/RESUME the simulation.
+
+- Type "EXIT" or press "End Simulaton" button to exit the game. Your final statistics will be shown.
+	
+	Notes: Aircraft need to be separated by at least 3NM laterally and 1000 feet vertically.
+			</textarea
+          >
+          <div id="statScreen"></div>
+        </div>
+      </div>
+    </div>
+    <canvas id="myCanvas"></canvas>
+    <script type="text/javascript" src="SimControl.js"></script>
+    <script type="text/javascript" src="init_Airports.js"></script>
+    <script type="text/javascript" src="DrawObjects.js"></script>
+    <script type="text/javascript" src="UserInstructions.js"></script>
+    <script type="text/javascript" src="AircraftMovements.js"></script>
+    <script type="text/javascript" src="FlightModes.js"></script>
+    <script type="text/javascript">
+      var modal = document.getElementById("startModal");
+      var cW = window.innerWidth - 310;
+      var cH = window.innerHeight; // cH/cW=.583
+      var cHW = cW * 0.6;
+      var planeNR = 0; // body canvas - style="background: #103848"
+      var planes = [];
+      var runways = [];
+      var airlnrCode = []; //operating airliners' list
+      var airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+      var destName;
+      var entryPts = [];
+      //var consoleText = document.getElementById('console').value;
+      var userCommand; // = document.getElementById("instructionText").value;
+      var splitCommand = [];
+      var pausing = false;
+      var resid;
+      var entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
+      var navObjects = [];
+      var successfulLandings = 0;
+      var successfulHandoffs = 0;
+      var improperExits = 0;
+      var missedApproaches = 0;
+      var sepViolation = 0;
+      var canvas = document.getElementById("myCanvas");
+      var context = canvas.getContext("2d");
+      var psFrame = document.getElementById("psFrame");
+      var selMode;
+
+      window.requestAnimFrame = (function(callback) {
+        return (
+          window.requestAnimationFrame ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          window.oRequestAnimationFrame ||
+          window.msRequestAnimationFrame ||
+          function(callback) {
+            window.setTimeout(callback, 1000);
+          }
+        );
+      })();
+
+      function screenSize() {
+        canvas.width = cW;
+        canvas.height = cH;
+        return;
+      }
+
+      window.addEventListener("resize", screenSize);
+
+      function promptInvalidCommTest() {
+        document.getElementById("console").value =
+          "TEST Invalid Command!\n" + document.getElementById("console").value;
+        document.getElementById("instructionText").value = "";
+        resid = -1;
+        return;
+      }
+
+      window.onload = function() {
+        screenSize();
+        modal.style.display = "block";
+        document.getElementById("instructionText").focus();
+        document.getElementById("console").value =
+          "Welcome to Privo-ATC!" + document.getElementById("console").value;
+        document.getElementById("instructionText").value = "";
+        return;
+      };
+    </script>
   </body>
- </html>
- 
- 
+</html>
