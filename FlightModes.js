@@ -53,7 +53,7 @@ function waiting(resid) {
             if (
               splitCommand[3] == navObjects[j][0] &&
               40 <= parseInt(splitCommand[4]) &&
-                parseInt(splitCommand[4]) <= 400
+              parseInt(splitCommand[4]) <= 400
             ) {
               planes[resid].destination = j;
               planes[resid].destName = navObjects[j][0];
@@ -126,7 +126,8 @@ function takeOff(resid) {
         for (var j = 0; j < navObjects.length; j++) {
           if (
             splitCommand[3] == navObjects[j][0] &&
-            40 <= parseInt(splitCommand[4]) && parseInt(splitCommand[4]) <= 400
+            40 <= parseInt(splitCommand[4]) &&
+            parseInt(splitCommand[4]) <= 400
           ) {
             planes[resid].destination = j;
             planes[resid].newAlt = splitCommand[4];
