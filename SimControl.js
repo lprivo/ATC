@@ -1,15 +1,37 @@
 
-		function leadingZeros(number, length) {
-			var retVal = ""
-			for (var i=number.toString().length; i<length; i++) {
-				retVal += '0';
+        function showInfoscreen() {
+			var dispInfo = document.getElementById("infoScreen").style.display;
+			var dispStat = document.getElementById("statScreen").style.display;
+			if (dispInfo === "none") {
+				if (dispStat != "none") {
+					document.getElementById("statScreen").style.display = "none";
+					document.getElementById("infoScreen").style.display = "block";
+				} else {
+					document.getElementById("infoScreen").style.display = "block";
+				}
+			} else {
+				document.getElementById("infoScreen").style.display = "none";
 			}
-			return retVal + number;
 		}
 
+		function showStatscreen() {
+			var dispInfo = document.getElementById("infoScreen").style.display;
+			var dispStat = document.getElementById("statScreen").style.display;
+			if (dispStat === "none") {
+				if (dispInfo != "none") {
+					document.getElementById("infoScreen").style.display = "none";
+					document.getElementById("statScreen").value = "<p>Successful landings: " + successfulLandings + "</p><p>Successful handoffs: " + successfulHandoffs + "</p><p>Missed approaches: " + missedApproaches + "</p><p>Improper exits: " + improperExits + "</p><p>Separation violation (sec): " + sepViolation + "</p>";
+					document.getElementById("statScreen").style.display = "block";
+				} else {
+					document.getElementById("statScreen").value = "<p>Successful landings: " + successfulLandings + "</p><p>Successful handoffs: " + successfulHandoffs + "</p><p>Missed approaches: " + missedApproaches + "</p><p>Improper exits: " + improperExits + "</p><p>Separation violation (sec): " + sepViolation + "</p>";
+					document.getElementById("statScreen").style.display = "block";
+				}
+			} else {
+				document.getElementById("statScreen").style.display = "none";
+			}
+		}
 
 function updateStatScreen() {
-    var dispInfo = document.getElementById("infoScreen").style.display;
     var dispStat = document.getElementById("statScreen").style.display;
     if (dispStat === "block") {
         for (i=0; i<statScreen.childNodes.length; i++) {
@@ -41,6 +63,14 @@ function aCGen() {
                 return ((Math.floor(Math.random()*(airlnrCode.length-(airlnrDistr[3]+airlnrDistr[5]+airlnrDistr[7]+1))))+(airlnrDistr[3]+airlnrDistr[5]+airlnrDistr[7]+1));
             }
         }
+
+		function leadingZeros(number, length) {
+			var retVal = ""
+			for (var i=number.toString().length; i<length; i++) {
+				retVal += '0';
+			}
+			return retVal + number;
+		}
 
 function newPlane() {
     var entryMode = Math.random();
@@ -129,6 +159,7 @@ function progressStrips(plane) {
             newPStrip.setAttribute("id", plane.id);
             newPStrip.setAttribute("name", plane.id);
             newPStrip.setAttribute("class", "psArrival");
+            newPStrip.setAttribute("onClick", "getFlightID(this)");
             newPStrip.appendChild(document.createElement("div"));
             newPStrip.childNodes[0].setAttribute("class", "flightData");
             newPStrip.childNodes[0].innerHTML = "<table><tr><td class='pstd'>" + plane.id + "</td></tr><tr><td class='pstd'>" + plane.label + "</td></tr></table>";
@@ -138,12 +169,18 @@ function progressStrips(plane) {
             newPStrip.setAttribute("id", plane.id);
             newPStrip.setAttribute("name", plane.id);
             newPStrip.setAttribute("class", "psDeparture");
+            newPStrip.setAttribute("onClick", "getFlightID(this)");
             newPStrip.appendChild(document.createElement("div"));
             newPStrip.childNodes[0].setAttribute("class", "flightData");
             newPStrip.childNodes[0].innerHTML = "<table><tr><td class='pstd'>" + plane.id + "</td></tr><tr><td class='pstd'>" + plane.label + "</td></tr></table>";
             psFrame.appendChild(newPStrip);
         }
     }
+}
+
+function getFlightID(flightStrip) {
+    document.getElementById('instructionText').value = flightStrip.id + " ";
+    document.getElementById('instructionText').focus();
 }
 
 function removePlane() {
@@ -224,13 +261,12 @@ function animate(canvas, context, startTime, plane) {
         }
         
         updateStatScreen();
-        
-        getFlightid();
         drawRunways(context);
         heading(planes[i]);
         drawTrail(planes[i], context);
         removePlane();
         fnSeparation(plane);
+        document.getElementById('instructionText').focus();
         for (var i=0; i<planes.length; i++) {
             drawPlane(planes[i], context);
             turning(planes[i]);
