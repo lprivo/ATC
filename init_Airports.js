@@ -2,7 +2,7 @@ function initLHBP() {
 			
     navObjects[0] = ["BADOV", Math.round(cW*.343), Math.round(cHW*.008)];
     navObjects[1] = ["NALAG", Math.round(cW*.640), Math.round(cHW*.008)];
-    navObjects[2] = ["BABOX", Math.round(cW*.669), Math.round(cHW*.992)];
+    navObjects[2] = ["BABOX", Math.round(cW*.669), Math.round(cHW*.982)];
     navObjects[3] = ["ABONY", Math.round(cW*.824), Math.round(cHW*.666)];
     navObjects[4] = ["VEBOS", Math.round(cW*.224), Math.round(cHW*.625)];
     navObjects[5] = ["GILEP", Math.round(cW*.057), Math.round(cHW*.429)];
@@ -211,7 +211,7 @@ function initKSEA() {
     navObjects[0] = ["PAE", Math.round(cW*.507), Math.round(cHW*.008)];
     navObjects[1] = ["MODDA", Math.round(cW*.826), Math.round(cHW*.500)];
     navObjects[2] = ["RADDY", Math.round(cW*.827), Math.round(cHW*.862)];
-    navObjects[3] = ["TAOMA", Math.round(cW*.550), Math.round(cHW*.992)];
+    navObjects[3] = ["TAOMA", Math.round(cW*.550), Math.round(cHW*.982)];
     navObjects[4] = ["OLM", Math.round(cW*.246), Math.round(cHW*.969)];
     navObjects[5] = ["HAROB", Math.round(cW*.190), Math.round(cHW*.690)];
     navObjects[6] = ["ARRIE", Math.round(cW*.010), Math.round(cHW*.040)];
