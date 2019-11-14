@@ -1,10 +1,4 @@
 
-	<script type="text/javascript" src="init_Airports.js"></script>
-	<script type="text/javascript" src="DrawObjects.js"></script>
-	<script type="text/javascript" src="UserInstructions.js"></script>
-	<script type="text/javascript" src="AircraftMovements.js"></script>
-	<script type="text/javascript" src="FlightModes.js"></script>
-
         function showInfoscreen() {
 			var dispInfo = document.getElementById("infoScreen").style.display;
 			var dispStat = document.getElementById("statScreen").style.display;
