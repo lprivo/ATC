@@ -23,7 +23,7 @@ function distCheck(plane) {
 }
 
 function heading(plane) {
-	for (var i=0; i<planes.length; i++){
+	for (let i=0; i<planes.length; i++){
 		planes[i].curX = planes[i].curX + (Math.cos((planes[i].heading-90)*(Math.PI/180)) * (planes[i].speed/10));
 		planes[i].curY = planes[i].curY + (Math.sin((planes[i].heading-90)*(Math.PI/180)) * (planes[i].speed/10));
 	}
@@ -79,9 +79,9 @@ function heading(plane) {
 		}
 		
 		function setHeading(plane) {
-		    var subX = (plane.destX - plane.curX);
-		    var subY = (plane.destY - plane.curY);
-		    var courseAngle = Math.round(Math.atan2(subY,subX) * (180/Math.PI));
+		    let subX = (plane.destX - plane.curX);
+		    let subY = (plane.destY - plane.curY);
+		    let courseAngle = Math.round(Math.atan2(subY,subX) * (180/Math.PI));
 		    plane.newHeading = (0 < courseAngle) ? (courseAngle + 90) : ((courseAngle <= 0) && (-90 < courseAngle)) ? (90 + courseAngle) : (courseAngle <= -90) ? (courseAngle + 450) : courseAngle;
 		}
 		
@@ -108,10 +108,10 @@ function heading(plane) {
 		
 		// Separation check
 		function fnSeparation(plane) {
-			for (var i=0; i<planes.length; i++) {
-				for (var j=0; j<planes.length; j++) {
-					var sepDist = Math.round(Math.sqrt(Math.pow((planes[i].curX - planes[j].curX),2) + Math.pow((planes[i].curY - planes[j].curY),2)));
-					var sepVert = Math.abs(planes[i].altitude - planes[j].altitude);
+			for (let i=0; i<planes.length; i++) {
+				for (let j=0; j<planes.length; j++) {
+					let sepDist = Math.round(Math.sqrt(Math.pow((planes[i].curX - planes[j].curX),2) + Math.pow((planes[i].curY - planes[j].curY),2)));
+					let sepVert = Math.abs(planes[i].altitude - planes[j].altitude);
 					if ((planes[i].id != planes[j].id) && (sepDist < 2) && (sepVert < 2)) {
 						psFrame.removeChild(document.getElementById(planes[i].id));
 						psFrame.removeChild(document.getElementById(planes[j].id));

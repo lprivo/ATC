@@ -1,6 +1,6 @@
 // Runway
 		function drawRunways(context) {
-			for (var i=0; i<runways.length; i=(i+2)) {
+			for (let i=0; i<runways.length; i=(i+2)) {
 				context.beginPath();
 				context.moveTo(runways[i][4], runways[i][5]);
 				context.lineTo(runways[i+1][4], runways[i+1][5]);
@@ -32,7 +32,7 @@
 	
 		// square symbol of aircraft
 		function drawPlane(plane, context) {
-			var consArrow;
+			let consArrow;
 					if (plane.altitude < plane.newAlt) {
 						consArrow = "\u2191";
 					} else if (plane.altitude > plane.newAlt) {
@@ -79,7 +79,7 @@
 	  
 		// plane trail line
 		function drawTrail(plane, context) {
-			for (var i=0; i<planes.length; i++) {
+			for (let i=0; i<planes.length; i++) {
 				context.beginPath();
 				context.moveTo(planes[i].curX, planes[i].curY);
 				context.lineTo(planes[i].curX - (Math.cos((planes[i].heading-90)*(Math.PI/180)) * planes[i].speed), planes[i].curY - (Math.sin((planes[i].heading-90)*(Math.PI/180)) * planes[i].speed));

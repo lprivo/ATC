@@ -71,7 +71,7 @@ function fnCommandA() {
 				resid = -1;
 				return;
 			} else {
-				for (var i=0; i<navObjects.length; i++) {
+				for (let i=0; i<navObjects.length; i++) {
 					if ((splitCommand[2] == navObjects[i][0]) && (splitCommand[3] != 'HP')) {
 						planes[resid].destination = i;
 						planes[resid].destX = navObjects[i][1];
@@ -105,8 +105,8 @@ function fnCommandA() {
 
 		function fnCommandL() {
 			checkHandover(resid);
-			for (var i=0; i<runways.length; i++) {
-				//var distToRunway = Math.round(Math.sqrt(Math.pow((planes[resid].curX - runways[i][2]),2) + Math.pow((planes[resid].curY - runways[i][3]),2)));
+			for (let i=0; i<runways.length; i++) {
+				//let distToRunway = Math.round(Math.sqrt(Math.pow((planes[resid].curX - runways[i][2]),2) + Math.pow((planes[resid].curY - runways[i][3]),2)));
 				if ((splitCommand[2] == runways[i][0]) && (Math.abs(runways[i][1] - planes[resid].heading) <= 20) && (planes[resid].altitude <= 40)) {
 					planes[resid].destination = i;
 					planes[resid].destX = runways[i][2];
@@ -175,7 +175,7 @@ function fnCommandA() {
 			checkEndSim();	//-||-
 			splitUserCommand();
 			
-			for (var i=0; i<planes.length; i++) {
+			for (let i=0; i<planes.length; i++) {
 				if (splitCommand[0] == planes[i].id) {
 					resid = i;
 				}

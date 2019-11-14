@@ -25,7 +25,7 @@ function initLHBP() {
     runways[3] = ["31L", 310, ((cW/2)+62), ((cHW/2)+59), ((cW/2)-1), ((cHW/2)+6), ((cW/2)-15), ((cHW/2)-5), ((cW/2)+4), ((cHW/2)+21)];
     
     {
-    var entryPt1 = new Object();
+    let entryPt1 = new Object();
     entryPt1.coorX = Math.round(cW*.3);
     entryPt1.coorY = -7;
     entryPt1.direction = 150;
@@ -33,7 +33,7 @@ function initLHBP() {
     }
       
     {
-    var entryPt2 = new Object();
+    let entryPt2 = new Object();
     entryPt2.coorX = cW+7;
     entryPt2.coorY = Math.round(cH*.08);
     entryPt2.direction = 248;
@@ -41,7 +41,7 @@ function initLHBP() {
     }
       
     {
-    var entryPt3 = new Object();
+    let entryPt3 = new Object();
     entryPt3.coorX = Math.round(cW*.85);
     entryPt3.coorY = cH+7;
     entryPt3.direction = 353;
@@ -49,7 +49,7 @@ function initLHBP() {
     }
       
     {
-    var entryPt4 = new Object();
+    let entryPt4 = new Object();
     entryPt4.coorX = Math.round(cW*.15);
     entryPt4.coorY = cH+7;
     entryPt4.direction = 18;
@@ -57,7 +57,7 @@ function initLHBP() {
     }
     
     {
-    var entryPt5 = new Object();
+    let entryPt5 = new Object();
     entryPt5.coorX = -7;
     entryPt5.coorY = Math.round(cH*.45);
     entryPt5.direction = 80;
@@ -92,7 +92,7 @@ function initEGLL() {
     runways[3] = ["27L", 270, ((cW/2)+97), ((cHW/2)+4), ((cW/2)+15), ((cHW/2)+4), ((cW/2)-3), ((cHW/2)+4), ((cW/2)+20), ((cHW/2)+7)];
     
     {
-    var entryPt1 = new Object();
+    let entryPt1 = new Object();
     entryPt1.coorX = 40;
     entryPt1.coorY = -7;
     entryPt1.direction = 125;
@@ -100,7 +100,7 @@ function initEGLL() {
     }
       
     {
-    var entryPt2 = new Object();
+    let entryPt2 = new Object();
     entryPt2.coorX = cW+7;
     entryPt2.coorY = Math.round(cH*.08);
     entryPt2.direction = 245;
@@ -108,7 +108,7 @@ function initEGLL() {
     }
       
     {
-    var entryPt3 = new Object();
+    let entryPt3 = new Object();
     entryPt3.coorX = cW+7;
     entryPt3.coorY = cH-25;
     entryPt3.direction = 308;
@@ -116,7 +116,7 @@ function initEGLL() {
     }
       
     {
-    var entryPt4 = new Object();
+    let entryPt4 = new Object();
     entryPt4.coorX = Math.round(cW*.22);
     entryPt4.coorY = cH+7;
     entryPt4.direction = 54;
@@ -124,7 +124,7 @@ function initEGLL() {
     }
     
     {
-    var entryPt5 = new Object();
+    let entryPt5 = new Object();
     entryPt5.coorX = -7;
     entryPt5.coorY = Math.round(cH*.68);
     entryPt5.direction = 64;
@@ -161,7 +161,7 @@ function initEPWA() {
     runways[3] = ["29", 290, ((cW/2)+87), ((cHW/2)+22), ((cW/2)+9), ((cHW/2)-4), ((cW/2)-7), ((cHW/2)-12), ((cW/2)+15), ((cHW/2)+2)];
     
     {
-    var entryPt1 = new Object();
+    let entryPt1 = new Object();
     entryPt1.coorX = Math.round(cW*.51);
     entryPt1.coorY = cH+7;
     entryPt1.direction = 20;
@@ -169,7 +169,7 @@ function initEPWA() {
     }
       
     {
-    var entryPt2 = new Object();
+    let entryPt2 = new Object();
     entryPt2.coorX = -7;
     entryPt2.coorY = Math.round(cH*.86);
     entryPt2.direction = 69;
@@ -177,7 +177,7 @@ function initEPWA() {
     }
       
     {
-    var entryPt3 = new Object();
+    let entryPt3 = new Object();
     entryPt3.coorX = Math.round(cW*.113);
     entryPt3.coorY = -7;
     entryPt3.direction = 149;
@@ -185,7 +185,7 @@ function initEPWA() {
     }
       
     {
-    var entryPt4 = new Object();
+    let entryPt4 = new Object();
     entryPt4.coorX = Math.round(cW*.67);
     entryPt4.coorY = -7;
     entryPt4.direction = 212;
@@ -193,7 +193,7 @@ function initEPWA() {
     }
     
     {
-    var entryPt5 = new Object();
+    let entryPt5 = new Object();
     entryPt5.coorX = cW+7;
     entryPt5.coorY = Math.round(cH*.56);
     entryPt5.direction = 247;
@@ -232,7 +232,7 @@ function initKSEA() {
     runways[5] = ["36L", 360, ((cW/2)-13), ((cHW/2)+89), ((cW/2)-13), ((cHW/2)+4), ((cW/2)-13), ((cHW/2)-15), ((cW/2)-31), ((cHW/2)+19)];
     
     {
-    var entryPt1 = new Object();
+    let entryPt1 = new Object();
     entryPt1.coorX = -7;
     entryPt1.coorY = Math.round(cH*.032);
     entryPt1.direction = 105;
@@ -240,7 +240,7 @@ function initKSEA() {
     }
       
     {
-    var entryPt2 = new Object();
+    let entryPt2 = new Object();
     entryPt2.coorX = cW+7;
     entryPt2.coorY = Math.round(cH*.1);
     entryPt2.direction = 275;
@@ -248,7 +248,7 @@ function initKSEA() {
     }
       
     {
-    var entryPt3 = new Object();
+    let entryPt3 = new Object();
     entryPt3.coorX = Math.round(cW*.75);
     entryPt3.coorY = cH+7;
     entryPt3.direction = 333;
@@ -256,7 +256,7 @@ function initKSEA() {
     }
       
     {
-    var entryPt4 = new Object();
+    let entryPt4 = new Object();
     entryPt4.coorX = Math.round(cW*.41);
     entryPt4.coorY = cH+7;
     entryPt4.direction = 340;
@@ -264,7 +264,7 @@ function initKSEA() {
     }
     
     {
-    var entryPt5 = new Object();
+    let entryPt5 = new Object();
     entryPt5.coorX = Math.round(cW*.2);
     entryPt5.coorY = cH+7;
     entryPt5.direction = 357;

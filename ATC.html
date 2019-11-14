@@ -182,33 +182,33 @@ Followed by the clearance type and its parameters as below:
 	<script type="text/javascript" src="AircraftMovements.js"></script>
 	<script type="text/javascript" src="FlightModes.js"></script>
 	<script type="text/javascript">
-	  var modal = document.getElementById('startModal');
-	  var cW = (window.innerWidth - 310);
-	  var cH = window.innerHeight;			// cH/cW=.583
-	  var cHW = cW*.6;
-      var planeNR = 0;	// body canvas - style="background: #103848" 
-      var planes = [];
-      var runways = [];
-	  var airlnrCode = [];	//operating airliners' list
-	  var airlnrDistr = [];	//operating airliners's distribution - main operator + 4 groups by no. of aircrafts
-	  var destName;
-	  var entryPts = [];
-	  //var consoleText = document.getElementById('console').value;
-	  var userCommand;	// = document.getElementById("instructionText").value;
-	  var splitCommand = [];
-      var pausing = false;
-	  var resid;
-	  var entryAlt = [50,50,60,60,60,70,70,70,70,80,80,80];
-	  var navObjects = [];
-	  var successfulLandings = 0;
-	  var successfulHandoffs = 0;
-	  var improperExits = 0;
-	  var missedApproaches = 0;
-	  var sepViolation = 0;
-	  var canvas = document.getElementById('myCanvas');
-      var context = canvas.getContext('2d');
-	  var psFrame = document.getElementById('psFrame');
-	  var selMode;	
+	  let modal = document.getElementById('startModal');
+	  let cW = (window.innerWidth - 310);
+	  let cH = window.innerHeight;			// cH/cW=.583
+	  let cHW = cW*.6;
+      let planeNR = 0;	// body canvas - style="background: #103848" 
+      let planes = [];
+      let runways = [];
+	  let airlnrCode = [];	//operating airliners' list
+	  let airlnrDistr = [];	//operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+	  let destName;
+	  let entryPts = [];
+	  //let consoleText = document.getElementById('console').value;
+	  let userCommand;	// = document.getElementById("instructionText").value;
+	  let splitCommand = [];
+      let pausing = false;
+	  let resid;
+	  let entryAlt = [50,50,60,60,60,70,70,70,70,80,80,80];
+	  let navObjects = [];
+	  let successfulLandings = 0;
+	  let successfulHandoffs = 0;
+	  let improperExits = 0;
+	  let missedApproaches = 0;
+	  let sepViolation = 0;
+	  let canvas = document.getElementById('myCanvas');
+      let context = canvas.getContext('2d');
+	  let psFrame = document.getElementById('psFrame');
+	  let selMode;	
 		  
 	  window.requestAnimFrame = (function(callback) {
 			return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
@@ -217,22 +217,28 @@ Followed by the clearance type and its parameters as below:
 			};
 		})();
 		
-		function screenSize() {
+		/* function screenSize() {
+			canvas.width = cW;
+			canvas.height = cH;
+			return;
+		}*/
+		
+		const screenSize = () => {
 			canvas.width = cW;
 			canvas.height = cH;
 			return;
 		}
-		
+
 		window.addEventListener("resize", screenSize);
 
-		function promptInvalidCommTest() {
+		const promptInvalidCommTest = () => {
 			document.getElementById("console").value = "TEST Invalid Command!\n" + document.getElementById("console").value;
 			document.getElementById('instructionText').value='';
 			resid = -1;
 			return;
 		}
 	  
-		window.onload = function() {
+		window.onload = () => {
 			screenSize();
 			modal.style.display = "block";
 			document.getElementById('instructionText').focus();

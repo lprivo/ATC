@@ -1,7 +1,7 @@
 
-        function showInfoscreen() {
-			var dispInfo = document.getElementById("infoScreen").style.display;
-			var dispStat = document.getElementById("statScreen").style.display;
+        const showInfoscreen = () => {
+			let dispInfo = document.getElementById("infoScreen").style.display;
+			let dispStat = document.getElementById("statScreen").style.display;
 			if (dispInfo === "none") {
 				if (dispStat != "none") {
 					document.getElementById("statScreen").style.display = "none";
@@ -14,9 +14,9 @@
 			}
 		}
 
-		function showStatscreen() {
-			var dispInfo = document.getElementById("infoScreen").style.display;
-			var dispStat = document.getElementById("statScreen").style.display;
+		const showStatscreen = () => {
+			let dispInfo = document.getElementById("infoScreen").style.display;
+			let dispStat = document.getElementById("statScreen").style.display;
 			if (dispStat === "none") {
 				if (dispInfo != "none") {
 					document.getElementById("infoScreen").style.display = "none";
@@ -31,8 +31,8 @@
 			}
 		}
 
-function updateStatScreen() {
-    var dispStat = document.getElementById("statScreen").style.display;
+const updateStatScreen = () => {
+    let dispStat = document.getElementById("statScreen").style.display;
     if (dispStat === "block") {
         for (i=0; i<statScreen.childNodes.length; i++) {
             statScreen.childNodes[i].innerHTML = " "; }
@@ -43,14 +43,14 @@ function updateStatScreen() {
     }
 }
 
-function planeFreq(min, max) {
+const planeFreq = (min, max) => {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function aCGen() {
-            var aCIndex = Math.floor(Math.random()*airlnrDistr[0]);
+const aCGen = () => {
+            let aCIndex = Math.floor(Math.random()*airlnrDistr[0]);
             if (aCIndex <= airlnrDistr[1]) {
                 return 0;
             } else if ((airlnrDistr[1] < aCIndex) && (aCIndex <= airlnrDistr[2])) {
@@ -64,23 +64,23 @@ function aCGen() {
             }
         }
 
-		function leadingZeros(number, length) {
-			var retVal = ""
-			for (var i=number.toString().length; i<length; i++) {
+		const leadingZeros = (number, length) => {
+			let retVal = ""
+			for (let i=number.toString().length; i<length; i++) {
 				retVal += '0';
 			}
 			return retVal + number;
 		}
 
-function newPlane() {
-    var entryMode = Math.random();
+const newPlane = () => {
+    let entryMode = Math.random();
     if (pausing != true) {
-        var plane = new Object();
-        var idIndex = aCGen();
-        var flightNr = airlnrCode[idIndex] + (leadingZeros(Math.abs(Math.floor((Math.random()*1000)-1)),3));
+        let plane = new Object();
+        let idIndex = aCGen();
+        let flightNr = airlnrCode[idIndex] + (leadingZeros(Math.abs(Math.floor((Math.random()*1000)-1)),3));
         
         if (entryMode < selMode) {
-            var index = Math.floor(Math.random()*entryPts.length);
+            let index = Math.floor(Math.random()*entryPts.length);
             plane.curX = entryPts[index].coorX;
             plane.curY = entryPts[index].coorY;
             plane.id = flightNr.toString();
@@ -104,7 +104,7 @@ function newPlane() {
             planeNR++;
             
         } else {
-            var indexT = Math.floor(Math.random()*7);
+            let indexT = Math.floor(Math.random()*7);
             plane.flightMode = 5;
             plane.id = flightNr.toString();
             plane.heading = '-';
@@ -126,23 +126,23 @@ function newPlane() {
     }
 }
 
-function progressStrips(plane) {
-    var pStrip = document.getElementById(plane.id);
-    var psAltitude = leadingZeros((Math.round(plane.altitude) * 100),5);
-    var psSpeed = leadingZeros(Math.round(plane.speed) * 10,3);
-    var psHeading = leadingZeros(plane.heading,3);
-    var newPStrip = document.createElement("div");
+const progressStrips = (plane) => {
+    let pStrip = document.getElementById(plane.id);
+    let psAltitude = leadingZeros((Math.round(plane.altitude) * 100),5);
+    let psSpeed = leadingZeros(Math.round(plane.speed) * 10,3);
+    let psHeading = leadingZeros(plane.heading,3);
+    let newPStrip = document.createElement("div");
     
     if (pStrip) {
-        var found = false;
-        for (var i=0; i<planes.length; i++) {
+        let found = false;
+        for (let i=0; i<planes.length; i++) {
             if ((planes[i].id == plane.id) && (planes[i].flightMode != 9)) {
                 found = true;
                 break;
             }
         }
         if (found == true) {
-            var psArrow;
+            let psArrow;
             if (plane.altitude < plane.newAlt) {
                 psArrow = "\u2191";
             } else if (plane.altitude > plane.newAlt) {
@@ -178,13 +178,14 @@ function progressStrips(plane) {
     }
 }
 
-function getFlightID(flightStrip) {
+const getFlightID = (flightStrip) => {
     document.getElementById('instructionText').value = flightStrip.id + " ";
     document.getElementById('instructionText').focus();
+    return;
 }
 
-function removePlane() {
-    for (var i=0; i<planes.length; i++) {
+const removePlane = () => {
+    for (let i=0; i<planes.length; i++) {
         if ((planes[i].flightMode == 4) && (planes[i].speed == 0)) {
             psFrame.removeChild(document.getElementById(planes[i].id));
             planes.splice(i,1);
@@ -220,7 +221,7 @@ function removePlane() {
     };
 };
 
-function fnPausing() {
+const fnPausing = () => {
     if (pausing == false) {
         pausing = true;
         document.getElementById("pauseBtn").value = "Resume";
@@ -236,7 +237,7 @@ function fnPausing() {
     }
 }
 
-function endSim() {
+const endSim = () => {
     pausing = true;
     endModal.style.display = "block";
     document.getElementById("successfulLandings").innerHTML = successfulLandings;
@@ -247,16 +248,16 @@ function endSim() {
     return;
 }
 
-function animate(canvas, context, startTime, plane) {
+const animate = (canvas, context, startTime, plane) => {
     // update
-    var time = (new Date()).getTime() - startTime;
+    let time = (new Date()).getTime() - startTime;
     if (time > 1000 && (pausing != true)) {
         startTime = (new Date()).getTime();
         
         // window refresh
         context.clearRect(0, 0, canvas.width, canvas.height);
         
-        for (var i=0; i<navObjects.length; i++) {
+        for (let i=0; i<navObjects.length; i++) {
             drawNavObj(navObjects[i], context);
         }
         
@@ -267,7 +268,7 @@ function animate(canvas, context, startTime, plane) {
         removePlane();
         fnSeparation(plane);
         document.getElementById('instructionText').focus();
-        for (var i=0; i<planes.length; i++) {
+        for (let i=0; i<planes.length; i++) {
             drawPlane(planes[i], context);
             turning(planes[i]);
             speedChange(planes[i]);
@@ -285,17 +286,17 @@ function animate(canvas, context, startTime, plane) {
     });
 }
 
-function setOpts() {
-    var selDifficulty = document.getElementById("Difficulty").value;
-    var selAirport = document.getElementById("Airports").value;
+const setOpts = () => {
+    let selDifficulty = document.getElementById("Difficulty").value;
+    let selAirport = document.getElementById("Airports").value;
     selMode = document.getElementById("GameMode").value;
     startSim(selDifficulty, selAirport);
 }
 
-function startSim(selDifficulty, selAirport) {
+const startSim = (selDifficulty, selAirport) => {
     modal.style.display = "none";
-    var startTime = (new Date()).getTime();
-    var d = document.createElement('div');
+    let startTime = (new Date()).getTime();
+    let d = document.createElement('div');
     titleDiv.removeChild(document.getElementById('titleAirport'));
     titleDiv.removeChild(document.getElementById('titleCode'));
     titleDiv.removeChild(document.getElementById('titleElev'));

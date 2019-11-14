@@ -1,6 +1,6 @@
 function showInfoscreen() {
-    var dispInfo = document.getElementById("infoScreen").style.display;
-    var dispStat = document.getElementById("statScreen").style.display;
+    let dispInfo = document.getElementById("infoScreen").style.display;
+    let dispStat = document.getElementById("statScreen").style.display;
     if (dispInfo === "none") {
         if (dispStat != "none") {
             $(document).ready(function() {
@@ -21,9 +21,9 @@ function showInfoscreen() {
 }
 
 function showStatscreen() {
-    var dispInfo = document.getElementById("infoScreen").style.display;
-    var dispStat = document.getElementById("statScreen").style.display;
-    var statValues = document.getElementById("statScreen").value = "<p>Successful landings: " + successfulLandings + "</p><p>Successful handoffs: " + successfulHandoffs + "</p><p>Missed approaches: " + missedApproaches + "</p><p>Improper exits: " + improperExits + "</p><p>Separation violation (sec): " + sepViolation + "</p>";
+    let dispInfo = document.getElementById("infoScreen").style.display;
+    let dispStat = document.getElementById("statScreen").style.display;
+    let statValues = document.getElementById("statScreen").value = "<p>Successful landings: " + successfulLandings + "</p><p>Successful handoffs: " + successfulHandoffs + "</p><p>Missed approaches: " + missedApproaches + "</p><p>Improper exits: " + improperExits + "</p><p>Separation violation (sec): " + sepViolation + "</p>";
     if (dispStat === "none") {
         if (dispInfo != "none") {
             $(document).ready(function() {

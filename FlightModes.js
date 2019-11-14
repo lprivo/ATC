@@ -30,13 +30,13 @@ function checkHandover(resid) {
 		}
 		
 		function waiting(resid) {
-			//var userCommand = document.getElementById("instructionText").value;
+			//let userCommand = document.getElementById("instructionText").value;
 			//getUserCommand();
 			splitUserCommand();
-			//var splitCommand = userCommand.split(" ");
+			//let splitCommand = userCommand.split(" ");
 				if (planes[resid].flightMode == 5) {
 					function waitingSTO() {
-						for (var i=0; i<runways.length; i++) {
+						for (let i=0; i<runways.length; i++) {
 							if (splitCommand[2] == runways[i][0]) {
 								planes[resid].flightMode = 6;
 								planes[resid].curX = runways[i][4];
@@ -47,7 +47,7 @@ function checkHandover(resid) {
 								planes[resid].destY = (runways[i][7]) + ((runways[i][7]) - (runways[i][5]));
 								planes[resid].altStep = .01;
 								planes[resid].speedStep = 1;
-								for (var j=0; j<navObjects.length; j++) {
+								for (let j=0; j<navObjects.length; j++) {
 									if ((splitCommand[3] == navObjects[j][0]) && ((40 <= parseInt(splitCommand[4])) && (parseInt(splitCommand[4]) <= 400))) {
 										planes[resid].destination = j;
 										planes[resid].destName = navObjects[j][0];
@@ -72,9 +72,9 @@ function checkHandover(resid) {
 		}
 	
 		/* function takeOffSTO(resid) {
-			//var userCommand = document.getElementById("instructionText").value;
-			//var splitCommand = userCommand.toUpperCase().split(" ");	
-			for (var i=0; i<runways.length; i++) {
+			//let userCommand = document.getElementById("instructionText").value;
+			//let splitCommand = userCommand.toUpperCase().split(" ");	
+			for (let i=0; i<runways.length; i++) {
 						if (splitCommand[2] == runways[i][0]) {
 							planes[resid].flightMode = 7;
 							planes[resid].curX = runways[i][4];
@@ -86,7 +86,7 @@ function checkHandover(resid) {
 							planes[resid].altStep = .01;
 							planes[resid].newSpeed = 16;
 							planes[resid].speedStep = 1;
-							for (var j=0; j<navObjects.length; j++) {
+							for (let j=0; j<navObjects.length; j++) {
 								if ((splitCommand[3] == navObjects[j][0]) && ((40 <= parseInt(splitCommand[4])) && (parseInt(splitCommand[4]) <= 400))) {
 									planes[resid].destination = j;
 									planes[resid].newAlt = splitCommand[4];
@@ -99,10 +99,10 @@ function checkHandover(resid) {
 		function takeOff(resid) {
 			//getUserCommand();
 			splitUserCommand();
-			//var userCommand = document.getElementById("instructionText").value;
-			//var splitCommand = userCommand.split(" ");
+			//let userCommand = document.getElementById("instructionText").value;
+			//let splitCommand = userCommand.split(" ");
 			if (planes[resid].flightMode == 5) {
-				for (var i=0; i<runways.length; i++) {
+				for (let i=0; i<runways.length; i++) {
 						if (splitCommand[2] == runways[i][0]) {
 							planes[resid].flightMode = 7;
 							planes[resid].curX = runways[i][4];
@@ -114,7 +114,7 @@ function checkHandover(resid) {
 							planes[resid].altStep = .01;
 							planes[resid].newSpeed = 16;
 							planes[resid].speedStep = 1;
-							for (var j=0; j<navObjects.length; j++) {
+							for (let j=0; j<navObjects.length; j++) {
 								if ((splitCommand[3] == navObjects[j][0]) && ((40 <= parseInt(splitCommand[4])) && (parseInt(splitCommand[4]) <= 400))) {
 									planes[resid].destination = j;
 									planes[resid].newAlt = splitCommand[4];
