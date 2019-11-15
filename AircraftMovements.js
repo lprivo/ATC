@@ -1,4 +1,4 @@
-function distCheck(plane) {
+const distCheck = (plane) => {
 	if ((plane.flightMode == 0) && (plane.distance < 3)) {
 		destReset(plane);
 		return;
@@ -22,19 +22,19 @@ function distCheck(plane) {
 	}
 }
 
-function heading(plane) {
+const heading = plane => {
 	for (let i=0; i<planes.length; i++){
 		planes[i].curX = planes[i].curX + (Math.cos((planes[i].heading-90)*(Math.PI/180)) * (planes[i].speed/10));
 		planes[i].curY = planes[i].curY + (Math.sin((planes[i].heading-90)*(Math.PI/180)) * (planes[i].speed/10));
 	}
 }
 		
-		function speedChange(plane) {
-	    	if (plane.speed < plane.newSpeed) { plane.speed += plane.speedStep; }
-		    else if (plane.speed > plane.newSpeed) { plane.speed -= plane.speedStep; }
+		const speedChange = plane => {
+	    	(plane.speed < plane.newSpeed) ? plane.speed += plane.speedStep :
+		    (plane.speed > plane.newSpeed) ? plane.speed -= plane.speedStep;
     	}
 		  
-	    function altChange(plane) {
+	    const altChange = plane => {
 			if (plane.altitude < plane.newAlt) {
                 if (plane.altitude >= (plane.newAlt-1.5*plane.altStep))
                     { plane.altitude = plane.newAlt }
@@ -46,17 +46,13 @@ function heading(plane) {
             }
 		}
 		
-		function headingReset(plane) {
-			if (plane.heading <= 0) {
-			  plane.heading += 360;
-			  return;
-			} else if (plane.heading > 360) {
-			  plane.heading -= 360;
-			  return;
-			}
+		const headingReset = plane => {
+			(plane.heading <= 0) ? plane.heading += 360 :
+			(plane.heading > 360) ? plane.heading -= 360;
+			return;
 		}
 
-		function turning(plane) {
+		const turning = plane => {
 			headingReset(plane);
 			// turning
 			if ((plane.heading < plane.newHeading) && (plane.newHeading <= (plane.heading + 180))) {
@@ -78,7 +74,7 @@ function heading(plane) {
 			}
 		}
 		
-		function setHeading(plane) {
+		const setHeading = plane => {
 		    let subX = (plane.destX - plane.curX);
 		    let subY = (plane.destY - plane.curY);
 		    let courseAngle = Math.round(Math.atan2(subY,subX) * (180/Math.PI));
@@ -86,28 +82,20 @@ function heading(plane) {
 		}
 		
 		// plane distance from destination
-		function distMeasure(plane) {
-			plane.distance = Math.round(Math.sqrt(Math.pow((plane.curX - plane.destX),2) + Math.pow((plane.curY - plane.destY),2)));
-		}
+		const distMeasure = plane => plane.distance = Math.round(Math.sqrt(Math.pow((plane.curX - plane.destX),2) + Math.pow((plane.curY - plane.destY),2)));
 		
-		function assignDest(plane) {
-			if (plane.destination != -1) {
-				setHeading(plane);
-			}
-		}
+		const assignDest = plane => (plane.destination != -1) ? setHeading(plane);
 		
-		function destReset(plane) {
+		const destReset = plane => {
 			plane.destination = -1;
 			plane.destX = 'undefined';
 			plane.destY = 'undefined';
 			plane.turnStep = 3;
-			if ((plane.flightMode != 8) && (plane.flightMode != 9)) {
-				plane.flightMode = 0;
-			}		
+			((plane.flightMode != 8) && (plane.flightMode != 9)) ? plane.flightMode = 0;		
 		}
 		
 		// Separation check
-		function fnSeparation(plane) {
+		const fnSeparation = plane => {
 			for (let i=0; i<planes.length; i++) {
 				for (let j=0; j<planes.length; j++) {
 					let sepDist = Math.round(Math.sqrt(Math.pow((planes[i].curX - planes[j].curX),2) + Math.pow((planes[i].curY - planes[j].curY),2)));

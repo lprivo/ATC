@@ -1,5 +1,5 @@
 		
-function checkHandover(resid) {
+const checkHandover = resid => {
 	if (planes[resid].flightMode == 9) {
 		document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
 		document.getElementById('instructionText').value='';
@@ -8,7 +8,7 @@ function checkHandover(resid) {
 	}
 }
 
-		function finalApproach(plane) {
+		const finalApproach = plane => {
 			plane.flightMode = 3;
 			plane.destX = runways[plane.destination][4];
 			plane.destY = runways[plane.destination][5];
@@ -18,7 +18,7 @@ function checkHandover(resid) {
 			plane.speedStep = .25;
 		}
 		
-		function landing(plane) {
+		const landing = plane => {
 			plane.flightMode = 4;
 			plane.newHeading = runways[plane.destination][1];
 			plane.destination = -1;
@@ -29,13 +29,13 @@ function checkHandover(resid) {
 			plane.speedStep = .5;
 		}
 		
-		function waiting(resid) {
+		const waiting = resid => {
 			//let userCommand = document.getElementById("instructionText").value;
 			//getUserCommand();
 			splitUserCommand();
 			//let splitCommand = userCommand.split(" ");
 				if (planes[resid].flightMode == 5) {
-					function waitingSTO() {
+					const waitingSTO = () => {
 						for (let i=0; i<runways.length; i++) {
 							if (splitCommand[2] == runways[i][0]) {
 								planes[resid].flightMode = 6;
@@ -62,7 +62,7 @@ function checkHandover(resid) {
 			document.getElementById("console").value = planes[resid].id + " cleared for line-up\n" + document.getElementById("console").value;
 		}
 		
-		function departing(plane) {
+		const departing = plane => {
 			plane.destX = navObjects[plane.destination][1];
 			plane.destY = navObjects[plane.destination][2];
 			plane.flightMode = 8;
@@ -96,7 +96,7 @@ function checkHandover(resid) {
 					}
 				}
  */
-		function takeOff(resid) {
+		const takeOff = resid => {
 			//getUserCommand();
 			splitUserCommand();
 			//let userCommand = document.getElementById("instructionText").value;

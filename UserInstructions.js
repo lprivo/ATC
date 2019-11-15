@@ -7,47 +7,40 @@ document.getElementById("instructionText").addEventListener("keyup", function(en
 	}
 });
 
-function getUserCommand() {
-	userCommand = document.getElementById("instructionText").value.toUpperCase();
-	return userCommand;
-}
+const getUserCommand = () => userCommand = document.getElementById("instructionText").value.toUpperCase();
 
 // splits user command at "space(S)" into tokens - creates an array of strings.
-function splitUserCommand() {
+const splitUserCommand = () => {
 	getUserCommand();
 	splitCommand = userCommand.split(" ");
 	return splitCommand;
 }
 
-function checkPausing() {
+const checkPausing = () => {
 	getUserCommand();
-	if (userCommand == "P") {
-		fnPausing();
-	}
+	(userCommand == "P") ? fnPausing();
 	return;
 }
 
-function checkEndSim() {
+const checkEndSim = () => {
 	getUserCommand();
-	if (userCommand == "EXIT") {
-		endSim();
-	}
+	(userCommand == "EXIT") ? endSim();
 	return;
 }
 
-function usercmdToConsole(userCommand) {
+const usercmdToConsole = (userCommand) => {
 	document.getElementById("console").value = userCommand + "\n" + document.getElementById("console").value;
 	document.getElementById('instructionText').value=''; // clearing the input field
 }
 
-function promptInvalidComm() {
+const promptInvalidComm = () => {
 	document.getElementById("console").value = "Invalid Command!\n" + document.getElementById("console").value;
 	document.getElementById('instructionText').value='';
 	resid = -1;
 	return;
 }
 
-function fnCommandA() {
+const fnCommandA = () => {
 			checkHandover(resid);
 			if ((20 <= parseInt(splitCommand[2])) && (parseInt(splitCommand[2]) < 400)) {
 				planes[resid].newAlt = parseInt(splitCommand[2]);
@@ -62,7 +55,7 @@ function fnCommandA() {
 			}
 		}
 
-		function fnCommandH() {
+		const fnCommandH = () => {
 			checkHandover(resid);
 			if ((0 < splitCommand[2]) && (splitCommand[2] <= 360)) {
 				destReset(planes[resid]);
@@ -103,7 +96,7 @@ function fnCommandA() {
 			}
 		}
 
-		function fnCommandL() {
+		const fnCommandL = () => {
 			checkHandover(resid);
 			for (let i=0; i<runways.length; i++) {
 				//let distToRunway = Math.round(Math.sqrt(Math.pow((planes[resid].curX - runways[i][2]),2) + Math.pow((planes[resid].curY - runways[i][3]),2)));
@@ -125,7 +118,7 @@ function fnCommandA() {
 			}
 		}
 
-		function fnCommandS() {
+		const fnCommandS = () => {
 			checkHandover(resid);
 			if ((16 <= parseInt(splitCommand[2])) && (parseInt(splitCommand[2]) <= 30)) {
 				planes[resid].newSpeed = parseInt(splitCommand[2]);
@@ -140,7 +133,7 @@ function fnCommandA() {
 			}
 		}
 
-		function fnCommandT() {
+		const fnCommandT = () => {
 			if (planes[resid].flightMode == 5){
 				setTimeout(takeOff(resid),10000);	//Miert nem mukodik???????????
 				usercmdToConsole(userCommand);
@@ -159,7 +152,7 @@ function fnCommandA() {
 			}
 		}
 
-		function fnCommandW() {
+		const fnCommandW = () => {
 			if (planes[resid].flightMode == 5){
 				waiting(resid);
 				usercmdToConsole(userCommand);
@@ -170,7 +163,7 @@ function fnCommandA() {
 			}
         }
         
-        function doInstruction() {
+        const doInstruction = () => {
 			checkPausing();	//Hogy lehet elerni, h ne fusson le a switch-default is?
 			checkEndSim();	//-||-
 			splitUserCommand();
