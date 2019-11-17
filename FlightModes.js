@@ -37,34 +37,31 @@ const waiting = resid => {
   splitUserCommand();
   //let splitCommand = userCommand.split(" ");
   if (planes[resid].flightMode === 5) {
-    const waitingSTO = () => {
-      for (let i = 0; i < runways.length; i++) {
-        if (splitCommand[2] == runways[i][0]) {
-          planes[resid].flightMode = 6;
-          planes[resid].curX = runways[i][4];
-          planes[resid].curY = runways[i][5];
-          planes[resid].heading = runways[i][1];
-          planes[resid].newHeading = runways[i][1];
-          planes[resid].destX = runways[i][6] + (runways[i][6] - runways[i][4]);
-          planes[resid].destY = runways[i][7] + (runways[i][7] - runways[i][5]);
-          planes[resid].altStep = 0.01;
-          planes[resid].speedStep = 1;
-          for (let j = 0; j < navObjects.length; j++) {
-            if (
-              splitCommand[3] == navObjects[j][0] &&
-              40 <= parseInt(splitCommand[4]) &&
-              parseInt(splitCommand[4]) <= 400
-            ) {
-              planes[resid].destination = j;
-              planes[resid].destName = navObjects[j][0];
-              planes[resid].newAlt = splitCommand[4];
-            }
+    for (let i = 0; i < runways.length; i++) {
+      if (splitCommand[2] == runways[i][0]) {
+        planes[resid].flightMode = 6;
+        planes[resid].curX = runways[i][4];
+        planes[resid].curY = runways[i][5];
+        planes[resid].heading = runways[i][1];
+        planes[resid].newHeading = runways[i][1];
+        planes[resid].destX = runways[i][6] + (runways[i][6] - runways[i][4]);
+        planes[resid].destY = runways[i][7] + (runways[i][7] - runways[i][5]);
+        planes[resid].altStep = 0.01;
+        planes[resid].speedStep = 1;
+        for (let j = 0; j < navObjects.length; j++) {
+          if (
+            splitCommand[3] == navObjects[j][0] &&
+            40 <= parseInt(splitCommand[4]) &&
+            parseInt(splitCommand[4]) <= 400
+          ) {
+            planes[resid].destination = j;
+            planes[resid].destName = navObjects[j][0];
+            planes[resid].newAlt = splitCommand[4];
           }
         }
       }
-    };
+    }
   }
-  setTimeout(waitingSTO, 10000);
   document.getElementById("console").value =
     planes[resid].id +
     " cleared for line-up\n" +
