@@ -1,3 +1,4 @@
+console.log("sim control loaded");
 let modal = document.getElementById("startModal");
 let cW = window.innerWidth - 310;
 let cH = window.innerHeight; // cH/cW=.583
