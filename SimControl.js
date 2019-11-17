@@ -1,3 +1,55 @@
+// { selDifficulty, selAirport, selMode } is called deconstructuring... look it up
+//we're passing in an object in atc.js (gameOptions)
+//but here we're already breaking it down into variables.
+
+export const startSim = ({ selDifficulty, selAirport, selMode }) => {
+  const startTime = new Date().getTime();
+  let d = document.createElement("div");
+  titleDiv.removeChild(document.getElementById("titleAirport"));
+  titleDiv.removeChild(document.getElementById("titleCode"));
+  titleDiv.removeChild(document.getElementById("titleElev"));
+  switch (selAirport) {
+    case "LHBP":
+      initLHBP();
+      d.setAttribute("id", "titleAirport");
+      d.appendChild(document.createElement("div"));
+      d.childNodes[0].innerHTML =
+        '<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>';
+      titleDiv.appendChild(d);
+      break;
+    case "EGLL":
+      initEGLL();
+      d.setAttribute("id", "titleAirport");
+      d.appendChild(document.createElement("div"));
+      d.childNodes[0].innerHTML =
+        '<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>';
+      titleDiv.appendChild(d);
+      break;
+    case "EPWA":
+      initEPWA();
+      d.setAttribute("id", "titleAirport");
+      d.appendChild(document.createElement("div"));
+      d.childNodes[0].innerHTML =
+        '<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>';
+      titleDiv.appendChild(d);
+      break;
+    case "KSEA":
+      initKSEA();
+      d.setAttribute("id", "titleAirport");
+      d.appendChild(document.createElement("div"));
+      d.childNodes[0].innerHTML =
+        '<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>';
+      titleDiv.appendChild(d);
+      break;
+    default:
+      break;
+  }
+  animate(canvas, context, startTime);
+  drawRunways(context);
+  newPlane();
+  setInterval(newPlane, planeFreq(20, 60) * selDifficulty); //Easy=4000, Normal=2000, Difficult=1000
+};
+
 // cH/cW=.583
 // let cHW = cW * 0.6; //ez nem lehet resze a canvas objectnek?, de gondolom igen
 // let planeNR = 0; // body canvas - style="background: #103848"
@@ -407,56 +459,4 @@ const animate = (canvas, context, startTime, plane) => {
   requestAnimFrame(function() {
     animate(canvas, context, startTime);
   });
-};
-
-// { selDifficulty, selAirport, selMode } is called deconstructuring... look it up
-//we're passing in an object in atc.js (gameOptions)
-//but here we're already breaking it down into variables.
-
-export const startSim = ({ selDifficulty, selAirport, selMode }) => {
-  const startTime = new Date().getTime();
-  let d = document.createElement("div");
-  titleDiv.removeChild(document.getElementById("titleAirport"));
-  titleDiv.removeChild(document.getElementById("titleCode"));
-  titleDiv.removeChild(document.getElementById("titleElev"));
-  switch (selAirport) {
-    case "LHBP":
-      initLHBP();
-      d.setAttribute("id", "titleAirport");
-      d.appendChild(document.createElement("div"));
-      d.childNodes[0].innerHTML =
-        '<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>';
-      titleDiv.appendChild(d);
-      break;
-    case "EGLL":
-      initEGLL();
-      d.setAttribute("id", "titleAirport");
-      d.appendChild(document.createElement("div"));
-      d.childNodes[0].innerHTML =
-        '<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>';
-      titleDiv.appendChild(d);
-      break;
-    case "EPWA":
-      initEPWA();
-      d.setAttribute("id", "titleAirport");
-      d.appendChild(document.createElement("div"));
-      d.childNodes[0].innerHTML =
-        '<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>';
-      titleDiv.appendChild(d);
-      break;
-    case "KSEA":
-      initKSEA();
-      d.setAttribute("id", "titleAirport");
-      d.appendChild(document.createElement("div"));
-      d.childNodes[0].innerHTML =
-        '<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>';
-      titleDiv.appendChild(d);
-      break;
-    default:
-      break;
-  }
-  animate(canvas, context, startTime);
-  drawRunways(context);
-  newPlane();
-  setInterval(newPlane, planeFreq(20, 60) * selDifficulty); //Easy=4000, Normal=2000, Difficult=1000
 };
