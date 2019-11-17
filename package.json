@@ -1,0 +1,24 @@
+{
+  "name": "atc",
+  "version": "1.0.0",
+  "description": "ATC Simulator",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lprivo/ATC.git"
+  },
+  "author": "Laszlo Privoczki",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lprivo/ATC/issues"
+  },
+  "homepage": "https://github.com/lprivo/ATC#readme",
+  "devDependencies": {
+    "@aerian/eslint-config": "^6.0.4",
+    "eslint": "^6.6.0",
+    "prettier": "^1.19.1"
+  }
+}
