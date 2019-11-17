@@ -40,7 +40,7 @@
 					} else {
 						consArrow = "-";
 					}
-			if (plane.flightMode == 9) {
+			if (plane.flightMode === 9) {
 				context.beginPath();
 				context.moveTo(plane.curX-3, plane.curY-3);
 				context.lineTo(plane.curX+3, plane.curY-3);
@@ -83,7 +83,7 @@
 				context.beginPath();
 				context.moveTo(planes[i].curX, planes[i].curY);
 				context.lineTo(planes[i].curX - (Math.cos((planes[i].heading-90)*(Math.PI/180)) * planes[i].speed), planes[i].curY - (Math.sin((planes[i].heading-90)*(Math.PI/180)) * planes[i].speed));
-				if (planes[i].flightMode == 9) {
+				if (planes[i].flightMode === 9) {
 					context.strokeStyle = 'rgba(110,110,110,1)'
 				} else {context.strokeStyle = 'rgba(200,200,200,1)'};
 				context.lineWidth = 1;

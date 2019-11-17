@@ -182,33 +182,6 @@ Followed by the clearance type and its parameters as below:
 	<script type="text/javascript" src="AircraftMovements.js"></script>
 	<script type="text/javascript" src="FlightModes.js"></script>
 	<script type="text/javascript">
-	  let modal = document.getElementById('startModal');
-	  let cW = (window.innerWidth - 310);
-	  let cH = window.innerHeight;			// cH/cW=.583
-	  let cHW = cW*.6;
-      let planeNR = 0;	// body canvas - style="background: #103848" 
-      let planes = [];
-      let runways = [];
-	  let airlnrCode = [];	//operating airliners' list
-	  let airlnrDistr = [];	//operating airliners's distribution - main operator + 4 groups by no. of aircrafts
-	  let destName;
-	  let entryPts = [];
-	  //let consoleText = document.getElementById('console').value;
-	  let userCommand;	// = document.getElementById("instructionText").value;
-	  let splitCommand = [];
-      let pausing = false;
-	  let resid;
-	  let entryAlt = [50,50,60,60,60,70,70,70,70,80,80,80];
-	  let navObjects = [];
-	  let successfulLandings = 0;
-	  let successfulHandoffs = 0;
-	  let improperExits = 0;
-	  let missedApproaches = 0;
-	  let sepViolation = 0;
-	  let canvas = document.getElementById('myCanvas');
-      let context = canvas.getContext('2d');
-	  let psFrame = document.getElementById('psFrame');
-	  let selMode;	
 		  
 	  window.requestAnimFrame = (function(callback) {
 			return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||

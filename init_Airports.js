@@ -1,4 +1,4 @@
-const initLHBP = () => {
+ const initLHBP = () => {
 			
     navObjects[0] = ["BADOV", Math.round(cW*.343), Math.round(cHW*.008)];
     navObjects[1] = ["NALAG", Math.round(cW*.640), Math.round(cHW*.008)];
@@ -70,7 +70,7 @@ const initLHBP = () => {
     document.getElementById("myCanvas").style.backgroundImage = 'url("Images/LHBP_bgnd_map.png")';
 }
 
-const initEGLL = () => {
+ const initEGLL = () => {
     
     navObjects[0] = ["BIG", Math.round(cW*.791), Math.round(cHW*.707)];	//(20NM from centre = 378 on-screen distance)
     navObjects[1] = ["BNN", Math.round(cW*.442), Math.round(cHW*.089)];
@@ -137,7 +137,7 @@ const initEGLL = () => {
     document.getElementById("myCanvas").style.backgroundImage = 'url("Images/EGLL_bgnd_map.png")';
 }
 
-const initEPWA = () => {
+ const initEPWA = () => {
     
     navObjects[0] = ["ULPAR", Math.round(cW*.515), Math.round(cHW*.080)];
     navObjects[1] = ["SIE", Math.round(cW*.967), Math.round(cHW*.493)];
@@ -206,7 +206,7 @@ const initEPWA = () => {
     document.getElementById("myCanvas").style.backgroundImage = 'url("Images/EPWA_bgnd_map.png")';
 }
 
-const initKSEA = () => {
+ const initKSEA = () => {
     
     navObjects[0] = ["PAE", Math.round(cW*.507), Math.round(cHW*.008)];
     navObjects[1] = ["MODDA", Math.round(cW*.826), Math.round(cHW*.500)];

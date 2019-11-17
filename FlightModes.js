@@ -1,6 +1,6 @@
 		
 const checkHandover = resid => {
-	if (planes[resid].flightMode == 9) {
+	if (planes[resid].flightMode === 9) {
 		document.getElementById("console").value = planes[resid].id + " is not in your control anymore!\n" + document.getElementById("console").value;
 		document.getElementById('instructionText').value='';
 		resid = -1;
@@ -34,7 +34,7 @@ const checkHandover = resid => {
 			//getUserCommand();
 			splitUserCommand();
 			//let splitCommand = userCommand.split(" ");
-				if (planes[resid].flightMode == 5) {
+				if (planes[resid].flightMode === 5) {
 					const waitingSTO = () => {
 						for (let i=0; i<runways.length; i++) {
 							if (splitCommand[2] == runways[i][0]) {
@@ -101,7 +101,7 @@ const checkHandover = resid => {
 			splitUserCommand();
 			//let userCommand = document.getElementById("instructionText").value;
 			//let splitCommand = userCommand.split(" ");
-			if (planes[resid].flightMode == 5) {
+			if (planes[resid].flightMode === 5) {
 				for (let i=0; i<runways.length; i++) {
 						if (splitCommand[2] == runways[i][0]) {
 							planes[resid].flightMode = 7;

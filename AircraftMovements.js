@@ -1,8 +1,8 @@
 const distCheck = (plane) => {
-	if ((plane.flightMode == 0) && (plane.distance < 3)) {
+	if ((plane.flightMode === 0) && (plane.distance < 3)) {
 		destReset(plane);
 		return;
-	} else if ((plane.flightMode == 2) && (plane.distance <= 20)) {
+	} else if ((plane.flightMode === 2) && (plane.distance <= 20)) {
 		if (Math.abs(runways[plane.destination][1] - plane.heading) <= 20) {
 			finalApproach(plane);
 			return;
@@ -13,25 +13,28 @@ const distCheck = (plane) => {
 			document.getElementById("console").value = plane.id + " missed approach!\n" + document.getElementById("console").value;
 			return;
 		}
-	} else if ((plane.flightMode == 3) && (plane.distance <= 10)) {
+	} else if ((plane.flightMode === 3) && (plane.distance <= 10)) {
 		landing(plane);
 		return;
-	} else if ((plane.flightMode == 7) && (plane.distance <= 6)) {
+	} else if ((plane.flightMode === 7) && (plane.distance <= 6)) {
 		departing(plane);
 		return;
 	}
 }
 
 const heading = plane => {
-	for (let i=0; i<planes.length; i++){
+	for (let i=0; i<planes.length; i++) {
 		planes[i].curX = planes[i].curX + (Math.cos((planes[i].heading-90)*(Math.PI/180)) * (planes[i].speed/10));
 		planes[i].curY = planes[i].curY + (Math.sin((planes[i].heading-90)*(Math.PI/180)) * (planes[i].speed/10));
 	}
 }
 		
 		const speedChange = plane => {
-	    	(plane.speed < plane.newSpeed) ? plane.speed += plane.speedStep :
-		    (plane.speed > plane.newSpeed) ? plane.speed -= plane.speedStep;
+	    	if (plane.speed < plane.newSpeed) {
+				plane.speed += plane.speedStep
+			} else if (plane.speed > plane.newSpeed) {
+				plane.speed -= plane.speedStep
+			}
     	}
 		  
 	    const altChange = plane => {
@@ -47,9 +50,13 @@ const heading = plane => {
 		}
 		
 		const headingReset = plane => {
-			(plane.heading <= 0) ? plane.heading += 360 :
-			(plane.heading > 360) ? plane.heading -= 360;
-			return;
+			if (plane.heading <= 0) {
+			  plane.heading += 360;
+			  return;
+			} else if (plane.heading > 360) {
+			  plane.heading -= 360;
+			  return;
+			}
 		}
 
 		const turning = plane => {
@@ -84,14 +91,17 @@ const heading = plane => {
 		// plane distance from destination
 		const distMeasure = plane => plane.distance = Math.round(Math.sqrt(Math.pow((plane.curX - plane.destX),2) + Math.pow((plane.curY - plane.destY),2)));
 		
-		const assignDest = plane => (plane.destination != -1) ? setHeading(plane);
+		const assignDest = plane => (plane.destination != -1) && setHeading(plane);
 		
 		const destReset = plane => {
 			plane.destination = -1;
 			plane.destX = 'undefined';
 			plane.destY = 'undefined';
 			plane.turnStep = 3;
-			((plane.flightMode != 8) && (plane.flightMode != 9)) ? plane.flightMode = 0;		
+			if ((plane.flightMode != 8) && (plane.flightMode != 9)){
+				plane.flightMode = 0;
+			}
+			// ((plane.flightMode != 8) && (plane.flightMode != 9)) ? plane.flightMode = 0;		
 		}
 		
 		// Separation check

@@ -18,14 +18,16 @@ const splitUserCommand = () => {
 
 const checkPausing = () => {
 	getUserCommand();
-	(userCommand == "P") ? fnPausing();
+	if (userCommand === "P") {
+		fnPausing();
+	}
 	return;
 }
 
+
 const checkEndSim = () => {
 	getUserCommand();
-	(userCommand == "EXIT") ? endSim();
-	return;
+	(userCommand === "EXIT") && endSim();
 }
 
 const usercmdToConsole = (userCommand) => {
@@ -134,13 +136,13 @@ const fnCommandA = () => {
 		}
 
 		const fnCommandT = () => {
-			if (planes[resid].flightMode == 5){
+			if (planes[resid].flightMode === 5){
 				setTimeout(takeOff(resid),10000);	//Miert nem mukodik???????????
 				usercmdToConsole(userCommand);
 				document.getElementById("console").value = planes[resid].id + " cleared for take-off\n" + document.getElementById("console").value;
 				resid = -1;
 				return;
-			} else if (planes[resid].flightMode == 6) {
+			} else if (planes[resid].flightMode === 6) {
 				planes[resid].flightMode = 7;
 				planes[resid].newSpeed = 16;
 				usercmdToConsole(userCommand);
@@ -153,7 +155,7 @@ const fnCommandA = () => {
 		}
 
 		const fnCommandW = () => {
-			if (planes[resid].flightMode == 5){
+			if (planes[resid].flightMode === 5){
 				waiting(resid);
 				usercmdToConsole(userCommand);
 				resid = -1;
@@ -197,5 +199,5 @@ const fnCommandA = () => {
 					//promptInvalidComm();
 					promptInvalidCommTest();
 			}
-        }
+		}
         

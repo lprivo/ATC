@@ -1,4 +1,33 @@
 
+      let modal = document.getElementById('startModal');
+	  let cW = (window.innerWidth - 310);
+	  let cH = window.innerHeight;			// cH/cW=.583
+	  let cHW = cW*.6;
+      let planeNR = 0;	// body canvas - style="background: #103848" 
+      let planes = [];
+      let runways = [];
+	  let airlnrCode = [];	//operating airliners' list
+	  let airlnrDistr = [];	//operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+	  let destName;
+	  let entryPts = [];
+	  //let consoleText = document.getElementById('console').value;
+	  let userCommand;	// = document.getElementById("instructionText").value;
+	  let splitCommand = [];
+      let pausing = false;
+	  let resid;
+	  let entryAlt = [50,50,60,60,60,70,70,70,70,80,80,80];
+	  let navObjects = [];
+	  let successfulLandings = 0;
+	  let successfulHandoffs = 0;
+	  let improperExits = 0;
+	  let missedApproaches = 0;
+	  let sepViolation = 0;
+	  let canvas = document.getElementById('myCanvas');
+      let context = canvas.getContext('2d');
+	  let psFrame = document.getElementById('psFrame');
+	  let selMode;
+
+        // import {initLHBP, initEGLL, initEPWA, initKSEA} from "./init_Airports";
         const showInfoscreen = () => {
 			let dispInfo = document.getElementById("infoScreen").style.display;
 			let dispStat = document.getElementById("statScreen").style.display;
@@ -155,7 +184,7 @@ const progressStrips = (plane) => {
         }
     
     } else {
-        if (plane.label == "A") {
+        if (plane.label === "A") {
             newPStrip.setAttribute("id", plane.id);
             newPStrip.setAttribute("name", plane.id);
             newPStrip.setAttribute("class", "psArrival");
@@ -165,7 +194,7 @@ const progressStrips = (plane) => {
             newPStrip.childNodes[0].innerHTML = "<table><tr><td class='pstd'>" + plane.id + "</td></tr><tr><td class='pstd'>" + plane.label + "</td></tr></table>";
             psFrame.appendChild(newPStrip);
             
-        } else if ((plane.label == "D") && (plane.flightMode != 9)) {
+        } else if ((plane.label === "D") && (plane.flightMode != 9)) {
             newPStrip.setAttribute("id", plane.id);
             newPStrip.setAttribute("name", plane.id);
             newPStrip.setAttribute("class", "psDeparture");
@@ -186,13 +215,13 @@ const getFlightID = (flightStrip) => {
 
 const removePlane = () => {
     for (let i=0; i<planes.length; i++) {
-        if ((planes[i].flightMode == 4) && (planes[i].speed == 0)) {
+        if ((planes[i].flightMode === 4) && (planes[i].speed == 0)) {
             psFrame.removeChild(document.getElementById(planes[i].id));
             planes.splice(i,1);
             planeNR--;
             successfulLandings++;
             return;
-        } else if ((planes[i].flightMode == 8) && (planes[i].distance <= 3)) {
+        } else if ((planes[i].flightMode === 8) && (planes[i].distance <= 3)) {
             if (planes[i].destName == navObjects[planes[i].destination][0]) {
                 psFrame.removeChild(document.getElementById(planes[i].id));
                 planes[i].flightMode = 9;
@@ -208,13 +237,13 @@ const removePlane = () => {
                 improperExits++;
                 return;
             }
-        } else if ((planes[i].flightMode == 0) && ((planes[i].curX < -10) || ((cW+10) < planes[i].curX) || (planes[i].curY < -10) || ((cH+10) < planes[i].curY))) {
+        } else if ((planes[i].flightMode === 0) && ((planes[i].curX < -10) || ((cW+10) < planes[i].curX) || (planes[i].curY < -10) || ((cH+10) < planes[i].curY))) {
             psFrame.removeChild(document.getElementById(planes[i].id));
             planes.splice(i,1);
             planeNR--;
             improperExits++;
             return;
-        } else if ((planes[i].flightMode == 9) && ((planes[i].curX < -10) || ((cW+10) < planes[i].curX) || (planes[i].curY < -10) || ((cH+10) < planes[i].curY))) {
+        } else if ((planes[i].flightMode === 9) && ((planes[i].curX < -10) || ((cW+10) < planes[i].curX) || (planes[i].curY < -10) || ((cH+10) < planes[i].curY))) {
             planes.splice(i,1);
             return;
         }
@@ -263,8 +292,8 @@ const animate = (canvas, context, startTime, plane) => {
         
         updateStatScreen();
         drawRunways(context);
-        heading(planes[i]);
-        drawTrail(planes[i], context);
+        heading(planes);
+        drawTrail(planes, context);
         removePlane();
         fnSeparation(plane);
         document.getElementById('instructionText').focus();
