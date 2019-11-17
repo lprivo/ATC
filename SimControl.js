@@ -1,3 +1,4 @@
+console.log("sim control loaded");
 let modal = document.getElementById("startModal");
 // cH/cW=.583
 let cHW = cW * 0.6;

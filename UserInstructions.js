@@ -154,9 +154,10 @@ const fnCommandS = () => {
   }
 };
 
-const fnCommandT = () => {
+const fnCommandT = resid => {
   if (planes[resid].flightMode === 5) {
-    setTimeout(takeOff(resid), 10000); //Miert nem mukodik???????????
+    setTimeout(() => takeOff(resid), 2000); //Miert nem mukodik???????????
+    console.log("TCL: fnCommandT -> resid", resid);
     usercmdToConsole(userCommand);
     document.getElementById("console").value =
       planes[resid].id +
@@ -215,7 +216,7 @@ const doInstruction = () => {
       fnCommandS();
       break;
     case "T":
-      fnCommandT();
+      fnCommandT(resid);
       break;
     case "W":
       fnCommandW();
