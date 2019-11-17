@@ -6,6 +6,15 @@
     <meta http-equiv="Cache-Control" content="no-cache" />
     <link rel="stylesheet" type="text/css" href="./templates/atc.css" />
     <link rel="icon" href="Images/ATC_logo_icon.png" />
+    <!-- altalaban a js, mindig a headben van definialva... ezrt van az a funkcio, hogy onWindowLoad...
+       megvarja, mig a html betolt es aztan indul a js - errol olvastam regen.. :P)-->
+    <script type="text/javascript" src="./atc.js"></script>
+    <script type="text/javascript" src="SimControl.js"></script>
+    <script type="text/javascript" src="init_Airports.js"></script>
+    <script type="text/javascript" src="DrawObjects.js"></script>
+    <script type="text/javascript" src="UserInstructions.js"></script>
+    <script type="text/javascript" src="AircraftMovements.js"></script>
+    <script type="text/javascript" src="FlightModes.js"></script>
   </head>
   <body>
     <div id="startModal" class="modal">
@@ -53,7 +62,6 @@
                   type="button"
                   id="startbutton"
                   value="Start simulation"
-                  onclick="setOpts()"
                   autofocus
                 />
               </td>
@@ -218,52 +226,5 @@ Followed by the clearance type and its parameters as below:
       </div>
     </div>
     <canvas id="myCanvas"></canvas>
-    <script type="text/javascript" src="SimControl.js"></script>
-    <script type="text/javascript" src="init_Airports.js"></script>
-    <script type="text/javascript" src="DrawObjects.js"></script>
-    <script type="text/javascript" src="UserInstructions.js"></script>
-    <script type="text/javascript" src="AircraftMovements.js"></script>
-    <script type="text/javascript" src="FlightModes.js"></script>
-    <script type="text/javascript">
-      const myCanvas = document.getElementById("myCanvas");
-      const instructionText = document.getElementById("instructionText");
-      const console = document.getElementById("console");
-
-      window.requestAnimFrame = (function(callback) {
-        return (
-          window.requestAnimationFrame ||
-          window.webkitRequestAnimationFrame ||
-          window.mozRequestAnimationFrame ||
-          window.oRequestAnimationFrame ||
-          window.msRequestAnimationFrame ||
-          function(callback) {
-            window.setTimeout(callback, 1000);
-          }
-        );
-      })();
-
-      window.addEventListener("resize", screenSize);
-
-      const promptInvalidCommTest = () => {
-        document.getElementById("console").value =
-          "TEST Invalid Command!\n" + document.getElementById("console").value;
-        document.getElementById("instructionText").value = "";
-        resid = -1;
-        return;
-      };
-
-      window.onload = () => {
-        canvas = {
-          width: window.innerWidth - 310,
-          height: window.innerHeight
-        };
-
-        modal.style.display = "block";
-        instructionText.focus();
-        console.value = "Welcome to Privo-ATC!" + console.value;
-        instructionText.value = "";
-        return;
-      };
-    </script>
   </body>
 </html>

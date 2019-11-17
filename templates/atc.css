@@ -17,6 +17,10 @@ body {
   background-size: contain;
 }
 
+#startModal {
+  display: block;
+}
+
 #psFrame {
   position: relative;
   width: 100%;

@@ -1,30 +1,29 @@
-console.log("sim control loaded");
-let modal = document.getElementById("startModal");
 // cH/cW=.583
-let cHW = cW * 0.6;
-let planeNR = 0; // body canvas - style="background: #103848"
-let planes = [];
-let runways = [];
-let airlnrCode = []; //operating airliners' list
-let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
-let destName;
-let entryPts = [];
-//let consoleText = document.getElementById('console').value;
-let userCommand; // = document.getElementById("instructionText").value;
-let splitCommand = [];
-let pausing = false;
-let resid;
-let entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
-let navObjects = [];
-let successfulLandings = 0;
-let successfulHandoffs = 0;
-let improperExits = 0;
-let missedApproaches = 0;
-let sepViolation = 0;
+// let cHW = cW * 0.6; //ez nem lehet resze a canvas objectnek?, de gondolom igen
+// let planeNR = 0; // body canvas - style="background: #103848"
+// let planes = [];
+// let runways = [];
+// let airlnrCode = []; //operating airliners' list
+// let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+// let destName;
+// let entryPts = [];
+// //let consoleText = document.getElementById('console').value;
+// let userCommand; // = document.getElementById("instructionText").value;
+// let splitCommand = [];
+// let pausing = false;
+// let resid;
+// let entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
+// let navObjects = [];
+// let successfulLandings = 0;
+// let successfulHandoffs = 0;
+// let improperExits = 0;
+// let missedApproaches = 0;
+// let sepViolation = 0;
 
-let context = canvas.getContext("2d");
-let psFrame = document.getElementById("psFrame");
-let selMode;
+// let context = canvas.getContext("2d"); //elvileg ez adja a radar kepernyo alapjat
+//igen, megleltem. kozben google megy
+// let psFrame = document.getElementById("psFrame");
+let selMode; //ez az eleje, a modal-ban amikor valasztasz mode-ot
 
 // import {initLHBP, initEGLL, initEPWA, initKSEA} from "./init_Airports";
 const showInfoscreen = () => {
@@ -410,16 +409,12 @@ const animate = (canvas, context, startTime, plane) => {
   });
 };
 
-const setOpts = () => {
-  let selDifficulty = document.getElementById("Difficulty").value;
-  let selAirport = document.getElementById("Airports").value;
-  selMode = document.getElementById("GameMode").value;
-  startSim(selDifficulty, selAirport);
-};
+// { selDifficulty, selAirport, selMode } is called deconstructuring... look it up
+//we're passing in an object in atc.js (gameOptions)
+//but here we're already breaking it down into variables.
 
-const startSim = (selDifficulty, selAirport) => {
-  modal.style.display = "none";
-  let startTime = new Date().getTime();
+export const startSim = ({ selDifficulty, selAirport, selMode }) => {
+  const startTime = new Date().getTime();
   let d = document.createElement("div");
   titleDiv.removeChild(document.getElementById("titleAirport"));
   titleDiv.removeChild(document.getElementById("titleCode"));
@@ -456,6 +451,8 @@ const startSim = (selDifficulty, selAirport) => {
       d.childNodes[0].innerHTML =
         '<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>';
       titleDiv.appendChild(d);
+      break;
+    default:
       break;
   }
   animate(canvas, context, startTime);
