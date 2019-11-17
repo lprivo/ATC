@@ -1,6 +1,5 @@
 let modal = document.getElementById("startModal");
-let cW = window.innerWidth - 310;
-let cH = window.innerHeight; // cH/cW=.583
+// cH/cW=.583
 let cHW = cW * 0.6;
 let planeNR = 0; // body canvas - style="background: #103848"
 let planes = [];
@@ -21,7 +20,7 @@ let successfulHandoffs = 0;
 let improperExits = 0;
 let missedApproaches = 0;
 let sepViolation = 0;
-let canvas = document.getElementById("myCanvas");
+
 let context = canvas.getContext("2d");
 let psFrame = document.getElementById("psFrame");
 let selMode;
