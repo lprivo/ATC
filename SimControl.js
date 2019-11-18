@@ -1,25 +1,34 @@
 // { selDifficulty, selAirport, selMode } is called deconstructuring... look it up
 //we're passing in an object in atc.js (gameOptions)
 //but here we're already breaking it down into variables.
+import { initLHBP } from "./init_Airports";
+const createAirport = (innerHTML, titleDiv) => {
+  const airportDiv = document.createElement("div");
+
+  airportDiv.setAttribute("id", "titleAirport");
+  airportDiv.appendChild(document.createElement("div"));
+  airportDiv.childNodes[0].innerHTML = innerHTML;
+  titleDiv.appendChild(airportDiv);
+
+  return airportDiv;
+};
 
 export const startSim = ({ selectedDifficulty, selAirport, selectedMode }) => {
   const startTime = new Date().getTime();
-  const dButIReallyNeedToWorkOnMyVariableNames = document.createElement("div");
+  const titleDiv = document.getElementById("titleDiv");
   titleDiv.removeChild(document.getElementById("titleAirport"));
   titleDiv.removeChild(document.getElementById("titleCode"));
   titleDiv.removeChild(document.getElementById("titleElev"));
   switch (selectedDifficulty) {
     case "LHBP":
       initLHBP();
-      dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
-      dButIReallyNeedToWorkOnMyVariableNames.appendChild(
-        document.createElement("div")
+      //instead of this, you could make a "factory" like this
+      createAirport(
+        `<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>`
       );
-      dButIReallyNeedToWorkOnMyVariableNames.childNodes[0].innerHTML =
-        '<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>';
-      titleDiv.appendChild(dButIReallyNeedToWorkOnMyVariableNames);
       break;
     case "EGLL":
+      //just call the factory for each of your airports
       initEGLL();
       dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
       dButIReallyNeedToWorkOnMyVariableNames.appendChild(

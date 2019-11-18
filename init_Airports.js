@@ -1,4 +1,7 @@
-const initLHBP = () => {
+//you need to export all your airport configs
+//when that's done, you can think about transforming this into an object
+//also, you probably would need to pass in cW and cHW from atc.js
+export const initLHBP = () => {
   navObjects[0] = ["BADOV", Math.round(cW * 0.343), Math.round(cHW * 0.008)];
   navObjects[1] = ["NALAG", Math.round(cW * 0.64), Math.round(cHW * 0.008)];
   navObjects[2] = ["BABOX", Math.round(cW * 0.669), Math.round(cHW * 0.982)];
