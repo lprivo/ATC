@@ -8,9 +8,9 @@ import { startSim } from "./SimControl";
 const setOpts = modal => {
   console.log("Saving options");
   const gameOptions = {
-    selDifficulty: document.getElementById("Difficulty").value,
-    selAirport: document.getElementById("Airports").value,
-    mode: document.getElementById("GameMode").value
+    selectedDifficulty: document.getElementById("Difficulty").value,
+    selectedAirport: document.getElementById("Airports").value,
+    selectedGameMode: document.getElementById("GameMode").value
   };
 
   startSim(gameOptions);

@@ -2,13 +2,13 @@
 //we're passing in an object in atc.js (gameOptions)
 //but here we're already breaking it down into variables.
 
-export const startSim = ({ selDifficulty, selAirport, selMode }) => {
+export const startSim = ({ selectedDifficulty, selAirport, selectedMode }) => {
   const startTime = new Date().getTime();
   const dButIReallyNeedToWorkOnMyVariableNames = document.createElement("div");
   titleDiv.removeChild(document.getElementById("titleAirport"));
   titleDiv.removeChild(document.getElementById("titleCode"));
   titleDiv.removeChild(document.getElementById("titleElev"));
-  switch (selAirport) {
+  switch (selectedDifficulty) {
     case "LHBP":
       initLHBP();
       dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
@@ -55,7 +55,7 @@ export const startSim = ({ selDifficulty, selAirport, selMode }) => {
   animate(canvas, context, startTime);
   drawRunways(context);
   newPlane();
-  setInterval(newPlane, planeFreq(20, 60) * selDifficulty); //Easy=4000, Normal=2000, Difficult=1000
+  setInterval(newPlane, planeFreq(20, 60) * selectedDifficulty); //Easy=4000, Normal=2000, Difficult=1000
 };
 
 // cH/cW=.583
