@@ -4,42 +4,50 @@
 
 export const startSim = ({ selDifficulty, selAirport, selMode }) => {
   const startTime = new Date().getTime();
-  let d = document.createElement("div");
+  const dButIReallyNeedToWorkOnMyVariableNames = document.createElement("div");
   titleDiv.removeChild(document.getElementById("titleAirport"));
   titleDiv.removeChild(document.getElementById("titleCode"));
   titleDiv.removeChild(document.getElementById("titleElev"));
   switch (selAirport) {
     case "LHBP":
       initLHBP();
-      d.setAttribute("id", "titleAirport");
-      d.appendChild(document.createElement("div"));
-      d.childNodes[0].innerHTML =
+      dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
+      dButIReallyNeedToWorkOnMyVariableNames.appendChild(
+        document.createElement("div")
+      );
+      dButIReallyNeedToWorkOnMyVariableNames.childNodes[0].innerHTML =
         '<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>';
-      titleDiv.appendChild(d);
+      titleDiv.appendChild(dButIReallyNeedToWorkOnMyVariableNames);
       break;
     case "EGLL":
       initEGLL();
-      d.setAttribute("id", "titleAirport");
-      d.appendChild(document.createElement("div"));
-      d.childNodes[0].innerHTML =
+      dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
+      dButIReallyNeedToWorkOnMyVariableNames.appendChild(
+        document.createElement("div")
+      );
+      dButIReallyNeedToWorkOnMyVariableNames.childNodes[0].innerHTML =
         '<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>';
-      titleDiv.appendChild(d);
+      titleDiv.appendChild(dButIReallyNeedToWorkOnMyVariableNames);
       break;
     case "EPWA":
       initEPWA();
-      d.setAttribute("id", "titleAirport");
-      d.appendChild(document.createElement("div"));
-      d.childNodes[0].innerHTML =
+      dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
+      dButIReallyNeedToWorkOnMyVariableNames.appendChild(
+        document.createElement("div")
+      );
+      dButIReallyNeedToWorkOnMyVariableNames.childNodes[0].innerHTML =
         '<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>';
-      titleDiv.appendChild(d);
+      titleDiv.appendChild(dButIReallyNeedToWorkOnMyVariableNames);
       break;
     case "KSEA":
       initKSEA();
-      d.setAttribute("id", "titleAirport");
-      d.appendChild(document.createElement("div"));
-      d.childNodes[0].innerHTML =
+      dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
+      dButIReallyNeedToWorkOnMyVariableNames.appendChild(
+        document.createElement("div")
+      );
+      dButIReallyNeedToWorkOnMyVariableNames.childNodes[0].innerHTML =
         '<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>';
-      titleDiv.appendChild(d);
+      titleDiv.appendChild(dButIReallyNeedToWorkOnMyVariableNames);
       break;
     default:
       break;
