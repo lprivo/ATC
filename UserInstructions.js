@@ -34,14 +34,16 @@ const checkEndSim = () => {
 };
 
 const usercmdToConsole = userCommand => {
-  document.getElementById("console").value =
-    userCommand + "\n" + document.getElementById("console").value;
+  document.getElementById("console").value = `${userCommand}\n ${
+    document.getElementById("console").value
+  }`;
   document.getElementById("instructionText").value = ""; // clearing the input field
 };
 
 const promptInvalidComm = () => {
-  document.getElementById("console").value =
-    "Invalid Command!\n" + document.getElementById("console").value;
+  document.getElementById("console").value = `Invalid Command!\n ${
+    document.getElementById("console").value
+  }`;
   document.getElementById("instructionText").value = "";
   resid = -1;
   return;
@@ -55,9 +57,9 @@ const fnCommandA = () => {
     resid = -1;
     return;
   } else {
-    document.getElementById("console").value =
-      "Invalid altitude clearance!\n" +
-      document.getElementById("console").value;
+    document.getElementById("console").value = `Invalid Altitude Clearance!\n ${
+      document.getElementById("console").value
+    }`;
     document.getElementById("instructionText").value = "";
     resid = -1;
     return;
@@ -127,10 +129,9 @@ const fnCommandL = () => {
       planes[resid].speedStep = 0.5;
       planes[resid].destName = runways[i][0];
       usercmdToConsole(userCommand);
-      document.getElementById("console").value =
-        planes[resid].id +
-        " cleared for landing\n" +
-        document.getElementById("console").value;
+      document.getElementById("console").value = `${
+        planes[resid]
+      } cleared for landing\n ${document.getElementById("console").value}`;
       resid = -1;
       return;
     }
@@ -145,9 +146,9 @@ const fnCommandS = () => {
     resid = -1;
     return;
   } else {
-    document.getElementById("console").value =
-      "Invalid velocity clearance!\n" +
-      document.getElementById("console").value;
+    document.getElementById("console").value = `Invalid velocity clearance!\n ${
+      document.getElementById("console").value
+    }`;
     document.getElementById("instructionText").value = "";
     resid = -1;
     return;
@@ -159,20 +160,18 @@ const fnCommandT = resid => {
     setTimeout(() => takeOff(resid), 4000);
     console.log("TCL: fnCommandT -> resid", resid);
     usercmdToConsole(userCommand);
-    document.getElementById("console").value =
-      planes[resid].id +
-      " cleared for take-off\n" +
-      document.getElementById("console").value;
+    document.getElementById("console").value = `${
+      planes[resid].id
+    } cleared for take-off\n ${document.getElementById("console").value}`;
     resid = -1;
     return;
   } else if (planes[resid].flightMode === 6) {
     planes[resid].flightMode = 7;
     planes[resid].newSpeed = 16;
     usercmdToConsole(userCommand);
-    document.getElementById("console").value =
-      planes[resid].id +
-      " cleared for take-off\n" +
-      document.getElementById("console").value;
+    document.getElementById("console").value = `${
+      planes[resid].id
+    } cleared for take-off\n ${document.getElementById("console").value}`;
     resid = -1;
     return;
   } else {

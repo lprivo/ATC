@@ -1,9 +1,10 @@
 const checkHandover = resid => {
   if (planes[resid].flightMode === 9) {
-    document.getElementById("console").value =
-      planes[resid].id +
-      " is not in your control anymore!\n" +
-      document.getElementById("console").value;
+    document.getElementById("console").value = `${
+      planes[resid].id
+    } is not in your control anymore!\n ${
+      document.getElementById("console").value
+    }`;
     document.getElementById("instructionText").value = "";
     resid = -1;
     return;
@@ -32,10 +33,7 @@ const landing = plane => {
 };
 
 const waiting = resid => {
-  //let userCommand = document.getElementById("instructionText").value;
-  //getUserCommand();
   splitUserCommand();
-  //let splitCommand = userCommand.split(" ");
   if (planes[resid].flightMode === 5) {
     for (let i = 0; i < runways.length; i++) {
       if (splitCommand[2] == runways[i][0]) {
@@ -62,10 +60,9 @@ const waiting = resid => {
       }
     }
   }
-  document.getElementById("console").value =
-    planes[resid].id +
-    " cleared for line-up\n" +
-    document.getElementById("console").value;
+  document.getElementById("console").value = `${
+    planes[resid].id
+  } cleared for line-up\n ${document.getElementById("console").value}`;
 };
 
 const departing = plane => {
@@ -78,7 +75,6 @@ const departing = plane => {
 };
 
 const takeOff = resid => {
-  //getUserCommand();
   splitUserCommand();
   if (planes[resid].flightMode === 5) {
     for (let i = 0; i < runways.length; i++) {

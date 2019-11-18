@@ -10,10 +10,9 @@ const distCheck = plane => {
       destReset(plane);
       plane.newAlt = 40;
       missedApproaches++;
-      document.getElementById("console").value =
-        plane.id +
-        " missed approach!\n" +
-        document.getElementById("console").value;
+      document.getElementById("console").value = `${
+        plane.id
+      } missed approach!\n ${document.getElementById("console").value}`;
       return;
     }
   } else if (plane.flightMode === 3 && plane.distance <= 10) {
@@ -161,7 +160,7 @@ const fnSeparation = plane => {
         sepDist < 57 &&
         sepVert < 10 &&
         [0, 1, 2, 3, 8].indexOf(planes[i].flightMode) != -1 &&
-          [0, 1, 2, 3, 8].indexOf(planes[j].flightMode) != -1
+        [0, 1, 2, 3, 8].indexOf(planes[j].flightMode) != -1
       ) {
         drawSepCircle(planes[i].curX, planes[i].curY, context);
         drawSepCircle(planes[j].curX, planes[j].curY, context);

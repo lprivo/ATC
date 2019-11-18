@@ -2,6 +2,7 @@
 //we're passing in an object in atc.js (gameOptions)
 //but here we're already breaking it down into variables.
 import { initLHBP } from "./init_Airports";
+
 const createAirport = (innerHTML, titleDiv) => {
   const airportDiv = document.createElement("div");
 
@@ -19,51 +20,37 @@ export const startSim = ({ selectedDifficulty, selAirport, selectedMode }) => {
   titleDiv.removeChild(document.getElementById("titleAirport"));
   titleDiv.removeChild(document.getElementById("titleCode"));
   titleDiv.removeChild(document.getElementById("titleElev"));
-  switch (selectedDifficulty) {
+  switch (selAirport) {
     case "LHBP":
       initLHBP();
-      //instead of this, you could make a "factory" like this
       createAirport(
         `<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>`
       );
       break;
     case "EGLL":
-      //just call the factory for each of your airports
       initEGLL();
-      dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
-      dButIReallyNeedToWorkOnMyVariableNames.appendChild(
-        document.createElement("div")
+      createAirport(
+        `<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>`
       );
-      dButIReallyNeedToWorkOnMyVariableNames.childNodes[0].innerHTML =
-        '<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>';
-      titleDiv.appendChild(dButIReallyNeedToWorkOnMyVariableNames);
       break;
     case "EPWA":
       initEPWA();
-      dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
-      dButIReallyNeedToWorkOnMyVariableNames.appendChild(
-        document.createElement("div")
+      createAirport(
+        `<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>`
       );
-      dButIReallyNeedToWorkOnMyVariableNames.childNodes[0].innerHTML =
-        '<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>';
-      titleDiv.appendChild(dButIReallyNeedToWorkOnMyVariableNames);
       break;
     case "KSEA":
       initKSEA();
-      dButIReallyNeedToWorkOnMyVariableNames.setAttribute("id", "titleAirport");
-      dButIReallyNeedToWorkOnMyVariableNames.appendChild(
-        document.createElement("div")
+      createAirport(
+        `<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>`
       );
-      dButIReallyNeedToWorkOnMyVariableNames.childNodes[0].innerHTML =
-        '<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>';
-      titleDiv.appendChild(dButIReallyNeedToWorkOnMyVariableNames);
       break;
     default:
       break;
   }
   animate(canvas, context, startTime);
   drawRunways(context);
-  newPlane();
+  newPlane(selectedMode);
   setInterval(newPlane, planeFreq(20, 60) * selectedDifficulty); //Easy=4000, Normal=2000, Difficult=1000
 };
 
@@ -92,7 +79,7 @@ export const startSim = ({ selectedDifficulty, selAirport, selectedMode }) => {
 // let context = canvas.getContext("2d"); //elvileg ez adja a radar kepernyo alapjat
 //igen, megleltem. kozben google megy
 // let psFrame = document.getElementById("psFrame");
-let selMode; //ez az eleje, a modal-ban amikor valasztasz mode-ot
+//let selMode;
 
 // import {initLHBP, initEGLL, initEPWA, initKSEA} from "./init_Airports";
 const showInfoscreen = () => {
@@ -116,32 +103,24 @@ const showStatscreen = () => {
   if (dispStat === "none") {
     if (dispInfo != "none") {
       document.getElementById("infoScreen").style.display = "none";
-      document.getElementById("statScreen").value =
-        "<p>Successful landings: " +
-        successfulLandings +
-        "</p><p>Successful handoffs: " +
-        successfulHandoffs +
-        "</p><p>Missed approaches: " +
-        missedApproaches +
-        "</p><p>Improper exits: " +
-        improperExits +
-        "</p><p>Separation violation (sec): " +
-        sepViolation +
-        "</p>";
+      document.getElementById(
+        "statScreen"
+      ).value = `<p>Successful landings: ${successfulLandings}
+        </p><p>Successful handoffs: ${successfulHandoffs}
+        </p><p>Missed approaches: ${missedApproaches}
+        </p><p>Improper exits: ${improperExits}
+        </p><p>Separation violation (sec): ${sepViolation}
+        </p>`;
       document.getElementById("statScreen").style.display = "block";
     } else {
-      document.getElementById("statScreen").value =
-        "<p>Successful landings: " +
-        successfulLandings +
-        "</p><p>Successful handoffs: " +
-        successfulHandoffs +
-        "</p><p>Missed approaches: " +
-        missedApproaches +
-        "</p><p>Improper exits: " +
-        improperExits +
-        "</p><p>Separation violation (sec): " +
-        sepViolation +
-        "</p>";
+      document.getElementById(
+        "statScreen"
+      ).value = `<p>Successful landings: ${successfulLandings}
+      </p><p>Successful handoffs: ${successfulHandoffs}
+      </p><p>Missed approaches: ${missedApproaches}
+      </p><p>Improper exits: ${improperExits}
+      </p><p>Separation violation (sec): ${sepViolation}
+      </p>`;
       document.getElementById("statScreen").style.display = "block";
     }
   } else {
@@ -156,18 +135,12 @@ const updateStatScreen = () => {
       statScreen.childNodes[i].innerHTML = " ";
     }
     statScreen.appendChild(document.createElement("div"));
-    statScreen.childNodes[0].innerHTML =
-      "<p>Successful landings: " +
-      successfulLandings +
-      "</p><p>Successful handoffs: " +
-      successfulHandoffs +
-      "</p><p>Missed approaches: " +
-      missedApproaches +
-      "</p><p>Improper exits: " +
-      improperExits +
-      "</p><p>Separation violation (sec): " +
-      sepViolation +
-      "</p>";
+    statScreen.childNodes[0].innerHTML = `<p>Successful landings: ${successfulLandings}
+    </p><p>Successful handoffs: ${successfulHandoffs}
+    </p><p>Missed approaches: ${missedApproaches}
+    </p><p>Improper exits: ${improperExits}
+    </p><p>Separation violation (sec): ${sepViolation}
+    </p>`;
     return;
   }
 };
@@ -211,7 +184,7 @@ const leadingZeros = (number, length) => {
   return retVal + number;
 };
 
-const newPlane = () => {
+const newPlane = selectedMode => {
   let entryMode = Math.random();
   if (pausing != true) {
     let plane = new Object();
@@ -220,7 +193,7 @@ const newPlane = () => {
       airlnrCode[idIndex] +
       leadingZeros(Math.abs(Math.floor(Math.random() * 1000 - 1)), 3);
 
-    if (entryMode < selMode) {
+    if (entryMode < selectedMode) {
       let index = Math.floor(Math.random() * entryPts.length);
       plane.curX = entryPts[index].coorX;
       plane.curY = entryPts[index].coorY;
@@ -291,21 +264,8 @@ const progressStrips = plane => {
         psArrow = "-";
       }
       pStrip.childNodes[0].setAttribute("class", "flightData");
-      pStrip.childNodes[0].innerHTML =
-        "<table><tr><td class='pstd'>" +
-        plane.id +
-        "</td><td class='pstd'>" +
-        psAltitude +
-        psArrow +
-        "</td><td class='pstd'>" +
-        psSpeed +
-        "</td></tr><tr><td class='pstd'>" +
-        plane.label +
-        "</td><td class='pstd'>" +
-        plane.destName +
-        "</td><td class='pstd'>" +
-        psHeading +
-        "</td></tr></table>";
+      pStrip.childNodes[0].innerHTML = `<table><tr><td class='pstd'> ${plane.id} </td><td class='pstd'> ${psAltitude} ${psArrow} </td><td class='pstd'> ${psSpeed}
+        </td></tr><tr><td class='pstd'> ${plane.label} </td><td class='pstd'> ${plane.destName} </td><td class='pstd'> ${psHeading}</td></tr></table>`;
     }
   } else {
     if (plane.label === "A") {
@@ -315,12 +275,7 @@ const progressStrips = plane => {
       newPStrip.setAttribute("onClick", "getFlightID(this)");
       newPStrip.appendChild(document.createElement("div"));
       newPStrip.childNodes[0].setAttribute("class", "flightData");
-      newPStrip.childNodes[0].innerHTML =
-        "<table><tr><td class='pstd'>" +
-        plane.id +
-        "</td></tr><tr><td class='pstd'>" +
-        plane.label +
-        "</td></tr></table>";
+      newPStrip.childNodes[0].innerHTML = `<table><tr><td class='pstd'> ${plane.id} </td></tr><tr><td class='pstd'> ${plane.label} </td></tr></table>`;
       psFrame.appendChild(newPStrip);
     } else if (plane.label === "D" && plane.flightMode != 9) {
       newPStrip.setAttribute("id", plane.id);
@@ -329,19 +284,14 @@ const progressStrips = plane => {
       newPStrip.setAttribute("onClick", "getFlightID(this)");
       newPStrip.appendChild(document.createElement("div"));
       newPStrip.childNodes[0].setAttribute("class", "flightData");
-      newPStrip.childNodes[0].innerHTML =
-        "<table><tr><td class='pstd'>" +
-        plane.id +
-        "</td></tr><tr><td class='pstd'>" +
-        plane.label +
-        "</td></tr></table>";
+      newPStrip.childNodes[0].innerHTML = `<table><tr><td class='pstd'> ${plane.id} </td></tr><tr><td class='pstd'> ${plane.label} </td></tr></table>`;
       psFrame.appendChild(newPStrip);
     }
   }
 };
 
 const getFlightID = flightStrip => {
-  document.getElementById("instructionText").value = flightStrip.id + " ";
+  document.getElementById("instructionText").value = `${flightStrip.id} `;
   document.getElementById("instructionText").focus();
   return;
 };
@@ -399,31 +349,19 @@ const fnPausing = () => {
   if (pausing == false) {
     pausing = true;
     document.getElementById("pauseBtn").value = "Resume";
-    document.getElementById("console").value =
-      "Landings: " +
-      successfulLandings +
-      "\n" +
-      "Hand-offs: " +
-      successfulHandoffs +
-      "\n" +
-      "Missed approaches: " +
-      missedApproaches +
-      "\n" +
-      "Improper exits: " +
-      improperExits +
-      "\n" +
-      "Separ. violation: " +
-      sepViolation +
-      "sec\n" +
-      "Paused\n" +
-      document.getElementById("console").value;
-    document.getElementById("instructionText").value = "";
+    document.getElementById(
+      "console"
+    ).value = `Landings: ${successfulLandings}\n Hand-offs: ${successfulHandoffs}\n
+    Missed approaches: ${missedApproaches}\n Improper exits: ${improperExits}\n Separ. violation: ${sepViolation} sec\n Paused\n
+    ${document.getElementById("console").value}`;
+    document.getElementById("instructionText").value = " ";
     return;
   } else {
     pausing = false;
     document.getElementById("pauseBtn").value = "Pause";
-    document.getElementById("console").value =
-      "Resumed\n" + document.getElementById("console").value;
+    document.getElementById("console").value = `Resumed\n ${
+      document.getElementById("console").value
+    }`;
     document.getElementById("instructionText").value = "";
     return;
   }

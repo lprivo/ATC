@@ -6,11 +6,12 @@ import { startSim } from "./SimControl";
 // };
 
 const setOpts = modal => {
+  //ez honnan jon?
   console.log("Saving options");
   const gameOptions = {
     selectedDifficulty: document.getElementById("Difficulty").value,
     selectedAirport: document.getElementById("Airports").value,
-    selectedGameMode: document.getElementById("GameMode").value
+    selectedMode: document.getElementById("GameMode").value
   };
 
   startSim(gameOptions);
@@ -39,8 +40,9 @@ const init = () => {
 
   //ignore this
   const promptInvalidCommTest = () => {
-    document.getElementById("console").value =
-      "TEST Invalid Command!\n" + document.getElementById("console").value;
+    document.getElementById("console").value = `TEST Invalid Command!\n ${
+      document.getElementById("console").value
+    }`;
     document.getElementById("instructionText").value = "";
     resid = -1;
     return;
