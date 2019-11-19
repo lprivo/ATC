@@ -8,28 +8,30 @@ document
     }
   });
 
-const getUserCommand = () =>
-  (userCommand = document
+const getUserCommand = () => {
+  let userCommand = document
     .getElementById("instructionText")
-    .value.toUpperCase());
+    .value.toUpperCase();
+  return usercommand;
+};
 
 // splits user command at "space(S)" into tokens - creates an array of strings.
-const splitUserCommand = () => {
-  getUserCommand();
+const splitUserCommand = userCommand => {
+  //getUserCommand();
   splitCommand = userCommand.split(" ");
   return splitCommand;
 };
 
-const checkPausing = () => {
-  getUserCommand();
+const checkPausing = userCommand => {
+  //getUserCommand();
   if (userCommand === "P") {
     fnPausing();
   }
   return;
 };
 
-const checkEndSim = () => {
-  getUserCommand();
+const checkEndSim = userCommand => {
+  //getUserCommand();
   userCommand === "EXIT" && endSim();
 };
 
@@ -40,7 +42,7 @@ const usercmdToConsole = userCommand => {
   document.getElementById("instructionText").value = ""; // clearing the input field
 };
 
-const promptInvalidComm = () => {
+const promptInvalidComm = resid => {
   document.getElementById("console").value = `Invalid Command!\n ${
     document.getElementById("console").value
   }`;
@@ -49,7 +51,17 @@ const promptInvalidComm = () => {
   return;
 };
 
-const fnCommandA = () => {
+//ignore this
+const promptInvalidCommTest = resid => {
+  document.getElementById("console").value = `TEST Invalid Command!\n ${
+    document.getElementById("console").value
+  }`;
+  document.getElementById("instructionText").value = "";
+  resid = -1;
+  return;
+};
+
+const fnCommandA = (userCommand, splitCommand resid) => {
   checkHandover(resid);
   if (20 <= parseInt(splitCommand[2]) && parseInt(splitCommand[2]) < 400) {
     planes[resid].newAlt = parseInt(splitCommand[2]);

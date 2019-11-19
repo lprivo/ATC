@@ -38,16 +38,6 @@ const init = () => {
   // ha nem mukodik, most nem eroltetem
   // ha jol emlekszem, de meg kell neznem majd
 
-  //ignore this
-  const promptInvalidCommTest = () => {
-    document.getElementById("console").value = `TEST Invalid Command!\n ${
-      document.getElementById("console").value
-    }`;
-    document.getElementById("instructionText").value = "";
-    resid = -1;
-    return;
-  };
-
   window.onload = () => {
     const canvasElement = document.getElementById("myCanvas"); //canvas is declared, but value never used... nezzuk
     const instructionText = document.getElementById("instructionText");
@@ -62,7 +52,7 @@ const init = () => {
 
     startButton.addEventListener("click", () => {
       modal.style.display = "none"; //hiding the modal as soon as it's clicked
-      setOpts(); //rading/setting options and starting game
+      setOpts(modal); //rading/setting options and starting game
     });
     //na idaig mukodik
     //egyenlore abban se vagyok biztos, hogy innentol lefele kell e meg barmi is ide.
@@ -75,8 +65,17 @@ const init = () => {
       context: canvasElement.getContext("2d")
     };
 
-    let planeNR = 0; // body canvas - style="background: #103848"
-    let planes = [];
+    const screenSize = canvas => {
+      canvas.width = window.innerWidth - 310;
+      canvas.height = window.innerHeight;
+      return;
+    };
+
+    window.addEventListener("resize", screenSize);
+
+    // body canvas - style="background: #103848"
+    //let planeNr = 0; -> SimControl.js/newPlane()
+    //let planes = []; -> SimControl.js/newPlane()
     let runways = [];
     let airlnrCode = []; //operating airliners' list
     let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts

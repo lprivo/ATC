@@ -110,7 +110,7 @@ export const initLHBP = () => {
     entryPts.push(entryPt5);
   }
 
-  airlnrCode = [
+  const airlnrCode = [
     "W6",
     "FR",
     "LH",
@@ -148,7 +148,7 @@ export const initLHBP = () => {
     "PS",
     "LY"
   ];
-  airlnrDistr = [141, 37, 62, 2, 92, 7, 126, 12];
+  const airlnrDistr = [141, 37, 62, 2, 92, 7, 126, 12];
   destName = "BUD";
   document.getElementById("myCanvas").style.backgroundImage =
     'url("Images/LHBP_bgnd_map.png")';

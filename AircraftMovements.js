@@ -151,7 +151,7 @@ const fnSeparation = plane => {
         psFrame.removeChild(document.getElementById(planes[j].id));
         planes.splice(i, 1);
         planes.splice(j, 1);
-        planeNR = planeNR - 2;
+        planeNr = planeNr - 2;
         fnPausing();
         alert("Collision! - Game Over");
         return;

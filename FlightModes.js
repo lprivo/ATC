@@ -1,4 +1,4 @@
-const checkHandover = resid => {
+const checkHandover = (planes, resid) => {
   if (planes[resid].flightMode === 9) {
     document.getElementById("console").value = `${
       planes[resid].id
@@ -11,7 +11,16 @@ const checkHandover = resid => {
   }
 };
 
-const finalApproach = plane => {
+const departing = (plane, navObjects) => {
+  plane.destX = navObjects[plane.destination][1];
+  plane.destY = navObjects[plane.destination][2];
+  plane.flightMode = 8;
+  plane.newSpeed = 24;
+  plane.speedStep = 0.5;
+  plane.altStep = 0.5;
+};
+
+const finalApproach = (plane, runways) => {
   plane.flightMode = 3;
   plane.destX = runways[plane.destination][4];
   plane.destY = runways[plane.destination][5];
@@ -21,7 +30,7 @@ const finalApproach = plane => {
   plane.speedStep = 0.25;
 };
 
-const landing = plane => {
+const landing = (plane, runways) => {
   plane.flightMode = 4;
   plane.newHeading = runways[plane.destination][1];
   plane.destination = -1;
@@ -32,8 +41,8 @@ const landing = plane => {
   plane.speedStep = 0.5;
 };
 
-const waiting = resid => {
-  splitUserCommand();
+const waiting = (planes, runways, resid, splitCommand) => {
+  //splitUserCommand();
   if (planes[resid].flightMode === 5) {
     for (let i = 0; i < runways.length; i++) {
       if (splitCommand[2] == runways[i][0]) {
@@ -65,16 +74,7 @@ const waiting = resid => {
   } cleared for line-up\n ${document.getElementById("console").value}`;
 };
 
-const departing = plane => {
-  plane.destX = navObjects[plane.destination][1];
-  plane.destY = navObjects[plane.destination][2];
-  plane.flightMode = 8;
-  plane.newSpeed = 24;
-  plane.speedStep = 0.5;
-  plane.altStep = 0.5;
-};
-
-const takeOff = resid => {
+const takeOff = (planes, runways, navObjects, resid) => {
   splitUserCommand();
   if (planes[resid].flightMode === 5) {
     for (let i = 0; i < runways.length; i++) {

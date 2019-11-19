@@ -1,4 +1,4 @@
-// { selDifficulty, selAirport, selMode } is called deconstructuring... look it up
+// { selDifficulty, selAirport, selMode } is called destructuring... look it up
 //we're passing in an object in atc.js (gameOptions)
 //but here we're already breaking it down into variables.
 import { initLHBP } from "./init_Airports";
@@ -14,7 +14,11 @@ const createAirport = (innerHTML, titleDiv) => {
   return airportDiv;
 };
 
-export const startSim = ({ selectedDifficulty, selAirport, selectedMode }) => {
+export const startSim = (
+  { selectedDifficulty, selAirport, selectedMode },
+  canvas,
+  context
+) => {
   const startTime = new Date().getTime();
   const titleDiv = document.getElementById("titleDiv");
   titleDiv.removeChild(document.getElementById("titleAirport"));
@@ -56,7 +60,7 @@ export const startSim = ({ selectedDifficulty, selAirport, selectedMode }) => {
 
 // cH/cW=.583
 // let cHW = cW * 0.6; //ez nem lehet resze a canvas objectnek?, de gondolom igen
-// let planeNR = 0; // body canvas - style="background: #103848"
+// let planeNr = 0; // body canvas - style="background: #103848"
 // let planes = [];
 // let runways = [];
 // let airlnrCode = []; //operating airliners' list
@@ -151,7 +155,7 @@ const planeFreq = (min, max) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
-const aCGen = () => {
+const aCGen = airlnrDistr => {
   let aCIndex = Math.floor(Math.random() * airlnrDistr[0]);
   if (aCIndex <= airlnrDistr[1]) {
     return 0;
@@ -186,9 +190,11 @@ const leadingZeros = (number, length) => {
 
 const newPlane = selectedMode => {
   let entryMode = Math.random();
+  let planes = [];
+  let planeNr = 0;
   if (pausing != true) {
-    let plane = new Object();
-    let idIndex = aCGen();
+    const plane = {};
+    const idIndex = aCGen();
     let flightNr =
       airlnrCode[idIndex] +
       leadingZeros(Math.abs(Math.floor(Math.random() * 1000 - 1)), 3);
@@ -211,11 +217,11 @@ const newPlane = selectedMode => {
       plane.destName = destName;
       plane.destX = navObjects[11][1];
       plane.destY = navObjects[11][2];
-      plane.distance;
+      //plane.distance;
       plane.flightMode = 0; // 0-en route, 1-in holding pattern, 2-approach, 3-final, 4-landing, 5-ready to depart, 6-line up and wait, 7-taking-off, 8-departing, 9-departed;
       planes.push(plane);
       plane.label = "A";
-      planeNR++;
+      planeNr++;
     } else {
       let indexT = Math.floor(Math.random() * 7);
       plane.flightMode = 5;
@@ -231,20 +237,20 @@ const newPlane = selectedMode => {
       plane.speedStep = 0.5;
       plane.destination = -1;
       plane.destName = navObjects[indexT][0];
-      plane.distance;
+      //plane.distance;
       plane.label = "D";
       planes.push(plane);
-      planeNR++;
+      planeNr++;
     }
   }
 };
 
-const progressStrips = plane => {
-  let pStrip = document.getElementById(plane.id);
-  let psAltitude = leadingZeros(Math.round(plane.altitude) * 100, 5);
-  let psSpeed = leadingZeros(Math.round(plane.speed) * 10, 3);
-  let psHeading = leadingZeros(plane.heading, 3);
-  let newPStrip = document.createElement("div");
+const progressStrips = (plane, planes) => {
+  const pStrip = document.getElementById(plane.id);
+  const psAltitude = leadingZeros(Math.round(plane.altitude) * 100, 5);
+  const psSpeed = leadingZeros(Math.round(plane.speed) * 10, 3);
+  const psHeading = leadingZeros(plane.heading, 3);
+  const newPStrip = document.createElement("div");
 
   if (pStrip) {
     let found = false;
@@ -254,7 +260,7 @@ const progressStrips = plane => {
         break;
       }
     }
-    if (found == true) {
+    if (found) {
       let psArrow;
       if (plane.altitude < plane.newAlt) {
         psArrow = "\u2191";
@@ -301,7 +307,7 @@ const removePlane = () => {
     if (planes[i].flightMode === 4 && planes[i].speed == 0) {
       psFrame.removeChild(document.getElementById(planes[i].id));
       planes.splice(i, 1);
-      planeNR--;
+      planeNr--;
       successfulLandings++;
       return;
     } else if (planes[i].flightMode === 8 && planes[i].distance <= 3) {
@@ -309,14 +315,14 @@ const removePlane = () => {
         psFrame.removeChild(document.getElementById(planes[i].id));
         planes[i].flightMode = 9;
         destReset(planes[i]);
-        planeNR--;
+        planeNr--;
         successfulHandoffs++;
         return;
       } else {
         psFrame.removeChild(document.getElementById(planes[i].id));
         planes[i].flightMode = 9;
         destReset(planes[i]);
-        planeNR--;
+        planeNr--;
         improperExits++;
         return;
       }
@@ -329,7 +335,7 @@ const removePlane = () => {
     ) {
       psFrame.removeChild(document.getElementById(planes[i].id));
       planes.splice(i, 1);
-      planeNR--;
+      planeNr--;
       improperExits++;
       return;
     } else if (
