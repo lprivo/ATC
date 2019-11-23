@@ -1,5 +1,5 @@
 // Runway
-const drawRunways = context => {
+export const drawRunways = context => {
   for (let i = 0; i < runways.length; i = i + 2) {
     context.beginPath();
     context.moveTo(runways[i][4], runways[i][5]);
@@ -14,7 +14,7 @@ const drawRunways = context => {
   }
 };
 
-const drawNavObj = (navObjects, context) => {
+export const drawNavObj = (navObjects, context) => {
   context.beginPath();
   context.arc(navObjects[1], navObjects[2], 5, 0, 2 * Math.PI);
   context.moveTo(navObjects[1] - 1, navObjects[2] - 1);
@@ -31,7 +31,7 @@ const drawNavObj = (navObjects, context) => {
 };
 
 // square symbol of aircraft
-const drawPlane = (plane, context) => {
+export const drawPlane = (plane, context) => {
   let consArrow;
   if (plane.altitude < plane.newAlt) {
     consArrow = "\u2191";
@@ -94,7 +94,7 @@ const drawPlane = (plane, context) => {
 };
 
 // plane trail line
-const drawTrail = (plane, context) => {
+export const drawTrail = (plane, context) => {
   for (let i = 0; i < planes.length; i++) {
     context.beginPath();
     context.moveTo(planes[i].curX, planes[i].curY);
@@ -114,7 +114,7 @@ const drawTrail = (plane, context) => {
   }
 };
 
-const drawSepCircle = (x, y, context) => {
+export const drawSepCircle = (x, y, context) => {
   context.beginPath();
   context.arc(x, y, 57, 0, 2 * Math.PI);
   context.linewidth = 1;

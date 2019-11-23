@@ -2,6 +2,7 @@
 //we're passing in an object in atc.js (gameOptions)
 //but here we're already breaking it down into variables.
 import { initLHBP } from "./init_Airports";
+import { drawRunways } from "./DrawObjects";
 
 const createAirport = (innerHTML, titleDiv) => {
   const airportDiv = document.createElement("div");
@@ -87,8 +88,8 @@ export const startSim = (
 
 // import {initLHBP, initEGLL, initEPWA, initKSEA} from "./init_Airports";
 const showInfoscreen = () => {
-  let dispInfo = document.getElementById("infoScreen").style.display;
-  let dispStat = document.getElementById("statScreen").style.display;
+  const dispInfo = document.getElementById("infoScreen").style.display;
+  const dispStat = document.getElementById("statScreen").style.display;
   if (dispInfo === "none") {
     if (dispStat != "none") {
       document.getElementById("statScreen").style.display = "none";
@@ -102,8 +103,8 @@ const showInfoscreen = () => {
 };
 
 const showStatscreen = () => {
-  let dispInfo = document.getElementById("infoScreen").style.display;
-  let dispStat = document.getElementById("statScreen").style.display;
+  const dispInfo = document.getElementById("infoScreen").style.display;
+  const dispStat = document.getElementById("statScreen").style.display;
   if (dispStat === "none") {
     if (dispInfo != "none") {
       document.getElementById("infoScreen").style.display = "none";

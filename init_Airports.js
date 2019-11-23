@@ -1,6 +1,49 @@
 //you need to export all your airport configs
 //when that's done, you can think about transforming this into an object
 //also, you probably would need to pass in cW and cHW from atc.js
+
+import * from './Ariports.js';
+
+const getNavobjects = selAirport => {
+  let navObjects = [];
+  for (let i = 0; i < selAirport.navObjects.length; i++) {
+    navObjects.push(selAirport.navObjects[i]);
+  }
+  return navObjects;
+};
+
+const getRunways = (selAirport, canvas) => {
+  let runways = [];
+  let cW = canvas.width / 2;
+  let cHW = canvas.heightWidthRatio / 2;
+  for (let i = 0; i < selAirport.runways.length; i++) {
+    runways.push(selAirport.runways[i]);
+    
+  }
+  return runways;
+};
+
+
+
+const getEntryPoints = selAirport => {
+  let entryPoints = [];
+  for (let i = 0; i < selAirport.entryPoints.length; i++) {
+    entryPoints.push(selAirport.entryPoints[i]);
+  }
+  return entryPoints;
+};
+
+const initAirport = selAirport => {
+  getNavobjects(selAirport);
+  getRunways(selAirport);
+  getEntryPoints(selAirport);
+  let airlnrCode = selAirport.airlnrCode;
+  let airlnrDistr = selAirport.airlnrDistr;
+  let destName = selAirport.destName;
+  document.getElementById("myCanvas").style.backgroundImage =
+    selAirport.backgroundImage;
+};
+
 export const initLHBP = () => {
   navObjects[0] = ["BADOV", Math.round(cW * 0.343), Math.round(cHW * 0.008)];
   navObjects[1] = ["NALAG", Math.round(cW * 0.64), Math.round(cHW * 0.008)];

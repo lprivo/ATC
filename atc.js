@@ -5,20 +5,6 @@ import { startSim } from "./SimControl";
 //   startSim(difficulty, airport);
 // };
 
-const setOpts = modal => {
-  //ez honnan jon?
-  console.log("Saving options");
-  const gameOptions = {
-    selectedDifficulty: document.getElementById("Difficulty").value,
-    selectedAirport: document.getElementById("Airports").value,
-    selectedMode: document.getElementById("GameMode").value
-  };
-
-  startSim(gameOptions);
-  //es ez a fajl egyenlore ennyi.
-  //innen tovabb folyatod a munkat a simControlban
-};
-
 const init = () => {
   window.requestAnimFrame = (function(callback) {
     return (
@@ -33,10 +19,18 @@ const init = () => {
     );
   })();
 
-  //nem ertem itt mi tortenik :( screensize honnan jon? - ez nezi, hogy lett-e valtoztatva az ablak merete, de nem mukodik sztem jol, ezert kerdeztem a re
-  // awindow.addEventListener("resize", screenSize);
-  // ha nem mukodik, most nem eroltetem
-  // ha jol emlekszem, de meg kell neznem majd
+  const setOpts = () => {
+    //ez honnan jon?
+    console.log("Saving options");
+    const gameOptions = {
+      selectedDifficulty: document.getElementById("Difficulty").value,
+      selectedAirport: document.getElementById("Airports").value,
+      selectedMode: document.getElementById("GameMode").value
+    };
+    startSim(gameOptions);
+    //es ez a fajl egyenlore ennyi.
+    //innen tovabb folyatod a munkat a simControlban
+  };
 
   window.onload = () => {
     const canvasElement = document.getElementById("myCanvas"); //canvas is declared, but value never used... nezzuk
@@ -52,8 +46,9 @@ const init = () => {
 
     startButton.addEventListener("click", () => {
       modal.style.display = "none"; //hiding the modal as soon as it's clicked
-      setOpts(modal); //rading/setting options and starting game
+      setOpts(); //rading/setting options and starting game
     });
+
     //na idaig mukodik
     //egyenlore abban se vagyok biztos, hogy innentol lefele kell e meg barmi is ide.
     // valoszinuleg szukseg van rajuk, csak nem epp itt
