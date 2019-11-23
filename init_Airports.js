@@ -2,49 +2,57 @@
 //when that's done, you can think about transforming this into an object
 //also, you probably would need to pass in cW and cHW from atc.js
 
-import * from './Ariports.js';
+// import * from './Ariports.js';
 
-const getNavobjects = selAirport => {
-  let navObjects = [];
-  for (let i = 0; i < selAirport.navObjects.length; i++) {
-    navObjects.push(selAirport.navObjects[i]);
-  }
-  return navObjects;
-};
+// const getNavobjects = selAirport => {
+//   let navObjects = [];
+//   for (let i = 0; i < selAirport.navObjects.length; i++) {
+//     navObjects.push(selAirport.navObjects[i]);
+//   }
+//   return navObjects;
+// };
 
-const getRunways = (selAirport, canvas) => {
-  let runways = [];
-  let cW = canvas.width / 2;
-  let cHW = canvas.heightWidthRatio / 2;
-  for (let i = 0; i < selAirport.runways.length; i++) {
-    runways.push(selAirport.runways[i]);
-    
-  }
-  return runways;
-};
+// const getRunways = (selAirport, canvas) => {
+//   let runways = [];
+//   let cW = canvas.width / 2;
+//   let cHW = canvas.heightWidthRatio / 2;
+//   for (let i = 0; i < selAirport.runways.length; i++) {
+//     runways.push(selAirport.runways[i]);
 
+//   }
+//   return runways;
+// };
 
+// const getEntryPoints = selAirport => {
+//   let entryPoints = [];
+//   for (let i = 0; i < selAirport.entryPoints.length; i++) {
+//     entryPoints.push(selAirport.entryPoints[i]);
+//   }
+//   return entryPoints;
+// };
 
-const getEntryPoints = selAirport => {
-  let entryPoints = [];
-  for (let i = 0; i < selAirport.entryPoints.length; i++) {
-    entryPoints.push(selAirport.entryPoints[i]);
-  }
-  return entryPoints;
-};
+// const initAirport = selAirport => {
+//   getNavobjects(selAirport);
+//   getRunways(selAirport);
+//   getEntryPoints(selAirport);
+//   let airlnrCode = selAirport.airlnrCode;
+//   let airlnrDistr = selAirport.airlnrDistr;
+//   let destName = selAirport.destName;
+//   document.getElementById("myCanvas").style.backgroundImage =
+//     selAirport.backgroundImage;
+// };
 
-const initAirport = selAirport => {
-  getNavobjects(selAirport);
-  getRunways(selAirport);
-  getEntryPoints(selAirport);
-  let airlnrCode = selAirport.airlnrCode;
-  let airlnrDistr = selAirport.airlnrDistr;
-  let destName = selAirport.destName;
-  document.getElementById("myCanvas").style.backgroundImage =
-    selAirport.backgroundImage;
-};
-
-export const initLHBP = () => {
+export const getLHBP = ({
+  width: cW,
+  heightWidthRatio: cHW,
+  height: cH,
+  ...rest
+}) => {
+  // const width = canvas.width;
+  // const {width:cW, heightWidthRatio:cHW, ...rest} = canvas;
+  const navObjects = [];
+  const runways = [];
+  const entryPts = [];
   navObjects[0] = ["BADOV", Math.round(cW * 0.343), Math.round(cHW * 0.008)];
   navObjects[1] = ["NALAG", Math.round(cW * 0.64), Math.round(cHW * 0.008)];
   navObjects[2] = ["BABOX", Math.round(cW * 0.669), Math.round(cHW * 0.982)];
@@ -113,14 +121,12 @@ export const initLHBP = () => {
     cHW / 2 + 21
   ];
 
-  {
-    let entryPt1 = new Object();
-    entryPt1.coorX = Math.round(cW * 0.3);
-    entryPt1.coorY = -7;
-    entryPt1.direction = 150;
-    entryPts.push(entryPt1);
-  }
-
+  const entryPt1 = {
+    coorX: Math.round(cW * 0.3),
+    coorY: -7,
+    direction: 150
+  };
+  entryPts.push(entryPt1);
   {
     let entryPt2 = new Object();
     entryPt2.coorX = cW + 7;
@@ -191,10 +197,21 @@ export const initLHBP = () => {
     "PS",
     "LY"
   ];
-  const airlnrDistr = [141, 37, 62, 2, 92, 7, 126, 12];
-  destName = "BUD";
-  document.getElementById("myCanvas").style.backgroundImage =
-    'url("Images/LHBP_bgnd_map.png")';
+  // const airlnrDistr = [141, 37, 62, 2, 92, 7, 126, 12];
+  // const destName = "BUD";
+  const backgroundImage = `url("Images/LHBP_bgnd_map.png")`;
+  return {
+    navObjects: navObjects, //array
+    runways: runways, //array
+    entryPts: entryPts, //array
+    airlnrCode: airlnrCode, //array
+    airlnrDistr: [141, 37, 62, 2, 92, 7, 126, 12],
+    destName: "BUD",
+    backgroundImage: backgroundImage
+    // addEntrypoint: (entryPoint)=>{entryPoints.push}
+  };
+  // document.getElementById("myCanvas").style.backgroundImage =
+  //   'url("Images/LHBP_bgnd_map.png")';
 };
 
 const initEGLL = () => {

@@ -1,7 +1,7 @@
 // { selDifficulty, selAirport, selMode } is called destructuring... look it up
 //we're passing in an object in atc.js (gameOptions)
 //but here we're already breaking it down into variables.
-import { initLHBP } from "./init_Airports";
+import { getLHBP } from "./init_Airports";
 import { drawRunways } from "./DrawObjects";
 
 const createAirport = (innerHTML, titleDiv) => {
@@ -15,45 +15,57 @@ const createAirport = (innerHTML, titleDiv) => {
   return airportDiv;
 };
 
-export const startSim = (
-  { selectedDifficulty, selAirport, selectedMode },
-  canvas,
-  context
-) => {
+export const startSim = (gameOptions, context) => {
+  const { selectedDifficulty, selectedAirport, selectedMode } = gameOptions;
   const startTime = new Date().getTime();
   const titleDiv = document.getElementById("titleDiv");
   titleDiv.removeChild(document.getElementById("titleAirport"));
   titleDiv.removeChild(document.getElementById("titleCode"));
   titleDiv.removeChild(document.getElementById("titleElev"));
-  switch (selAirport) {
+  const canvasElement = document.getElementById("myCanvas"); //canvas is declared, but value never used... nezzuk
+
+  const canvas = {
+    width: window.innerWidth - 310,
+    height: window.innerHeight,
+    heightWidthRatio: (window.innerWidth - 310) * 0.6,
+    context: canvasElement.getContext("2d")
+  };
+
+  let airport;
+
+  switch (selectedAirport) {
     case "LHBP":
-      initLHBP();
+      airport = getLHBP(canvas);
       createAirport(
         `<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>`
       );
       break;
-    case "EGLL":
-      initEGLL();
-      createAirport(
-        `<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>`
-      );
-      break;
-    case "EPWA":
-      initEPWA();
-      createAirport(
-        `<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>`
-      );
-      break;
-    case "KSEA":
-      initKSEA();
-      createAirport(
-        `<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>`
-      );
-      break;
+    // case "EGLL":
+    //   initEGLL();
+    //   createAirport(
+    //     `<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>`
+    //   );
+    //   break;
+    // case "EPWA":
+    //   initEPWA();
+    //   createAirport(
+    //     `<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>`
+    //   );
+    //   break;
+    // case "KSEA":
+    //   initKSEA();
+    //   createAirport(
+    //     `<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>`
+    //   );
+    //   break;
     default:
       break;
   }
-  animate(canvas, context, startTime);
+
+  //itt majd talan csinalunk valamit az airport objecttel
+  //draw the background from airport
+
+  animate(canvas, context, startTime, airport);
   drawRunways(context);
   newPlane(selectedMode);
   setInterval(newPlane, planeFreq(20, 60) * selectedDifficulty); //Easy=4000, Normal=2000, Difficult=1000
@@ -385,8 +397,19 @@ const endSim = () => {
   return;
 };
 
-const animate = (canvas, context, startTime, plane) => {
+const animate = (canvas, context, startTime, plane, airport) => {
+  console.log("airport: ", airport);
   // update
+
+  const {
+    navObjects,
+    runways,
+    entryPts,
+    airlnrCode,
+    airlnrDistr,
+    destName
+  } = airport;
+
   let time = new Date().getTime() - startTime;
   if (time > 1000 && pausing != true) {
     startTime = new Date().getTime();
@@ -394,9 +417,12 @@ const animate = (canvas, context, startTime, plane) => {
     // window refresh
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    for (let i = 0; i < navObjects.length; i++) {
-      drawNavObj(navObjects[i], context);
-    }
+    // for (let i = 0; i < navObjects.length; i++) {
+    //   drawNavObj(navObjects[i], context);
+    // }
+    navObjects.map(navObject => {
+      drawNavObj(navObject, context);
+    });
 
     updateStatScreen();
     drawRunways(context);

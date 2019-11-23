@@ -61,7 +61,7 @@ const promptInvalidCommTest = resid => {
   return;
 };
 
-const fnCommandA = (userCommand, splitCommand resid) => {
+const fnCommandA = (userCommand, splitCommand, resid) => {
   checkHandover(resid);
   if (20 <= parseInt(splitCommand[2]) && parseInt(splitCommand[2]) < 400) {
     planes[resid].newAlt = parseInt(splitCommand[2]);

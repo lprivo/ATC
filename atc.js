@@ -20,8 +20,6 @@ const init = () => {
   })();
 
   const setOpts = () => {
-    //ez honnan jon?
-    console.log("Saving options");
     const gameOptions = {
       selectedDifficulty: document.getElementById("Difficulty").value,
       selectedAirport: document.getElementById("Airports").value,
@@ -33,7 +31,6 @@ const init = () => {
   };
 
   window.onload = () => {
-    const canvasElement = document.getElementById("myCanvas"); //canvas is declared, but value never used... nezzuk
     const instructionText = document.getElementById("instructionText");
     const consoleTextArea = document.getElementById("console");
     const modal = document.getElementById("startModal"); //it's style is set to block in css.
@@ -44,29 +41,21 @@ const init = () => {
     consoleTextArea.value = `Welcome to Privo-ATC! ${consoleTextArea.value}`; //ez az uj string epites modja. :)
     instructionText.value = "";
 
+    //na idaig mukodik
+    //egyenlore abban se vagyok biztos, hogy innentol lefele kell e meg barmi is ide.
+    // valoszinuleg szukseg van rajuk, csak nem epp itt
+
+    // const screenSize = canvas => {
+    //   canvas.width = window.innerWidth - 310;
+    //   canvas.height = window.innerHeight;
+    // };
+
     startButton.addEventListener("click", () => {
       modal.style.display = "none"; //hiding the modal as soon as it's clicked
       setOpts(); //rading/setting options and starting game
     });
 
-    //na idaig mukodik
-    //egyenlore abban se vagyok biztos, hogy innentol lefele kell e meg barmi is ide.
-    // valoszinuleg szukseg van rajuk, csak nem epp itt
-
-    const canvas = {
-      width: window.innerWidth - 310,
-      height: window.innerHeight,
-      heightWidthRatio: (window.innerWidth - 310) * 0.6,
-      context: canvasElement.getContext("2d")
-    };
-
-    const screenSize = canvas => {
-      canvas.width = window.innerWidth - 310;
-      canvas.height = window.innerHeight;
-      return;
-    };
-
-    window.addEventListener("resize", screenSize);
+    // window.addEventListener("resize", screenSize);
 
     // body canvas - style="background: #103848"
     //let planeNr = 0; -> SimControl.js/newPlane()
