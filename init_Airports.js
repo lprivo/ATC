@@ -127,37 +127,34 @@ export const getLHBP = ({
     direction: 150
   };
   entryPts.push(entryPt1);
-  {
-    let entryPt2 = new Object();
-    entryPt2.coorX = cW + 7;
-    entryPt2.coorY = Math.round(cH * 0.08);
-    entryPt2.direction = 248;
-    entryPts.push(entryPt2);
-  }
 
-  {
-    let entryPt3 = new Object();
-    entryPt3.coorX = Math.round(cW * 0.85);
-    entryPt3.coorY = cH + 7;
-    entryPt3.direction = 353;
-    entryPts.push(entryPt3);
-  }
+  const entryPt2 = {
+    coorX: cW + 7,
+    coorY: Math.round(cH * 0.08),
+    direction: 248
+  };
+  entryPts.push(entryPt2);
 
-  {
-    let entryPt4 = new Object();
-    entryPt4.coorX = Math.round(cW * 0.15);
-    entryPt4.coorY = cH + 7;
-    entryPt4.direction = 18;
-    entryPts.push(entryPt4);
-  }
+  const entryPt3 = {
+    coorX: Math.round(cW * 0.85),
+    coorY: cH + 7,
+    direction: 353
+  };
+  entryPts.push(entryPt3);
 
-  {
-    let entryPt5 = new Object();
-    entryPt5.coorX = -7;
-    entryPt5.coorY = Math.round(cH * 0.45);
-    entryPt5.direction = 80;
-    entryPts.push(entryPt5);
-  }
+  const entryPt4 = {
+    coorX: Math.round(cW * 0.15),
+    coorY: cH + 7,
+    direction: 18
+  };
+  entryPts.push(entryPt4);
+
+  const entryPt5 = {
+    coorX: -7,
+    coorY: Math.round(cH * 0.45),
+    direction: 80
+  };
+  entryPts.push(entryPt5);
 
   const airlnrCode = [
     "W6",
