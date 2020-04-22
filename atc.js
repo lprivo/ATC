@@ -1,5 +1,191 @@
 //import { startSim } from "./SimControl";
-import { getLHBP } from "./init_Airports";
+//import { getLHBP } from "./init_Airports";
+
+// const setCanvasAbbrev = (canvas) => {
+//   const cW = canvas.width;
+//   const cH = canvas.height;
+//   const cHW = canvas.heightWidthRatio;
+//   return { cW, cH, cHW };
+// };
+
+//const getLHBP = ({ width: cW, heightWidthRatio: cHW, height: cH }) => {
+const getLHBP = (canvas) => {
+  // setCanvasAbbrev(canvas);
+  const cW = canvas.width;
+  const cH = canvas.height;
+  const cHW = canvas.heightWidthRatio;
+  const navObjects = [];
+  const runways = [];
+  const entryPts = [];
+  navObjects[0] = ["BADOV", Math.round(cW * 0.343), Math.round(cHW * 0.008)];
+  navObjects[1] = ["NALAG", Math.round(cW * 0.64), Math.round(cHW * 0.008)];
+  navObjects[2] = ["BABOX", Math.round(cW * 0.669), Math.round(cHW * 0.982)];
+  navObjects[3] = ["ABONY", Math.round(cW * 0.824), Math.round(cHW * 0.666)];
+  navObjects[4] = ["VEBOS", Math.round(cW * 0.224), Math.round(cHW * 0.625)];
+  navObjects[5] = ["GILEP", Math.round(cW * 0.057), Math.round(cHW * 0.429)];
+  navObjects[6] = ["NIPUR", Math.round(cW * 0.836), Math.round(cHW * 0.186)];
+  navObjects[7] = ["JBR", Math.round(cW * 0.785), Math.round(cHW * 0.421)];
+  navObjects[8] = ["TPS", Math.round(cW * 0.586), Math.round(cHW * 0.424)];
+  navObjects[9] = ["MNR", Math.round(cW * 0.567), Math.round(cHW * 0.6)];
+  navObjects[10] = ["BALUX", Math.round(cW * 0.443), Math.round(cHW * 0.591)];
+  navObjects[11] = ["ETARO", Math.round(cW * 0.387), Math.round(cHW * 0.421)];
+  navObjects[12] = ["EPARI", Math.round(cW * 0.378), Math.round(cHW * 0.21)];
+  navObjects[13] = ["NORAH", Math.round(cW * 0.746), Math.round(cHW * 0.292)];
+  navObjects[14] = ["ERLOS", Math.round(cW * 0.508), Math.round(cHW * 0.889)];
+  navObjects[15] = ["ALAMU", Math.round(cW * 0.09), Math.round(cHW * 0.149)];
+  navObjects[16] = ["BUD", Math.round(cW * 0.506), Math.round(cHW * 0.462)];
+
+  // 0-id, 1-rw angle, 2-navPointX, 3-navPointY, 4-startPointX, 5-startPointY, 6-centreX, 7-centreY, 8-idTagX, 9-idTagY;
+  runways[0] = [
+    "13L",
+    130,
+    cW / 2 - 57,
+    cHW / 2 - 59,
+    cW / 2 + 3,
+    cHW / 2 - 9,
+    cW / 2 + 20,
+    cHW / 2 + 5,
+    cW / 2 - 20,
+    cHW / 2 - 17,
+  ];
+  runways[1] = [
+    "31R",
+    310,
+    cW / 2 + 97,
+    cHW / 2 + 69,
+    cW / 2 + 37,
+    cHW / 2 + 19,
+    cW / 2 + 20,
+    cHW / 2 + 5,
+    cW / 2 + 37,
+    cHW / 2 + 34,
+  ];
+  runways[2] = [
+    "13R",
+    130,
+    cW / 2 - 92,
+    cHW / 2 - 66,
+    cW / 2 - 29,
+    cHW / 2 - 16,
+    cW / 2 - 15,
+    cHW / 2 - 5,
+    cW / 2 - 52,
+    cHW / 2 - 23,
+  ];
+  runways[3] = [
+    "31L",
+    310,
+    cW / 2 + 62,
+    cHW / 2 + 59,
+    cW / 2 - 1,
+    cHW / 2 + 6,
+    cW / 2 - 15,
+    cHW / 2 - 5,
+    cW / 2 + 4,
+    cHW / 2 + 21,
+  ];
+
+  const entryPt1 = {
+    coorX: Math.round(cW * 0.3),
+    coorY: -7,
+    direction: 150,
+  };
+  entryPts.push(entryPt1);
+
+  const entryPt2 = {
+    coorX: cW + 7,
+    coorY: Math.round(cH * 0.08),
+    direction: 248,
+  };
+  entryPts.push(entryPt2);
+
+  const entryPt3 = {
+    coorX: Math.round(cW * 0.85),
+    coorY: cH + 7,
+    direction: 353,
+  };
+  entryPts.push(entryPt3);
+
+  const entryPt4 = {
+    coorX: Math.round(cW * 0.15),
+    coorY: cH + 7,
+    direction: 18,
+  };
+  entryPts.push(entryPt4);
+
+  const entryPt5 = {
+    coorX: -7,
+    coorY: Math.round(cH * 0.45),
+    direction: 80,
+  };
+  entryPts.push(entryPt5);
+
+  const airlnrCode = [
+    "W6",
+    "FR",
+    "LH",
+    "U2",
+    "AF",
+    "BA",
+    "4U",
+    "LS",
+    "KL",
+    "LO",
+    "OS",
+    "SN",
+    "OK",
+    "DY",
+    "RO",
+    "TK",
+    "AB",
+    "AZ",
+    "B2",
+    "AY",
+    "LX",
+    "QR",
+    "HV",
+    "7O",
+    "PC",
+    "A3",
+    "EI",
+    "SU",
+    "BT",
+    "CA",
+    "EK",
+    "EW",
+    "LX",
+    "TP",
+    "PS",
+    "LY",
+  ];
+  // const airlnrDistr = [141, 37, 62, 2, 92, 7, 126, 12];
+  // const destName = "BUD";
+  const backgroundImage = `url("Images/LHBP_bgnd_map.png")`;
+  console.log("LHBP");
+  return {
+    navObjects: navObjects, //array
+    runways: runways, //array
+    entryPts: entryPts, //array
+    airlnrCode: airlnrCode, //array
+    airlnrDistr: [141, 37, 62, 2, 92, 7, 126, 12],
+    destName: "BUD",
+    backgroundImage: backgroundImage,
+    // addEntrypoint: (entryPoint)=>{entryPoints.push}
+  };
+  // document.getElementById("myCanvas").style.backgroundImage =
+  //   'url("Images/LHBP_bgnd_map.png")';
+};
+
+let pausing = false;
+let planeNr = 0; //-> SimControl.js/newPlane()
+let successfulLandings = 0;
+let successfulHandoffs = 0;
+let improperExits = 0;
+let missedApproaches = 0;
+let sepViolation = 0;
+// const canvas = document.getElementById("myCanvas");
+// const context = canvas.getContext("2d");
+// const heightWidthRatio = (window.innerWidth - 310) * 0.6;
 
 const init = () => {
   window.requestAnimFrame = (function(callback) {
@@ -14,70 +200,52 @@ const init = () => {
       }
     );
   })();
-
-  const setOpts = () => {
-    const gameOptions = {
-      selectedDifficulty: document.getElementById("Difficulty").value,
-      selectedAirport: document.getElementById("Airports").value,
-      selectedMode: document.getElementById("GameMode").value
-    };
-    startSim(gameOptions);
-    //es ez a fajl egyenlore ennyi.
-    //innen tovabb folyatod a munkat a simControlban
-  };
-
-  window.onload = () => {
-    const instructionText = document.getElementById("instructionText");
-    const consoleTextArea = document.getElementById("console");
-    const modal = document.getElementById("startModal"); //it's style is set to block in css.
-    const startButton = document.getElementById("startbutton");
-
-    instructionText.focus();
-    consoleTextArea.value = `Welcome to Privo-ATC! ${consoleTextArea.value}`; //ez az uj string epites modja. :)
-    instructionText.value = "";
-
-    //na idaig mukodik
-    //egyenlore abban se vagyok biztos, hogy innentol lefele kell e meg barmi is ide.
-    // valoszinuleg szukseg van rajuk, csak nem epp itt
-
-    // const screenSize = canvas => {
-    //   canvas.width = window.innerWidth - 310;
-    //   canvas.height = window.innerHeight;
-    // };
-
-    startButton.addEventListener("click", () => {
-      modal.style.display = "none"; //hiding the modal as soon as it's clicked
-      setOpts(); //rading/setting options and starting game
-    });
-
-    let pausing = false;
-    let planeNr = 0; //-> SimControl.js/newPlane()
-    let successfulLandings = 0;
-    let successfulHandoffs = 0;
-    let improperExits = 0;
-    let missedApproaches = 0;
-    let sepViolation = 0;
-
-    // window.addEventListener("resize", screenSize);
-
-    // body canvas - style="background: #103848"
-    // let planes = []; -> SimControl.js/newPlane()
-    // let runways = [];
-    // let airlnrCode = []; //operating airliners' list
-    // let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
-    // let destName;
-    // let entryPts = [];
-    // let consoleText = document.getElementById('console').value;
-    // let userCommand; // = document.getElementById("instructionText").value;
-    // let splitCommand = [];
-    // let resid;
-    // let entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
-    // let navObjects = [];
-    //  meg mindig nem latom, mi inditja be a dolgokat.... bocs ha ugralok, de keresem
-  };
 };
 
 init();
+
+const setOpts = () => {
+  const gameOptions = {
+    selectedDifficulty: document.getElementById("Difficulty").value,
+    selectedAirport: document.getElementById("Airports").value,
+    selectedMode: document.getElementById("GameMode").value,
+  };
+  startSim(gameOptions);
+  console.log("setOpts");
+  //es ez a fajl egyenlore ennyi.
+  //innen tovabb folyatod a munkat a simControlban
+};
+
+window.onload = () => {
+  const instructionText = document.getElementById("instructionText");
+  const consoleTextArea = document.getElementById("console");
+  const modal = document.getElementById("startModal"); //it's style is set to block in css.
+  const startButton = document.getElementById("startbutton");
+
+  instructionText.focus();
+  consoleTextArea.value = `Welcome to Privo-ATC! ${consoleTextArea.value}`; //ez az uj string epites modja. :)
+  instructionText.value = "";
+
+  startButton.addEventListener("click", () => {
+    modal.style.display = "none"; //hiding the modal as soon as it's clicked
+    setOpts(); //rading/setting options and starting game
+  });
+};
+
+// body canvas - style="background: #103848"
+// let planes = []; -> SimControl.js/newPlane()
+// let runways = [];
+// let airlnrCode = []; //operating airliners' list
+// let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+// let destName;
+// let entryPts = [];
+// let consoleText = document.getElementById('console').value;
+// let userCommand; // = document.getElementById("instructionText").value;
+// let splitCommand = [];
+// let resid;
+// let entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
+// let navObjects = [];
+//  meg mindig nem latom, mi inditja be a dolgokat.... bocs ha ugralok, de keresem
 
 // { selDifficulty, selAirport, selMode } is called destructuring... look it up
 //we're passing in an object in atc.js (gameOptions)
@@ -86,51 +254,62 @@ init();
 //import { getLHBP } from "./init_Airports";
 //import { drawRunways } from "./DrawObjects";
 
-const createAirport = (innerHTML, titleDiv) => {
-  const airportDiv = document.createElement("div");
+const getCanvas = () => {
+  const canvas = document.getElementById("myCanvas");
+  const context = canvas.getContext("2d");
+  const heightWidthRatio = (window.innerWidth - 310) * 0.6;
+  screenSize(canvas);
+  console.log("getCanvas", canvas.width);
+  return { canvas, context, heightWidthRatio };
+};
 
+const screenSize = (canvas) => {
+  canvas.width = window.innerWidth - 310;
+  canvas.height = window.innerHeight;
+  //console.log("screenSize");
+  return;
+};
+
+window.addEventListener("resize", screenSize);
+
+const createAirport = (innerHTML) => {
+  const airportDiv = document.createElement("div");
+  const titleDiv = document.getElementById("titleDiv");
   airportDiv.setAttribute("id", "titleAirport");
   airportDiv.appendChild(document.createElement("div"));
   airportDiv.childNodes[0].innerHTML = innerHTML;
   titleDiv.appendChild(airportDiv);
-
   return airportDiv;
 };
 
-const startSim = (
-  gameOptions,
-  context,
-  airlnrDistr,
-  airlnrCode,
-  entryPts,
-  entryAlt,
-  navObjects,
-  destName
-) => {
+const startSim = (gameOptions) => {
+  // const canvas = 0;
+  // const context = 0;
   const { selectedDifficulty, selectedAirport, selectedMode } = gameOptions;
   const startTime = new Date().getTime();
-  const titleDiv = document.getElementById("titleDiv");
   titleDiv.removeChild(document.getElementById("titleAirport"));
   titleDiv.removeChild(document.getElementById("titleCode"));
   titleDiv.removeChild(document.getElementById("titleElev"));
-  const canvasElement = document.getElementById("myCanvas"); //canvas is declared, but value never used... nezzuk
-  const pausing = false;
-
-  const canvas = {
-    width: window.innerWidth - 310,
-    height: window.innerHeight,
-    heightWidthRatio: (window.innerWidth - 310) * 0.6,
-    context: canvasElement.getContext("2d")
-  };
+  // const canvasElement = document.getElementById("myCanvas");
+  // const canvas = {
+  //   width: window.innerWidth - 310, //Ez igy nem mukodik, a width and height parameterek nem allitjak be a canvas meretet
+  //   height: window.innerHeight,
+  //   heightWidthRatio: (window.innerWidth - 310) * 0.6,
+  //   context: canvasElement.getContext("2d"),
+  // };
 
   let airport;
-
+  const plane = {};
+  const planes = [];
+  getCanvas();
+  console.log("canvasWidth: ", canvas.width); //Miert nem ismeri a canvas-t, ha elotte fut le a getCanvas()??
   switch (selectedAirport) {
     case "LHBP":
       airport = getLHBP(canvas);
       createAirport(
         `<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>`
       );
+      console.log("LHBP - switch");
       break;
     // case "EGLL":
     //   initEGLL();
@@ -157,35 +336,26 @@ const startSim = (
   //itt majd talan csinalunk valamit az airport objecttel
   //draw the background from airport
 
-  animate(canvas, context, startTime, airport);
-  drawRunways(context);
-  newPlane(
-    selectedMode,
-    pausing,
-    airlnrDistr,
-    airlnrCode,
-    entryPts,
-    entryAlt,
-    navObjects,
-    destName
-  );
+  animate(canvas, startTime, airport, plane, planes);
+  drawRunways(context, airport);
+  newPlane(selectedMode, airport, plane, planes);
   setInterval(newPlane, planeFreq(20, 60) * selectedDifficulty); //Easy=4000, Normal=2000, Difficult=1000
-  return pausing;
+  return { pausing };
 };
 
-// Transmit with 'enter' key
-const transmitWithEnterKey = () => {
-  document
-    .getElementById("instructionText")
-    .addEventListener("keyup", enterKey => {
-      enterKey.preventDefault();
-      if (enterKey.keyCode == 13) {
-        document.getElementById("transmitBtn").click();
-      }
-    });
-};
+// Transmit with 'enter' key    -----   addEventListener of Undefined??
+// const transmitWithEnterKey = () => {
+//   document
+//     .getElementById("instructionText")
+//     .addEventListener("keyup", (enterKey) => {
+//       enterKey.preventDefault();
+//       if (enterKey.keyCode === 13) {
+//         document.getElementById("transmitBtn").click();
+//       }
+//     });
+// };
 
-transmitWithEnterKey();
+// transmitWithEnterKey();
 
 // cH/cW=.583
 // let cHW = cW * 0.6; //ez nem lehet resze a canvas objectnek?, de gondolom igen
@@ -321,18 +491,20 @@ const leadingZeros = (number, length) => {
   return returnedValue + number;
 };
 
-const newPlane = (
-  selectedMode,
-  airlnrDistr,
-  airlnrCode,
-  entryPts,
-  entryAlt,
-  navObjects,
-  destName
-) => {
+// navObjects: navObjects, //array
+//     runways: runways, //array
+//     entryPts: entryPts, //array
+//     airlnrCode: airlnrCode, //array
+//     airlnrDistr: [141, 37, 62, 2, 92, 7, 126, 12],
+//     destName: "BUD",
+//     backgroundImage: backgroundImage,
+
+const newPlane = (selectedMode, airport, plane, planes) => {
+  const { airlnrDistr, airlnrCode, entryPts, navObjects, destName } = airport;
   const entryMode = Math.random();
-  const plane = {};
-  const planes = [];
+  const entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
+  // const plane = {};
+  // const planes = [];
   if (pausing != true) {
     const idIndex = aCGen({ airlnrDistr, airlnrCode });
     const flightNr =
@@ -383,7 +555,7 @@ const newPlane = (
       planeNr++;
     }
   }
-  return plane, planes;
+  return { plane, planes };
 };
 
 // eslint-disable-next-line complexity
@@ -439,14 +611,17 @@ const progressStrips = (plane, planes) => {
   }
 };
 
-const getFlightID = flightStrip => {
+const getFlightID = (flightStrip) => {
   document.getElementById("instructionText").value = `${flightStrip.id} `;
   document.getElementById("instructionText").focus();
   return;
 };
 
 // Runway
-export const drawRunways = (context, runways) => {
+const drawRunways = (context, airport) => {
+  // const { context } = canvas;
+  const { runways } = airport;
+
   for (let i = 0; i < runways.length; i = i + 2) {
     context.beginPath();
     context.moveTo(runways[i][4], runways[i][5]);
@@ -461,7 +636,8 @@ export const drawRunways = (context, runways) => {
   }
 };
 
-export const drawNavObj = (navObjects, context) => {
+const drawNavObj = (navObjects, context) => {
+  // const { context } = canvas;
   context.beginPath();
   context.arc(navObjects[1], navObjects[2], 5, 0, 2 * Math.PI);
   context.moveTo(navObjects[1] - 1, navObjects[2] - 1);
@@ -478,7 +654,8 @@ export const drawNavObj = (navObjects, context) => {
 };
 
 // square symbol of aircraft
-export const drawPlane = (plane, context) => {
+const drawPlane = (plane, canvas) => {
+  const { context } = canvas;
   let consArrow;
   if (plane.altitude < plane.newAlt) {
     consArrow = "\u2191";
@@ -541,7 +718,7 @@ export const drawPlane = (plane, context) => {
 };
 
 // plane trail line
-export const drawTrail = (planes, context) => {
+const drawTrail = (planes, context) => {
   for (let i = 0; i < planes.length; i++) {
     context.beginPath();
     context.moveTo(planes[i].curX, planes[i].curY);
@@ -561,7 +738,7 @@ export const drawTrail = (planes, context) => {
   }
 };
 
-export const drawSepCircle = (x, y, context) => {
+const drawSepCircle = (x, y, context) => {
   context.beginPath();
   context.arc(x, y, 57, 0, 2 * Math.PI);
   context.linewidth = 1;
@@ -593,14 +770,14 @@ const splitUserCommand = () => {
 //   userCommand === "EXIT" && endSim();
 //};
 
-const usercmdToConsole = userCommand => {
+const usercmdToConsole = (userCommand) => {
   document.getElementById("console").value = `${userCommand}\n ${
     document.getElementById("console").value
   }`;
   document.getElementById("instructionText").value = ""; // clearing the input field
 };
 
-const promptInvalidComm = resid => {
+const promptInvalidComm = (resid) => {
   document.getElementById("console").value = `Invalid Command!\n ${
     document.getElementById("console").value
   }`;
@@ -610,7 +787,7 @@ const promptInvalidComm = resid => {
 };
 
 //ignore this
-const promptInvalidCommTest = resid => {
+const promptInvalidCommTest = (resid) => {
   document.getElementById("console").value = `TEST Invalid Command!\n ${
     document.getElementById("console").value
   }`;
@@ -993,7 +1170,7 @@ const fnPausing = () => {
   }
 };
 
-const endSim = endModal => {
+const endSim = (endModal) => {
   pausing = true;
   endModal.style.display = "block";
   document.getElementById("successfulLandings").innerHTML = successfulLandings;
@@ -1035,8 +1212,8 @@ const distCheck = (plane, runways) => {
   }
 };
 
-const heading = planes => {
-  planes.map(plane => {
+const heading = (planes) => {
+  planes.map((plane) => {
     plane.curX =
       plane.curX +
       Math.cos((plane.heading - 90) * (Math.PI / 180)) * (plane.speed / 10);
@@ -1059,7 +1236,7 @@ const heading = planes => {
 //   }
 // };
 
-const speedChange = plane => {
+const speedChange = (plane) => {
   if (plane.speed < plane.newSpeed) {
     plane.speed += plane.speedStep;
   } else if (plane.speed > plane.newSpeed) {
@@ -1067,7 +1244,7 @@ const speedChange = plane => {
   }
 };
 
-const altChange = plane => {
+const altChange = (plane) => {
   if (plane.altitude < plane.newAlt) {
     if (plane.altitude >= plane.newAlt - 1.5 * plane.altStep) {
       plane.altitude = plane.newAlt;
@@ -1083,7 +1260,7 @@ const altChange = plane => {
   }
 };
 
-const headingReset = plane => {
+const headingReset = (plane) => {
   if (plane.heading <= 0) {
     plane.heading += 360;
     return plane;
@@ -1094,7 +1271,7 @@ const headingReset = plane => {
 };
 
 // eslint-disable-next-line complexity
-const turning = plane => {
+const turning = (plane) => {
   headingReset(plane);
   // turning
   if (
@@ -1122,7 +1299,7 @@ const turning = plane => {
   }
 };
 
-const setHeading = plane => {
+const setHeading = (plane) => {
   const subX = plane.destX - plane.curX;
   const subY = plane.destY - plane.curY;
   const courseAngle = Math.round(Math.atan2(subY, subX) * (180 / Math.PI));
@@ -1138,7 +1315,7 @@ const setHeading = plane => {
 };
 
 // plane distance from destination
-const distMeasure = plane =>
+const distMeasure = (plane) =>
   (plane.distance = Math.round(
     Math.sqrt(
       Math.pow(plane.curX - plane.destX, 2) +
@@ -1146,9 +1323,9 @@ const distMeasure = plane =>
     )
   ));
 
-const assignDest = plane => plane.destination !== -1 && setHeading(plane);
+const assignDest = (plane) => plane.destination !== -1 && setHeading(plane);
 
-const destReset = plane => {
+const destReset = (plane) => {
   plane.destination = -1;
   plane.destX = "undefined";
   plane.destY = "undefined";
@@ -1196,9 +1373,8 @@ const fnSeparation = (planes, context, psFrame) => {
   }
 };
 
-const animate = (canvas, context, startTime, plane, planes, airport) => {
-  console.log("airport: ", airport);
-  // update
+const animate = (context, startTime, airport, plane, planes) => {
+  // const { context } = canvas;
 
   const {
     navObjects,
@@ -1206,8 +1382,11 @@ const animate = (canvas, context, startTime, plane, planes, airport) => {
     entryPts,
     airlnrCode,
     airlnrDistr,
-    destName
+    destName,
   } = airport;
+
+  //console.log("airport: ", airport);
+  // update
 
   let time = new Date().getTime() - startTime;
   if (time > 1000 && pausing != true) {
@@ -1219,12 +1398,12 @@ const animate = (canvas, context, startTime, plane, planes, airport) => {
     // for (let i = 0; i < navObjects.length; i++) {
     //   drawNavObj(navObjects[i], context);
     // }
-    navObjects.map(navObject => {
-      drawNavObj(navObject, context);
+    navObjects.map((navObject) => {
+      drawNavObj(navObject, canvas);
     });
 
     updateStatScreen();
-    drawRunways(context);
+    drawRunways(canvas, airport);
     heading(planes);
     drawTrail(planes, context);
     removePlane();
@@ -1244,6 +1423,6 @@ const animate = (canvas, context, startTime, plane, planes, airport) => {
 
   // request new frame
   window.requestAnimFrame(() => {
-    animate(canvas, context, startTime, plane, planes, airport);
+    animate(canvas, startTime, airport, plane, planes);
   });
 };
