@@ -302,7 +302,7 @@ const startSim = (gameOptions) => {
   const plane = {};
   const planes = [];
   getCanvas();
-  console.log("canvasWidth: ", canvas.width); //Miert nem ismeri a canvas-t, ha elotte fut le a getCanvas()??
+  console.log("canvasWidth: ", canvas.width); //Miert nem ismeri a canvas-t, ha elotte fut le a getCanvas()???
   switch (selectedAirport) {
     case "LHBP":
       airport = getLHBP(canvas);
