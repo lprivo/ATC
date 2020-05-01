@@ -1,19 +1,19 @@
 //import { startSim } from "./SimControl";
 //import { getLHBP } from "./init_Airports";
 
-// const setCanvasAbbrev = (canvas) => {
+// const setCanvasAbbrev = () => {
 //   const cW = canvas.width;
 //   const cH = canvas.height;
-//   const cHW = canvas.heightWidthRatio;
-//   return { cW, cH, cHW };
+//   const cHW = Math.round((window.innerWidth - 310) * 0.6);
+//   return cW, cH, cHW;
 // };
 
-//const getLHBP = ({ width: cW, heightWidthRatio: cHW, height: cH }) => {
-const getLHBP = (canvas) => {
-  // setCanvasAbbrev(canvas);
+const getLHBP = (heightWidthRatio) => {
+  // setCanvasAbbrev();
   const cW = canvas.width;
   const cH = canvas.height;
-  const cHW = canvas.heightWidthRatio;
+  // const cHW = Math.round((window.innerWidth - 310) * 0.6);
+  const cHW = heightWidthRatio;
   const navObjects = [];
   const runways = [];
   const entryPts = [];
@@ -158,33 +158,35 @@ const getLHBP = (canvas) => {
     "PS",
     "LY",
   ];
-  // const airlnrDistr = [141, 37, 62, 2, 92, 7, 126, 12];
-  // const destName = "BUD";
-  const backgroundImage = `url("Images/LHBP_bgnd_map.png")`;
-  console.log("LHBP");
+  const airlnrDistr = [141, 37, 62, 2, 92, 7, 126, 12];
+  const destName = "BUD";
+  // const backgroundImage = `url("Images/LHBP_bgnd_map.png")`;
+  // console.log(`LHBP ${cW} ${cH} ${cHW}`);
+  // console.log(`LHBP ${airlnrDistr}`);
+  document.getElementById("myCanvas").style.backgroundImage =
+    'url("Images/LHBP_bgnd_map.png")';
   return {
     navObjects: navObjects, //array
     runways: runways, //array
     entryPts: entryPts, //array
     airlnrCode: airlnrCode, //array
-    airlnrDistr: [141, 37, 62, 2, 92, 7, 126, 12],
-    destName: "BUD",
-    backgroundImage: backgroundImage,
+    airlnrDistr: airlnrDistr, //array
+    destName: destName,
+    // backgroundImage: backgroundImage,
     // addEntrypoint: (entryPoint)=>{entryPoints.push}
   };
-  // document.getElementById("myCanvas").style.backgroundImage =
-  //   'url("Images/LHBP_bgnd_map.png")';
 };
 
 let pausing = false;
-let planeNr = 0; //-> SimControl.js/newPlane()
 let successfulLandings = 0;
 let successfulHandoffs = 0;
 let improperExits = 0;
 let missedApproaches = 0;
 let sepViolation = 0;
-// const canvas = document.getElementById("myCanvas");
-// const context = canvas.getContext("2d");
+let canvas;
+let context;
+const planes = [];
+let planeNr = 0; //-> SimControl.js/newPlane()
 // const heightWidthRatio = (window.innerWidth - 310) * 0.6;
 
 const init = () => {
@@ -203,6 +205,108 @@ const init = () => {
 };
 
 init();
+
+const getCanvas = () => {
+  const heightWidthRatio = (window.innerWidth - 310) * 0.6;
+  canvas = document.getElementById("myCanvas");
+  context = canvas.getContext("2d");
+  screenSize();
+  console.log("getCanvas", canvas.width);
+  return heightWidthRatio;
+};
+
+const screenSize = () => {
+  canvas.width = window.innerWidth - 310;
+  canvas.height = window.innerHeight;
+  console.log("screenSize: ", canvas.width, "x", canvas.height);
+  return;
+};
+
+window.addEventListener("resize", screenSize);
+
+const createAirport = (innerHTML) => {
+  const airportDiv = document.createElement("div");
+  const titleDiv = document.getElementById("titleDiv");
+  airportDiv.setAttribute("id", "titleAirport");
+  airportDiv.appendChild(document.createElement("div"));
+  airportDiv.childNodes[0].innerHTML = innerHTML;
+  titleDiv.appendChild(airportDiv);
+  return airportDiv;
+};
+
+const planeFreq = (min, max) => {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+const newPlaneTimer = (selectedDifficulty, selectedMode, airport) => {
+  setInterval(
+    newPlane,
+    planeFreq(20, 60) * selectedDifficulty,
+    selectedMode,
+    airport
+  );
+}; //Easy=4000, Normal=2500, Difficult=1000
+
+const startSim = (gameOptions) => {
+  // const { canvas, context } = getCanvas();
+  // const context = 0; // test
+  const { selectedDifficulty, selectedAirport, selectedMode } = gameOptions;
+  const startTime = new Date().getTime();
+  titleDiv.removeChild(document.getElementById("titleAirport"));
+  titleDiv.removeChild(document.getElementById("titleCode"));
+  titleDiv.removeChild(document.getElementById("titleElev"));
+  // const canvasElement = document.getElementById("myCanvas");
+  // const canvas = {
+  //   width: window.innerWidth - 310, //Ez igy nem mukodik, a width and height parameterek nem allitjak be a canvas meretet
+  //   height: window.innerHeight,
+  //   heightWidthRatio: (window.innerWidth - 310) * 0.6,
+  //   context: canvasElement.getContext("2d"),
+  // };
+  let airport;
+  // const plane = {}; // test - declaring plane in newPlane()
+  const heightWidthRatio = getCanvas();
+  console.log("canvasWidth: ", canvas.width);
+  switch (selectedAirport) {
+    case "LHBP":
+      airport = getLHBP(heightWidthRatio);
+      createAirport(
+        `<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>`
+      );
+      // console.log("LHBP - switch");
+      break;
+    // case "EGLL":
+    //   initEGLL();
+    //   createAirport(
+    //     `<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>`
+    //   );
+    //   break;
+    // case "EPWA":
+    //   initEPWA();
+    //   createAirport(
+    //     `<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>`
+    //   );
+    //   break;
+    // case "KSEA":
+    //   initKSEA();
+    //   createAirport(
+    //     `<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>`
+    //   );
+    //   break;
+    default:
+      break;
+  }
+
+  //itt majd talan csinalunk valamit az airport objecttel
+  //draw the background from airport
+
+  drawRunways(airport, context);
+  newPlane(selectedMode, airport);
+  newPlaneTimer(selectedDifficulty, selectedMode, airport);
+  animate(startTime, airport);
+  return;
+};
 
 const setOpts = () => {
   const gameOptions = {
@@ -232,118 +336,7 @@ window.onload = () => {
   });
 };
 
-// body canvas - style="background: #103848"
-// let planes = []; -> SimControl.js/newPlane()
-// let runways = [];
-// let airlnrCode = []; //operating airliners' list
-// let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
-// let destName;
-// let entryPts = [];
-// let consoleText = document.getElementById('console').value;
-// let userCommand; // = document.getElementById("instructionText").value;
-// let splitCommand = [];
-// let resid;
-// let entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
-// let navObjects = [];
-//  meg mindig nem latom, mi inditja be a dolgokat.... bocs ha ugralok, de keresem
-
-// { selDifficulty, selAirport, selMode } is called destructuring... look it up
-//we're passing in an object in atc.js (gameOptions)
-//but here we're already breaking it down into variables.
-
-//import { getLHBP } from "./init_Airports";
-//import { drawRunways } from "./DrawObjects";
-
-const getCanvas = () => {
-  const canvas = document.getElementById("myCanvas");
-  const context = canvas.getContext("2d");
-  const heightWidthRatio = (window.innerWidth - 310) * 0.6;
-  screenSize(canvas);
-  console.log("getCanvas", canvas.width);
-  return { canvas, context, heightWidthRatio };
-};
-
-const screenSize = (canvas) => {
-  canvas.width = window.innerWidth - 310;
-  canvas.height = window.innerHeight;
-  //console.log("screenSize");
-  return;
-};
-
-window.addEventListener("resize", screenSize);
-
-const createAirport = (innerHTML) => {
-  const airportDiv = document.createElement("div");
-  const titleDiv = document.getElementById("titleDiv");
-  airportDiv.setAttribute("id", "titleAirport");
-  airportDiv.appendChild(document.createElement("div"));
-  airportDiv.childNodes[0].innerHTML = innerHTML;
-  titleDiv.appendChild(airportDiv);
-  return airportDiv;
-};
-
-const startSim = (gameOptions) => {
-  // const canvas = 0;
-  // const context = 0;
-  const { selectedDifficulty, selectedAirport, selectedMode } = gameOptions;
-  const startTime = new Date().getTime();
-  titleDiv.removeChild(document.getElementById("titleAirport"));
-  titleDiv.removeChild(document.getElementById("titleCode"));
-  titleDiv.removeChild(document.getElementById("titleElev"));
-  // const canvasElement = document.getElementById("myCanvas");
-  // const canvas = {
-  //   width: window.innerWidth - 310, //Ez igy nem mukodik, a width and height parameterek nem allitjak be a canvas meretet
-  //   height: window.innerHeight,
-  //   heightWidthRatio: (window.innerWidth - 310) * 0.6,
-  //   context: canvasElement.getContext("2d"),
-  // };
-
-  let airport;
-  const plane = {};
-  const planes = [];
-  getCanvas();
-  console.log("canvasWidth: ", canvas.width); //Miert nem ismeri a canvas-t, ha elotte fut le a getCanvas()???
-  switch (selectedAirport) {
-    case "LHBP":
-      airport = getLHBP(canvas);
-      createAirport(
-        `<h5>Budapest Liszt F.</h5><h6 id="titleCode">ICAO:LHBP | IATA:BUD</h6><h6 id="titleElev">Elevation: 495ft</h6>`
-      );
-      console.log("LHBP - switch");
-      break;
-    // case "EGLL":
-    //   initEGLL();
-    //   createAirport(
-    //     `<h5>London Heathrow</h5><h6 id="titleCode">ICAO:EGLL | IATA:LHR</h6><h6 id="titleElev">Elevation: 83ft</h6>`
-    //   );
-    //   break;
-    // case "EPWA":
-    //   initEPWA();
-    //   createAirport(
-    //     `<h5>Warsaw Chopin</h5><h6 id="titleCode">ICAO:EPWA | IATA:WAW</h6><h6 id="titleElev">Elevation: 362ft</h6>`
-    //   );
-    //   break;
-    // case "KSEA":
-    //   initKSEA();
-    //   createAirport(
-    //     `<h5>Seattle-Tacoma I.</h5><h6 id="titleCode">ICAO:KSEA | IATA:SEA</h6><h6 id="titleElev">Elevation: 433ft</h6>`
-    //   );
-    //   break;
-    default:
-      break;
-  }
-
-  //itt majd talan csinalunk valamit az airport objecttel
-  //draw the background from airport
-
-  animate(canvas, startTime, airport, plane, planes);
-  drawRunways(context, airport);
-  newPlane(selectedMode, airport, plane, planes);
-  setInterval(newPlane, planeFreq(20, 60) * selectedDifficulty); //Easy=4000, Normal=2000, Difficult=1000
-  return { pausing };
-};
-
-// Transmit with 'enter' key    -----   addEventListener of Undefined??
+// // Transmit with 'enter' key    -----   addEventListener of Undefined??
 // const transmitWithEnterKey = () => {
 //   document
 //     .getElementById("instructionText")
@@ -357,34 +350,16 @@ const startSim = (gameOptions) => {
 
 // transmitWithEnterKey();
 
-// cH/cW=.583
-// let cHW = cW * 0.6; //ez nem lehet resze a canvas objectnek?, de gondolom igen
-// let planeNr = 0; // body canvas - style="background: #103848"
-// let planes = [];
-// let runways = [];
-// let airlnrCode = []; //operating airliners' list
-// let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
-// let destName;
-// let entryPts = [];
-// //let consoleText = document.getElementById('console').value;
-// let userCommand; // = document.getElementById("instructionText").value;
-// let splitCommand = [];
-// let pausing = false;
-// let resid;
-// let entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
-// let navObjects = [];
-// let successfulLandings = 0;
-// let successfulHandoffs = 0;
-// let improperExits = 0;
-// let missedApproaches = 0;
-// let sepViolation = 0;
+// // Transmit with 'enter' key
+// document
+//   .getElementById("instructionText")
+//   .addEventListener("keyup", function(enterKey) {
+//     enterKey.preventDefault();
+//     if (enterKey.keyCode == 13) {
+//       document.getElementById("transmitBtn").click();
+//     }
+//   });
 
-// let context = canvas.getContext("2d"); //elvileg ez adja a radar kepernyo alapjat
-//igen, megleltem. kozben google megy
-// let psFrame = document.getElementById("psFrame");
-//let selMode;
-
-// import {initLHBP, initEGLL, initEPWA, initKSEA} from "./init_Airports";
 const showInfoscreen = () => {
   const dispInfo = document.getElementById("infoScreen").style.display;
   const dispStat = document.getElementById("statScreen").style.display;
@@ -448,12 +423,6 @@ const updateStatScreen = () => {
   }
 };
 
-const planeFreq = (min, max) => {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-};
-
 // eslint-disable-next-line complexity
 const aCGen = ({ airlnrDistr, airlnrCode }) => {
   let aCIndex = Math.floor(Math.random() * airlnrDistr[0]);
@@ -491,21 +460,13 @@ const leadingZeros = (number, length) => {
   return returnedValue + number;
 };
 
-// navObjects: navObjects, //array
-//     runways: runways, //array
-//     entryPts: entryPts, //array
-//     airlnrCode: airlnrCode, //array
-//     airlnrDistr: [141, 37, 62, 2, 92, 7, 126, 12],
-//     destName: "BUD",
-//     backgroundImage: backgroundImage,
-
-const newPlane = (selectedMode, airport, plane, planes) => {
+const newPlane = (selectedMode, airport) => {
   const { airlnrDistr, airlnrCode, entryPts, navObjects, destName } = airport;
   const entryMode = Math.random();
   const entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
-  // const plane = {};
-  // const planes = [];
-  if (pausing != true) {
+  const plane = {};
+  // const planes = []; // declared as global
+  if (pausing !== true) {
     const idIndex = aCGen({ airlnrDistr, airlnrCode });
     const flightNr =
       airlnrCode[idIndex] +
@@ -531,9 +492,12 @@ const newPlane = (selectedMode, airport, plane, planes) => {
       plane.destY = navObjects[11][2];
       //plane.distance;
       plane.flightMode = 0; // 0-en route, 1-in holding pattern, 2-approach, 3-final, 4-landing, 5-ready to depart, 6-line up and wait, 7-taking-off, 8-departing, 9-departed;
-      planes.push(plane);
       plane.label = "A";
+      planes.push(plane);
       planeNr++;
+      for (let i = 0; i < planes.length; i++) {
+        console.log(`newPlane: i=${i}, ${planes[i].id}`);
+      }
     } else {
       const indexT = Math.floor(Math.random() * 7);
       plane.flightMode = 5;
@@ -555,11 +519,24 @@ const newPlane = (selectedMode, airport, plane, planes) => {
       planeNr++;
     }
   }
-  return { plane, planes };
+  // console.log(`newPlane, planeNr: ${planeNr}, planesArrayNr: ${planes.length}`);
+  return plane;
+};
+
+const drawArrow = (plane) => {
+  let vertArrow;
+  if (plane.altitude < plane.newAlt) {
+    vertArrow = "\u2191";
+  } else if (plane.altitude > plane.newAlt) {
+    vertArrow = "\u2193";
+  } else {
+    vertArrow = "-";
+  }
+  return vertArrow;
 };
 
 // eslint-disable-next-line complexity
-const progressStrips = (plane, planes) => {
+const progressStrips = (plane) => {
   const psFrame = document.getElementById("psFrame");
   const pStrip = document.getElementById(plane.id);
   const psAltitude = leadingZeros(Math.round(plane.altitude) * 100, 5);
@@ -570,22 +547,16 @@ const progressStrips = (plane, planes) => {
   if (pStrip) {
     let found = false;
     for (let i = 0; i < planes.length; i++) {
-      if (planes[i].id === plane.id && planes[i].flightMode != 9) {
+      if (planes[i].id === plane.id && planes[i].flightMode !== 9) {
         found = true;
+        // console.log(`pS found= ${found}`);
         break;
       }
     }
     if (found) {
-      let psArrow;
-      if (plane.altitude < plane.newAlt) {
-        psArrow = "\u2191";
-      } else if (plane.altitude > plane.newAlt) {
-        psArrow = "\u2193";
-      } else {
-        psArrow = "-";
-      }
+      const vertArrow = drawArrow(plane);
       pStrip.childNodes[0].setAttribute("class", "flightData");
-      pStrip.childNodes[0].innerHTML = `<table><tr><td class='pstd'> ${plane.id} </td><td class='pstd'> ${psAltitude} ${psArrow} </td><td class='pstd'> ${psSpeed}
+      pStrip.childNodes[0].innerHTML = `<table><tr><td class='pstd'> ${plane.id} </td><td class='pstd'> ${psAltitude} ${vertArrow} </td><td class='pstd'> ${psSpeed}
         </td></tr><tr><td class='pstd'> ${plane.label} </td><td class='pstd'> ${plane.destName} </td><td class='pstd'> ${psHeading}</td></tr></table>`;
     }
   } else {
@@ -598,7 +569,7 @@ const progressStrips = (plane, planes) => {
       newPStrip.childNodes[0].setAttribute("class", "flightData");
       newPStrip.childNodes[0].innerHTML = `<table><tr><td class='pstd'> ${plane.id} </td></tr><tr><td class='pstd'> ${plane.label} </td></tr></table>`;
       psFrame.appendChild(newPStrip);
-    } else if (plane.label === "D" && plane.flightMode != 9) {
+    } else if (plane.label === "D" && plane.flightMode !== 9) {
       newPStrip.setAttribute("id", plane.id);
       newPStrip.setAttribute("name", plane.id);
       newPStrip.setAttribute("class", "psDeparture");
@@ -609,6 +580,7 @@ const progressStrips = (plane, planes) => {
       psFrame.appendChild(newPStrip);
     }
   }
+  // console.log("psStrip");
 };
 
 const getFlightID = (flightStrip) => {
@@ -618,8 +590,8 @@ const getFlightID = (flightStrip) => {
 };
 
 // Runway
-const drawRunways = (context, airport) => {
-  // const { context } = canvas;
+const drawRunways = (airport, context) => {
+  // const { context } = getCanvas();
   const { runways } = airport;
 
   for (let i = 0; i < runways.length; i = i + 2) {
@@ -634,6 +606,7 @@ const drawRunways = (context, airport) => {
     context.fillText(runways[i + 1][0], runways[i + 1][8], runways[i + 1][9]);
     context.stroke();
   }
+  // console.log("drawRunways");
 };
 
 const drawNavObj = (navObjects, context) => {
@@ -651,19 +624,14 @@ const drawNavObj = (navObjects, context) => {
   context.fillStyle = "rgba(150,190,190,1)";
   context.fillText(navObjects[0], navObjects[1] + 10, navObjects[2] + 2);
   context.stroke();
+  // console.log("drawNavObj");
 };
 
 // square symbol of aircraft
-const drawPlane = (plane, canvas) => {
-  const { context } = canvas;
-  let consArrow;
-  if (plane.altitude < plane.newAlt) {
-    consArrow = "\u2191";
-  } else if (plane.altitude > plane.newAlt) {
-    consArrow = "\u2193";
-  } else {
-    consArrow = "-";
-  }
+const drawPlane = (plane) => {
+  // const { context } = canvas;
+  // console.log(`drawPlane, planeNr: ${planeNr}, planeId: ${plane.id}`);
+  const vertArrow = drawArrow(plane);
   if (plane.flightMode === 9) {
     context.beginPath();
     context.moveTo(plane.curX - 3, plane.curY - 3);
@@ -682,14 +650,14 @@ const drawPlane = (plane, canvas) => {
       plane.curX,
       plane.curY - 20
     );
-    context.fillText(consArrow, plane.curX + 20, plane.curY - 20);
+    context.fillText(vertArrow, plane.curX + 20, plane.curY - 20);
     context.fillText(
       leadingZeros(Math.floor(Math.round(plane.speed)), 2),
       plane.curX + 30,
       plane.curY - 20
     );
     context.stroke();
-  } else if (plane.flightMode != 5) {
+  } else if (plane.flightMode !== 5) {
     context.beginPath();
     context.moveTo(plane.curX - 3, plane.curY - 3);
     context.lineTo(plane.curX + 3, plane.curY - 3);
@@ -707,7 +675,7 @@ const drawPlane = (plane, canvas) => {
       plane.curX,
       plane.curY - 20
     );
-    context.fillText(consArrow, plane.curX + 20, plane.curY - 20);
+    context.fillText(vertArrow, plane.curX + 20, plane.curY - 20);
     context.fillText(
       leadingZeros(Math.floor(Math.round(plane.speed)), 2),
       plane.curX + 30,
@@ -718,7 +686,7 @@ const drawPlane = (plane, canvas) => {
 };
 
 // plane trail line
-const drawTrail = (planes, context) => {
+const drawTrail = () => {
   for (let i = 0; i < planes.length; i++) {
     context.beginPath();
     context.moveTo(planes[i].curX, planes[i].curY);
@@ -755,7 +723,7 @@ const getUserCommand = () => {
 
 //splits user command at "space(S)" into tokens - creates an array of strings.
 const splitUserCommand = () => {
-  getUserCommand();
+  const userCommand = getUserCommand();
   const splitCommand = userCommand.split(" "); //Miert nem ismeri, ha a getUserCommand lefut elotte??
   return splitCommand;
 };
@@ -770,87 +738,93 @@ const splitUserCommand = () => {
 //   userCommand === "EXIT" && endSim();
 //};
 
-const usercmdToConsole = (userCommand) => {
+const usercmdToConsole = () => {
+  const userCommand = getUserCommand();
   document.getElementById("console").value = `${userCommand}\n ${
     document.getElementById("console").value
   }`;
   document.getElementById("instructionText").value = ""; // clearing the input field
 };
 
-const promptInvalidComm = (resid) => {
+const promptInvalidComm = (planeArrPositon) => {
   document.getElementById("console").value = `Invalid Command!\n ${
     document.getElementById("console").value
   }`;
   document.getElementById("instructionText").value = "";
-  resid = -1;
+  planeArrPositon = -1;
   return;
 };
 
 //ignore this
-const promptInvalidCommTest = (resid) => {
-  document.getElementById("console").value = `TEST Invalid Command!\n ${
-    document.getElementById("console").value
-  }`;
-  document.getElementById("instructionText").value = "";
-  resid = -1;
-  return;
-};
+// const promptInvalidCommTest = (planeArrPositon) => {
+//   document.getElementById("console").value = `TEST Invalid Command!\n ${
+//     document.getElementById("console").value
+//   }`;
+//   document.getElementById("instructionText").value = "";
+//   planeArrPositon = -1;
+//   return;
+// };
 
-const fnCommandA = (userCommand, splitCommand, planes, resid) => {
-  checkHandover(resid);
+const changeAltitude = (userCommand, splitCommand, planeArrPositon) => {
+  // checkHandover(planeArrPositon);
   if (20 <= parseInt(splitCommand[2]) && parseInt(splitCommand[2]) < 400) {
-    planes[resid].newAlt = parseInt(splitCommand[2]);
+    planes[planeArrPositon].newAlt = parseInt(splitCommand[2]);
     usercmdToConsole(userCommand);
-    resid = -1;
+    planeArrPositon = -1;
     return;
   } else {
     document.getElementById("console").value = `Invalid Altitude Clearance!\n ${
       document.getElementById("console").value
     }`;
     document.getElementById("instructionText").value = "";
-    resid = -1;
+    planeArrPositon = -1;
     return;
   }
 };
 
 // eslint-disable-next-line complexity
-const fnCommandH = (userCommand, splitCommand, planes, navObjects, resid) => {
-  checkHandover(resid);
+const changeHeading = (
+  userCommand,
+  splitCommand,
+  navObjects,
+  planeArrPositon
+) => {
+  // checkHandover(planeArrPositon);
   if (0 < splitCommand[2] && splitCommand[2] <= 360) {
-    destReset(planes[resid]);
-    planes[resid].newHeading = parseInt(splitCommand[2]);
+    destReset(planes[planeArrPositon]);
+    planes[planeArrPositon].newHeading = parseInt(splitCommand[2]);
     usercmdToConsole(userCommand);
-    resid = -1;
+    planeArrPositon = -1;
     return;
   } else {
     for (let i = 0; i < navObjects.length; i++) {
-      if (splitCommand[2] === navObjects[i][0] && splitCommand[3] != "HP") {
-        planes[resid].destination = i;
-        planes[resid].destX = navObjects[i][1];
-        planes[resid].destY = navObjects[i][2];
-        planes[resid].turnStep = 3;
-        if (planes[resid].flightMode != 8) {
-          planes[resid].flightMode = 0;
+      if (splitCommand[2] === navObjects[i][0] && splitCommand[3] !== "HP") {
+        planes[planeArrPositon].destination = i;
+        planes[planeArrPositon].destX = navObjects[i][1];
+        planes[planeArrPositon].destY = navObjects[i][2];
+        planes[planeArrPositon].turnStep = 3;
+        if (planes[planeArrPositon].flightMode != 8) {
+          planes[planeArrPositon].flightMode = 0;
         }
         usercmdToConsole(userCommand);
-        resid = -1;
+        planeArrPositon = -1;
         return;
       } else if (
         splitCommand[2] === navObjects[i][0] &&
         splitCommand[3] === "HP"
       ) {
-        if (planes[resid].flightMode === 8) {
-          promptInvalidComm(resid);
-          resid = -1;
+        if (planes[planeArrPositon].flightMode === 8) {
+          promptInvalidComm(planeArrPositon);
+          planeArrPositon = -1;
           return;
         } else {
-          planes[resid].destination = i;
-          planes[resid].destX = navObjects[i][1];
-          planes[resid].destY = navObjects[i][2];
-          planes[resid].flightMode = 1;
-          planes[resid].turnStep = 6;
+          planes[planeArrPositon].destination = i;
+          planes[planeArrPositon].destX = navObjects[i][1];
+          planes[planeArrPositon].destY = navObjects[i][2];
+          planes[planeArrPositon].flightMode = 1;
+          planes[planeArrPositon].turnStep = 6;
           usercmdToConsole(userCommand);
-          resid = -1;
+          planeArrPositon = -1;
           return;
         }
       }
@@ -858,89 +832,88 @@ const fnCommandH = (userCommand, splitCommand, planes, navObjects, resid) => {
   }
 };
 
-const fnCommandL = (userCommand, splitCommand, planes, runways, resid) => {
-  checkHandover(resid);
+const comLanding = (userCommand, splitCommand, runways, planeArrPositon) => {
+  // checkHandover(planeArrPositon);
   for (let i = 0; i < runways.length; i++) {
-    //let distToRunway = Math.round(Math.sqrt(Math.pow((planes[resid].curX - runways[i][2]),2) + Math.pow((planes[resid].curY - runways[i][3]),2)));
+    //let distToRunway = Math.round(Math.sqrt(Math.pow((planes[planeArrPositon].curX - runways[i][2]),2) + Math.pow((planes[planeArrPositon].curY - runways[i][3]),2)));
     if (
       splitCommand[2] == runways[i][0] &&
-      Math.abs(runways[i][1] - planes[resid].heading) <= 20 &&
-      planes[resid].altitude <= 40
+      Math.abs(runways[i][1] - planes[planeArrPositon].heading) <= 20 &&
+      planes[planeArrPositon].altitude <= 40
     ) {
-      planes[resid].destination = i;
-      planes[resid].destX = runways[i][2];
-      planes[resid].destY = runways[i][3];
-      planes[resid].newAlt = 20;
-      planes[resid].altStep = 0.5;
-      planes[resid].flightMode = 2;
-      planes[resid].newSpeed = 20;
-      planes[resid].speedStep = 0.5;
-      planes[resid].destName = runways[i][0];
+      planes[planeArrPositon].destination = i;
+      planes[planeArrPositon].destX = runways[i][2];
+      planes[planeArrPositon].destY = runways[i][3];
+      planes[planeArrPositon].newAlt = 20;
+      planes[planeArrPositon].altStep = 0.5;
+      planes[planeArrPositon].flightMode = 2;
+      planes[planeArrPositon].newSpeed = 20;
+      planes[planeArrPositon].speedStep = 0.5;
+      planes[planeArrPositon].destName = runways[i][0];
       usercmdToConsole(userCommand);
       document.getElementById("console").value = `${
-        planes[resid]
+        planes[planeArrPositon]
       } cleared for landing\n ${document.getElementById("console").value}`;
-      resid = -1;
+      planeArrPositon = -1;
       return;
     }
   }
 };
 
-const fnCommandS = (userCommand, splitCommand, planes, resid) => {
-  checkHandover(resid);
+const changeSpeed = (userCommand, splitCommand, planeArrPositon) => {
+  // checkHandover(planeArrPositon);
   if (16 <= parseInt(splitCommand[2]) && parseInt(splitCommand[2]) <= 30) {
-    planes[resid].newSpeed = parseInt(splitCommand[2]);
+    planes[planeArrPositon].newSpeed = parseInt(splitCommand[2]);
     usercmdToConsole(userCommand);
-    resid = -1;
+    planeArrPositon = -1;
     return;
   } else {
     document.getElementById("console").value = `Invalid velocity clearance!\n ${
       document.getElementById("console").value
     }`;
     document.getElementById("instructionText").value = "";
-    resid = -1;
+    planeArrPositon = -1;
     return;
   }
 };
 
-const fnCommandT = (userCommand, planes, resid) => {
-  if (planes[resid].flightMode === 5) {
-    setTimeout(() => takeOff(resid), 4000);
-    console.log("TCL: fnCommandT -> resid", resid);
+const comTakeOff = (userCommand, planeArrPositon) => {
+  if (planes[planeArrPositon].flightMode === 5) {
+    setTimeout(() => takeOff(planeArrPositon), 4000);
+    console.log("TCL: comTakeOff -> planeArrPositon", planeArrPositon);
     usercmdToConsole(userCommand);
     document.getElementById("console").value = `${
-      planes[resid].id
+      planes[planeArrPositon].id
     } cleared for take-off\n ${document.getElementById("console").value}`;
-    resid = -1;
+    planeArrPositon = -1;
     return;
-  } else if (planes[resid].flightMode === 6) {
-    planes[resid].flightMode = 7;
-    planes[resid].newSpeed = 16;
+  } else if (planes[planeArrPositon].flightMode === 6) {
+    planes[planeArrPositon].flightMode = 7;
+    planes[planeArrPositon].newSpeed = 16;
     usercmdToConsole(userCommand);
     document.getElementById("console").value = `${
-      planes[resid].id
+      planes[planeArrPositon].id
     } cleared for take-off\n ${document.getElementById("console").value}`;
-    resid = -1;
+    planeArrPositon = -1;
     return;
   } else {
     promptInvalidComm();
   }
 };
 
-const fnCommandW = (userCommand, planes, resid) => {
-  if (planes[resid].flightMode === 5) {
-    setTimeout(() => waiting(resid), 4000);
+const comWaiting = (userCommand, planeArrPositon) => {
+  if (planes[planeArrPositon].flightMode === 5) {
+    setTimeout(() => waiting(planeArrPositon), 4000);
     usercmdToConsole(userCommand);
-    resid = -1;
+    planeArrPositon = -1;
     return;
   } else {
     promptInvalidComm();
   }
 };
 
-const doInstruction = (userCommand, planes) => {
-  splitUserCommand(userCommand);
-
+const doInstruction = (userCommand) => {
+  const splitCommand = splitUserCommand(userCommand);
   switch (
     splitCommand[0] //Miert nem ismeri, ha a splituserCommand lefut elotte??
   ) {
@@ -951,55 +924,70 @@ const doInstruction = (userCommand, planes) => {
       endSim();
       break;
     default:
-      aircraftCommands(userCommand, splitCommand, planes);
+      aircraftCommands(userCommand, splitCommand);
   }
 };
 
-// eslint-disable-next-line complexity
-const aircraftCommands = (userCommand, splitCommand, planes) => {
-  let resid;
+const checkId = (splitcommand) => {
+  let planeArrPositon;
   for (let i = 0; i < planes.length; i++) {
     //Hogy lehet planes.map()-el helyettesiteni, ha hasznalom az "i"-t?
     if (splitCommand[0] === planes[i].id) {
-      return (resid = i);
+      return (planeArrPositon = i);
     }
-  }
-
-  switch (splitCommand[1]) {
-    case "A":
-      fnCommandA(userCommand, splitCommand, planes, resid);
-      break;
-    case "H":
-      fnCommandH(userCommand, splitCommand, planes, resid);
-      break;
-    case "L":
-      fnCommandL(userCommand, splitCommand, planes, resid);
-      break;
-    case "S":
-      fnCommandS(userCommand, splitCommand, planes, resid);
-      break;
-    case "T":
-      fnCommandT(userCommand, splitCommand, planes, resid);
-      break;
-    case "W":
-      fnCommandW(userCommand, splitCommand, planes, resid);
-      break;
-    default:
-      promptInvalidComm(resid);
-    //promptInvalidCommTest(resid);
   }
 };
 
-const checkHandover = (planes, resid) => {
-  if (planes[resid].flightMode === 9) {
+// const checkHandover = (planeArrPositon) => {
+//   if (planes[planeArrPositon].flightMode === 9) {
+//     document.getElementById("console").value = `${
+//       planes[planeArrPositon].id
+//     } is not in your control anymore!\n ${
+//       document.getElementById("console").value
+//     }`;
+//     document.getElementById("instructionText").value = "";
+//     // planeArrPositon = -1;
+//     return true;
+//   } else {
+//     return false;
+//   }
+// };
+
+// eslint-disable-next-line complexity
+const aircraftCommands = (userCommand, splitCommand) => {
+  const planeArrPositon = checkId(splitCommand);
+  if (planes[planeArrPositon].flightMode === 9) {
     document.getElementById("console").value = `${
-      planes[resid].id
+      planes[planeArrPositon].id
     } is not in your control anymore!\n ${
       document.getElementById("console").value
     }`;
     document.getElementById("instructionText").value = "";
-    resid = -1;
     return;
+  } else {
+    switch (splitCommand[1]) {
+      case "A":
+        changeAltitude(userCommand, splitCommand, planeArrPositon);
+        break;
+      case "H":
+        changeHeading(userCommand, splitCommand, planeArrPositon);
+        break;
+      case "L":
+        comLanding(userCommand, splitCommand, planeArrPositon);
+        break;
+      case "S":
+        changeSpeed(userCommand, splitCommand, planeArrPositon);
+        break;
+      case "T":
+        comTakeOff(userCommand, splitCommand, planeArrPositon);
+        break;
+      case "W":
+        comWaiting(userCommand, splitCommand, planeArrPositon);
+        break;
+      default:
+        promptInvalidComm(planeArrPositon);
+      //promptInvalidCommTest(planeArrPositon);
+    }
   }
 };
 
@@ -1034,63 +1022,67 @@ const landing = (plane, runways) => {
 };
 
 // eslint-disable-next-line complexity
-const waiting = (planes, runways, navObjects, resid, splitCommand) => {
+const waiting = (runways, navObjects, planeArrPositon, splitCommand) => {
   //splitUserCommand();
-  if (planes[resid].flightMode === 5) {
+  if (planes[planeArrPositon].flightMode === 5) {
     for (let i = 0; i < runways.length; i++) {
       if (splitCommand[2] === runways[i][0]) {
-        planes[resid].flightMode = 6;
-        planes[resid].curX = runways[i][4];
-        planes[resid].curY = runways[i][5];
-        planes[resid].heading = runways[i][1];
-        planes[resid].newHeading = runways[i][1];
-        planes[resid].destX = runways[i][6] + (runways[i][6] - runways[i][4]);
-        planes[resid].destY = runways[i][7] + (runways[i][7] - runways[i][5]);
-        planes[resid].altStep = 0.01;
-        planes[resid].speedStep = 1;
+        planes[planeArrPositon].flightMode = 6;
+        planes[planeArrPositon].curX = runways[i][4];
+        planes[planeArrPositon].curY = runways[i][5];
+        planes[planeArrPositon].heading = runways[i][1];
+        planes[planeArrPositon].newHeading = runways[i][1];
+        planes[planeArrPositon].destX =
+          runways[i][6] + (runways[i][6] - runways[i][4]);
+        planes[planeArrPositon].destY =
+          runways[i][7] + (runways[i][7] - runways[i][5]);
+        planes[planeArrPositon].altStep = 0.01;
+        planes[planeArrPositon].speedStep = 1;
         for (let j = 0; j < navObjects.length; j++) {
           if (
             splitCommand[3] === navObjects[j][0] &&
             40 <= parseInt(splitCommand[4]) &&
             parseInt(splitCommand[4]) <= 400
           ) {
-            planes[resid].destination = j;
-            planes[resid].destName = navObjects[j][0];
-            planes[resid].newAlt = splitCommand[4];
+            planes[planeArrPositon].destination = j;
+            planes[planeArrPositon].destName = navObjects[j][0];
+            planes[planeArrPositon].newAlt = splitCommand[4];
           }
         }
       }
     }
   }
   document.getElementById("console").value = `${
-    planes[resid].id
+    planes[planeArrPositon].id
   } cleared for line-up\n ${document.getElementById("console").value}`;
 };
 
 // eslint-disable-next-line complexity
-const takeOff = (splitCommand, planes, runways, navObjects, resid) => {
+const takeOff = (splitCommand, runways, navObjects, planeArrPositon) => {
   //splitUserCommand();
-  if (planes[resid].flightMode === 5) {
+  if (planes[planeArrPositon].flightMode === 5) {
     for (let i = 0; i < runways.length; i++) {
       if (splitCommand[2] === runways[i][0]) {
-        planes[resid].flightMode = 7;
-        planes[resid].curX = runways[i][4];
-        planes[resid].curY = runways[i][5];
-        planes[resid].heading = runways[i][1];
-        planes[resid].newHeading = runways[i][1];
-        planes[resid].destX = runways[i][6] + (runways[i][6] - runways[i][4]);
-        planes[resid].destY = runways[i][7] + (runways[i][7] - runways[i][5]);
-        planes[resid].altStep = 0.01;
-        planes[resid].newSpeed = 16;
-        planes[resid].speedStep = 1;
+        planes[planeArrPositon].flightMode = 7;
+        planes[planeArrPositon].curX = runways[i][4];
+        planes[planeArrPositon].curY = runways[i][5];
+        planes[planeArrPositon].heading = runways[i][1];
+        planes[planeArrPositon].newHeading = runways[i][1];
+        planes[planeArrPositon].destX =
+          runways[i][6] + (runways[i][6] - runways[i][4]);
+        planes[planeArrPositon].destY =
+          runways[i][7] + (runways[i][7] - runways[i][5]);
+        planes[planeArrPositon].altStep = 0.01;
+        planes[planeArrPositon].newSpeed = 16;
+        planes[planeArrPositon].speedStep = 1;
         for (let j = 0; j < navObjects.length; j++) {
           if (
             splitCommand[3] === navObjects[j][0] &&
             40 <= parseInt(splitCommand[4]) &&
             parseInt(splitCommand[4]) <= 400
           ) {
-            planes[resid].destination = j;
-            planes[resid].newAlt = splitCommand[4];
+            planes[planeArrPositon].destination = j;
+            planes[planeArrPositon].newAlt = splitCommand[4];
           }
         }
       }
@@ -1149,8 +1141,10 @@ const removePlane = (planes, psFrame, navObjects, cW, cH) => {
 };
 
 const fnPausing = () => {
+  // How do you pass parameters to fn if it's called in the html?
   if (pausing === false) {
     pausing = true;
+    clearInterval(newPlaneTimer);
     document.getElementById("pauseBtn").value = "Resume";
     document.getElementById(
       "console"
@@ -1161,6 +1155,7 @@ const fnPausing = () => {
     return;
   } else {
     pausing = false;
+    // newPlaneTimer(selectedMode, airport, plane);
     document.getElementById("pauseBtn").value = "Pause";
     document.getElementById("console").value = `Resumed\n ${
       document.getElementById("console").value
@@ -1212,7 +1207,7 @@ const distCheck = (plane, runways) => {
   }
 };
 
-const heading = (planes) => {
+const fnHeading = (planes) => {
   planes.map((plane) => {
     plane.curX =
       plane.curX +
@@ -1220,6 +1215,7 @@ const heading = (planes) => {
     plane.curY =
       plane.curY +
       Math.sin((plane.heading - 90) * (Math.PI / 180)) * (plane.speed / 10);
+    return plane;
   });
 };
 
@@ -1338,7 +1334,7 @@ const destReset = (plane) => {
 
 // Separation check
 // eslint-disable-next-line complexity
-const fnSeparation = (planes, context, psFrame) => {
+const fnSeparation = (planes, psFrame) => {
   for (let i = 0; i < planes.length; i++) {
     for (let j = 0; j < planes.length; j++) {
       const sepDist = Math.round(
@@ -1373,44 +1369,43 @@ const fnSeparation = (planes, context, psFrame) => {
   }
 };
 
-const animate = (context, startTime, airport, plane, planes) => {
+const animate = (startTime, airport) => {
   // const { context } = canvas;
 
-  const {
-    navObjects,
-    runways,
-    entryPts,
-    airlnrCode,
-    airlnrDistr,
-    destName,
-  } = airport;
+  const { airlnrDistr, airlnrCode, entryPts, navObjects, destName } = airport;
 
   //console.log("airport: ", airport);
-  // update
 
+  // update
   let time = new Date().getTime() - startTime;
-  if (time > 1000 && pausing != true) {
+  if (time > 1000 && pausing !== true) {
     startTime = new Date().getTime();
 
     // window refresh
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // for (let i = 0; i < navObjects.length; i++) {
-    //   drawNavObj(navObjects[i], context);
-    // }
-    navObjects.map((navObject) => {
-      drawNavObj(navObject, canvas);
-    });
+    for (let i = 0; i < navObjects.length; i++) {
+      drawNavObj(navObjects[i], context);
+    }
+
+    // navObjects.map((navObjects) => {
+    //   drawNavObj(navObjects, context);
+    // });
 
     updateStatScreen();
-    drawRunways(canvas, airport);
-    heading(planes);
+    drawRunways(airport, context);
+    fnHeading(planes);
     drawTrail(planes, context);
-    removePlane();
-    fnSeparation(plane);
+    // removePlane();
+    fnSeparation(planes);
     document.getElementById("instructionText").focus();
+    // console.log(
+    //   `animate, planeNr: ${planeNr}, planesArrayNr: ${planes.length}`
+    // );
     for (let i = 0; i < planes.length; i++) {
-      drawPlane(planes[i], context);
+      // const plane = planes[i];
+      // console.log(`animate; ${planes[i].id}`);
+      drawPlane(planes[i]);
       turning(planes[i]);
       speedChange(planes[i]);
       altChange(planes[i]);
@@ -1420,9 +1415,59 @@ const animate = (context, startTime, airport, plane, planes) => {
       progressStrips(planes[i]);
     }
   }
-
   // request new frame
   window.requestAnimFrame(() => {
-    animate(canvas, startTime, airport, plane, planes);
+    animate(startTime, airport);
   });
 };
+
+//const getLHBP = ({ width: cW, heightWidthRatio: cHW, height: cH }) => {
+
+// body canvas - style="background: #103848"
+// let planes = []; -> SimControl.js/newPlane()
+// let runways = [];
+// let airlnrCode = []; //operating airliners' list
+// let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+// let destName;
+// let entryPts = [];
+// let consoleText = document.getElementById('console').value;
+// let userCommand; // = document.getElementById("instructionText").value;
+// let splitCommand = [];
+// let planeArrPositon;
+// let entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
+// let navObjects = [];
+//  meg mindig nem latom, mi inditja be a dolgokat.... bocs ha ugralok, de keresem
+
+// { selDifficulty, selAirport, selMode } is called destructuring... look it up
+//we're passing in an object in atc.js (gameOptions)
+//but here we're already breaking it down into variables.
+
+//import { getLHBP } from "./init_Airports";
+//import { drawRunways } from "./DrawObjects";
+
+// cH/cW=.583
+// let cHW = cW * 0.6; //ez nem lehet resze a canvas objectnek?, de gondolom igen
+// let planeNr = 0; // body canvas - style="background: #103848"
+// let planes = [];
+// let runways = [];
+// let airlnrCode = []; //operating airliners' list
+// let airlnrDistr = []; //operating airliners's distribution - main operator + 4 groups by no. of aircrafts
+// let destName;
+// let entryPts = [];
+// //let consoleText = document.getElementById('console').value;
+// let userCommand; // = document.getElementById("instructionText").value;
+// let splitCommand = [];
+// let pausing = false;
+// let planeArrPositon;
+// let entryAlt = [50, 50, 60, 60, 60, 70, 70, 70, 70, 80, 80, 80];
+// let navObjects = [];
+// let successfulLandings = 0;
+// let successfulHandoffs = 0;
+// let improperExits = 0;
+// let missedApproaches = 0;
+// let sepViolation = 0;
+
+// let context = canvas.getContext("2d"); //elvileg ez adja a radar kepernyo alapjat
+//igen, megleltem. kozben google megy
+// let psFrame = document.getElementById("psFrame");
+//let selMode;
