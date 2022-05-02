@@ -1,0 +1,13 @@
+{
+    "icao": "ELBL",
+    "name": "Barcelona",
+    "coor": "2.07846, 41.2971",
+    "lomin": "0.82800",
+    "lomax": "3.32892",
+    "lamin": "40.6612",
+    "lamax": "41.93300"
+}
+
+//BCN "https://opensky-network.org/api/states/all?lamin=40.6612&lomin=0.82800&lamax=41.93300&lomax=3.32892"
+
+//Spain "https://opensky-network.org/api/states/all?lamin=35.728&lomin=-9.8755&lamax=43.6435&lomax=3.264"
