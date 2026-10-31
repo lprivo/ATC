@@ -11,7 +11,7 @@ import { useSim } from './useSim';
 
 export function GameScreen() {
   const { theme } = useTheme();
-  const { sim, paused, setPaused, timeScale, cycleTimeScale, restart } = useSim(LHBP);
+  const { sim, paused, setPaused, timeScale, cycleTimeScale, restart, refresh } = useSim(LHBP);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   return (
@@ -29,9 +29,9 @@ export function GameScreen() {
         }}
       />
       <View style={{ flex: 1 }}>
-        <Radar sim={sim} selectedId={selectedId} onSelect={setSelectedId} />
+        <Radar sim={sim} selectedId={selectedId} onSelect={setSelectedId} onCommand={refresh} />
       </View>
-      <PlanePanel sim={sim} selectedId={selectedId} onClose={() => setSelectedId(null)} />
+      <PlanePanel sim={sim} selectedId={selectedId} onClose={() => setSelectedId(null)} onCommand={refresh} />
     </SafeAreaView>
   );
 }

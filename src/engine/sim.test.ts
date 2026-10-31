@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { LHBP } from './airports/lhbp';
-import { add, dirOf, dist } from './math';
-import { Sim } from './sim';
+import { add, angleDiff, dirOf, dist, headingTo } from './math';
+import { remainingPathNm, RULES, Sim } from './sim';
 import { generateRandomTraffic } from './traffic';
 import type { Airport, EntryPoint, TrafficEntry } from './types';
 
+const rwy13L = LHBP.runways[0].ends[0];
 const rwy31R = LHBP.runways[0].ends[1];
+const rwy31L = LHBP.runways[1].ends[1];
+
+/** A point `nm` out on the approach to a runway end (before the threshold). */
+const onFinal = (end: { threshold: { x: number; y: number }; heading: number }, nm: number) =>
+  add(end.threshold, dirOf(end.heading), -nm);
 
 function airportWith(entries: EntryPoint[]): Airport {
   return { ...LHBP, entries };
@@ -93,15 +99,23 @@ describe('routes and landing', () => {
   });
 
   it('picks the parallel runway whose centreline the path is on, not just the nearest threshold', () => {
-    const rwy31L = LHBP.runways[1].ends[1];
-    const sim = simWith([finalEntry], [flight('F')]);
+    // Two north-facing parallels 1 nm apart, with B's threshold staggered 1.2 nm further south.
+    const staggered: Airport = {
+      ...LHBP,
+      entries: [{ name: 'S', pos: { x: 0, y: -8 }, heading: 0 }],
+      runways: [
+        { name: '36A/18A', ends: [{ id: '36A', threshold: { x: 0, y: 0 }, heading: 0 }, { id: '18A', threshold: { x: 0, y: 2 }, heading: 180 }] },
+        { name: '36B/18B', ends: [{ id: '36B', threshold: { x: 1, y: -1.2 }, heading: 0 }, { id: '18B', threshold: { x: 1, y: 0.8 }, heading: 180 }] },
+      ],
+    };
+    const sim = new Sim(staggered, [flight('S')]);
+    sim.step(0.01);
     const p = sim.planes[0];
-    // End 0.8 nm short of 31R on its centreline — that point is roughly equidistant from both thresholds.
-    sim.setRoute(p.id, [add(rwy31R.threshold, dirOf(rwy31R.heading), -4), add(rwy31R.threshold, dirOf(rwy31R.heading), -0.8)]);
-    expect(p.clearedRunway?.id).toBe('31R');
-    // Same idea on 31L's centreline.
-    sim.setRoute(p.id, [add(rwy31L.threshold, dirOf(rwy31L.heading), -4), add(rwy31L.threshold, dirOf(rwy31L.heading), -0.8)]);
-    expect(p.clearedRunway?.id).toBe('31L');
+    // Ends on A's centreline 1.2 nm short of A — but only 1.0 nm from B's threshold.
+    const end = { x: 0, y: -1.2 };
+    expect(dist(end, { x: 1, y: -1.2 })).toBeLessThan(dist(end, { x: 0, y: 0 }));
+    sim.setRoute(p.id, [{ x: 0, y: -4 }, end]);
+    expect(p.clearedRunway?.id).toBe('36A');
   });
 
   it('does not clear a path that ends at a threshold from the wrong direction', () => {
@@ -110,7 +124,28 @@ describe('routes and landing', () => {
     // Approach the 31R threshold flying ~130 (i.e. landing direction of 13L, from the far side).
     const beyond = add(rwy31R.threshold, dirOf(rwy31R.heading), -3);
     sim.setRoute(p.id, [add(beyond, dirOf(130), -6), add(beyond, dirOf(130), -2), add(rwy31R.threshold, dirOf(310), -0.2)]);
-    expect(p.clearedRunway?.id).not.toBe('31R');
+    expect(p.clearedRunway).toBeNull();
+  });
+
+  it('a drawn path that overshoots onto the runway still lands', () => {
+    const sim = simWith([finalEntry], [flight('F', { altitude: 2500 })]);
+    const p = sim.planes[0];
+    // Finger lifted 1.4 nm past the threshold, i.e. on the runway itself.
+    const drawn = Array.from({ length: 24 }, (_, i) => onFinal(rwy31R, 7.8 - i * 0.4));
+    sim.setRoute(p.id, drawn);
+    expect(p.clearedRunway?.id).toBe('31R');
+    expect(p.route.at(-1)).toEqual(rwy31R.threshold);
+    sim.step(400);
+    expect(sim.stats.landed).toBe(1);
+    expect(sim.stats.goArounds).toBe(0);
+  });
+
+  it('a single-point path to a threshold from the wrong side is not a clearance', () => {
+    // North-west of the field heading 130, path straight to 31R's threshold (landing direction 310).
+    const sim = simWith([{ name: 'A', pos: onFinal(rwy13L, 6), heading: 130 }], [flight('A')]);
+    const p = sim.planes[0];
+    sim.setRoute(p.id, [rwy31R.threshold]);
+    expect(p.clearedRunway).toBeNull();
   });
 
   it('goes around when far too high', () => {
@@ -121,11 +156,14 @@ describe('routes and landing', () => {
     expect(sim.stats.landed).toBe(0);
     expect(sim.stats.goArounds).toBe(1);
     expect(p.clearedRunway).toBeNull();
-    expect(p.target.altitude).toBe(3000);
+    expect(p.target.altitude).toBe(RULES.goAroundAltitude);
+    expect(sim.events.some((e) => e.text.includes('too high'))).toBe(true);
+    // A heading after the go-around keeps the go-around altitude, not the pre-approach one.
+    sim.setHeading(p.id, 90);
+    expect(p.target.altitude).toBe(RULES.goAroundAltitude);
   });
 
   it('never circles the threshold forever: a last-second jog to the parallel runway resolves', () => {
-    const rwy31L = LHBP.runways[1].ends[1];
     const sim = simWith([finalEntry], [flight('F', { altitude: 2500 })]);
     const p = sim.planes[0];
     // Fly down the 31R centreline, then end the path on the 31L threshold ~1 nm to the side.
@@ -144,9 +182,29 @@ describe('routes and landing', () => {
     for (let i = 1; i <= 40; i++) path.push({ x: -20 + i * 0.5, y: i % 8 < 4 ? 1 : -1 });
     path.push({ x: 0, y: 10 });
     sim.setRoute(p.id, path);
-    sim.step(600);
+    // Watch it fly: it must actually pass close to the zig-zag and to the end point,
+    // not just drop the waypoints and carry on.
+    let closestToMid = Infinity;
+    let closestToEnd = Infinity;
+    for (let t = 0; t < 600; t++) {
+      sim.step(1);
+      closestToMid = Math.min(closestToMid, dist(p.pos, path[20]));
+      closestToEnd = Math.min(closestToEnd, dist(p.pos, { x: 0, y: 10 }));
+    }
     expect(p.route).toHaveLength(0);
-    expect(dist(p.pos, { x: 0, y: 10 })).toBeGreaterThan(1); // flew past the end and carried on
+    expect(closestToMid).toBeLessThan(1);
+    expect(closestToEnd).toBeLessThan(1.5);
+  });
+
+  it('skips a waypoint that is already behind the plane instead of turning back for it', () => {
+    // At 150 kt the capture radius is ~0.8 nm, so a point 1.2 nm behind isn't "reached" —
+    // only the behind rule drops it.
+    const sim = simWith([{ name: 'A', pos: { x: 0, y: 0 }, heading: 0 }], [flight('A', { speed: 150 })]);
+    const p = sim.planes[0];
+    sim.setRoute(p.id, [{ x: 0, y: -1.2 }, { x: 0, y: 10 }]);
+    sim.step(0.25);
+    expect(p.route).toEqual([{ x: 0, y: 10 }]);
+    expect(p.target.heading).toBe(0);
   });
 
   it('a path ending away from runways is just a route', () => {
@@ -155,8 +213,8 @@ describe('routes and landing', () => {
     const wp = { x: 10, y: 10 };
     sim.setRoute(p.id, [wp]);
     expect(p.clearedRunway).toBeNull();
-    sim.step(30);
-    expect(p.heading).not.toBeCloseTo(finalEntry.heading, 0); // turning toward the waypoint
+    sim.step(60);
+    expect(Math.abs(angleDiff(p.heading, headingTo(p.pos, wp)))).toBeLessThan(3);
   });
 
   it('a heading command cancels the route and clearance', () => {
@@ -166,6 +224,89 @@ describe('routes and landing', () => {
     sim.setHeading(p.id, 90);
     expect(p.route).toHaveLength(0);
     expect(p.clearedRunway).toBeNull();
+  });
+
+  it('descends on the glideslope based on the path left to fly', () => {
+    const sim = simWith([finalEntry], [flight('F', { altitude: 5000 })]);
+    const p = sim.planes[0];
+    // A dog-leg: 4 nm out to the side first, so path left (~12 nm) is much more than straight-line (8 nm).
+    sim.setRoute(p.id, [add(onFinal(rwy31R, 6), dirOf(rwy31R.heading + 90), 4), onFinal(rwy31R, 3), rwy31R.threshold]);
+    sim.step(0.25);
+    expect(remainingPathNm(p)).toBeGreaterThan(dist(p.pos, rwy31R.threshold) + 2);
+    expect(Math.abs(p.target.altitude - remainingPathNm(p) * RULES.glideFtPerNm)).toBeLessThan(20);
+  });
+
+  it('slows to approach speed only inside the approach zone', () => {
+    const near = simWith([finalEntry], [flight('F')]); // 8 nm out
+    near.setRoute(near.planes[0].id, [rwy31R.threshold]);
+    near.step(0.25);
+    expect(near.planes[0].target.speed).toBe(150);
+
+    const far = simWith([{ name: 'F', pos: onFinal(rwy31R, 20), heading: rwy31R.heading }], [flight('F', { altitude: 9000 })]);
+    far.setRoute(far.planes[0].id, [rwy31R.threshold]);
+    far.step(0.25);
+    expect(far.planes[0].target.speed).toBe(250);
+  });
+
+  it('a long curving path neither dives early nor touches down when it overflies the threshold first', () => {
+    // 3 nm out on final for 13L at 2,000 ft, but the path overflies the runway,
+    // loops round and only lands on its last leg.
+    const sim = simWith([{ name: 'F', pos: onFinal(rwy13L, 3), heading: rwy13L.heading }], [flight('F', { altitude: 2000 })]);
+    const p = sim.planes[0];
+    const beyond = add(rwy13L.threshold, dirOf(rwy13L.heading), 5);
+    const side = dirOf(rwy13L.heading - 90);
+    sim.setRoute(p.id, [rwy13L.threshold, beyond, add(beyond, side, 4), add(onFinal(rwy13L, 12), side, 4), onFinal(rwy13L, 12), rwy13L.threshold]);
+    expect(p.clearedRunway?.id).toBe('13L');
+    sim.step(0.25);
+    expect(p.target.altitude).toBe(2000); // ~45 nm of path left: no reason to descend yet
+    sim.step(90); // well past the first overflight of the threshold
+    expect(sim.stats.goArounds).toBe(0);
+    expect(sim.stats.landed).toBe(0);
+    expect(p.clearedRunway?.id).toBe('13L');
+  });
+
+  it('goes around when close in but not pointing at the runway', () => {
+    // 2 nm out on the 31R centreline, but heading 120° away from the runway direction.
+    const sim = simWith([{ name: 'F', pos: onFinal(rwy31R, 2), heading: rwy31R.heading + 120 }], [flight('F', { altitude: 1000 })]);
+    const p = sim.planes[0];
+    sim.setRoute(p.id, [rwy31R.threshold]);
+    expect(p.clearedRunway?.id).toBe('31R');
+    sim.step(0.25);
+    expect(sim.stats.goArounds).toBe(1);
+    expect(sim.events.some((e) => e.text.includes('not lined up'))).toBe(true);
+  });
+
+  it('cancelling a clearance restores the altitude and speed the approach overrode', () => {
+    const sim = simWith([finalEntry], [flight('F', { altitude: 5000 })]);
+    const p = sim.planes[0];
+    sim.setRoute(p.id, [rwy31R.threshold]);
+    sim.step(0.25);
+    expect(p.target.altitude).toBeLessThan(3000);
+    sim.setHeading(p.id, 90);
+    expect(p.target).toMatchObject({ altitude: 5000, speed: 250 });
+
+    // Re-cleared to the parallel runway mid-approach, then cancelled: still back to the originals.
+    sim.setRoute(p.id, [rwy31R.threshold]);
+    sim.step(0.25);
+    sim.setRoute(p.id, [rwy31L.threshold]);
+    expect(p.clearedRunway?.id).toBe('31L');
+    sim.step(0.25);
+    sim.setHeading(p.id, 90);
+    expect(p.target).toMatchObject({ altitude: 5000, speed: 250 });
+
+    // Dial changes made while cleared are kept when the clearance is cancelled.
+    sim.setRoute(p.id, [rwy31R.threshold]);
+    sim.setSpeed(p.id, 180);
+    sim.setHeading(p.id, 90);
+    expect(p.target).toMatchObject({ altitude: 5000, speed: 180 });
+    sim.setSpeed(p.id, 250);
+
+    // A new path that doesn't end on a runway cancels it too.
+    sim.setRoute(p.id, [rwy31R.threshold]);
+    sim.step(0.25);
+    sim.setRoute(p.id, [{ x: 20, y: 20 }]);
+    expect(p.clearedRunway).toBeNull();
+    expect(p.target).toMatchObject({ altitude: 5000, speed: 250 });
   });
 });
 
@@ -196,10 +337,124 @@ describe('separation and sector', () => {
     expect(sim.stats.separationViolations).toBe(0);
   });
 
+  it('planes established on parallel finals may be closer than 3 nm', () => {
+    const sim = simWith(
+      [
+        { name: 'R', pos: onFinal(rwy31R, 5), heading: rwy31R.heading },
+        { name: 'L', pos: onFinal(rwy31L, 5), heading: rwy31L.heading },
+      ],
+      [flight('R', { altitude: 1500 }), flight('L', { altitude: 1500 })],
+    );
+    const [a, b] = sim.planes;
+    expect(dist(a.pos, b.pos)).toBeLessThan(RULES.separationNm);
+    // (They already counted as a conflict in the instant they spawned, before being cleared.)
+    const before = sim.stats.separationViolations;
+    sim.setRoute(a.id, [rwy31R.threshold]);
+    sim.setRoute(b.id, [rwy31L.threshold]);
+    sim.step(1);
+    expect(a.conflict || b.conflict).toBe(false);
+    expect(sim.stats.separationViolations).toBe(before);
+  });
+
+  it('the parallel exemption also holds for finger-drawn paths with many waypoints', () => {
+    const sim = simWith(
+      [
+        { name: 'R', pos: onFinal(rwy31R, 9), heading: rwy31R.heading },
+        { name: 'L', pos: onFinal(rwy31L, 9), heading: rwy31L.heading },
+      ],
+      [flight('R', { altitude: 2500 }), flight('L', { altitude: 2500 })],
+    );
+    const [a, b] = sim.planes;
+    // Dense paths down each centreline, a point every 0.4 nm, like a drawn path.
+    const drawn = (end: typeof rwy31R) => Array.from({ length: 22 }, (_, i) => onFinal(end, 8.4 - i * 0.4));
+    sim.setRoute(a.id, [...drawn(rwy31R), rwy31R.threshold]);
+    sim.setRoute(b.id, [...drawn(rwy31L), rwy31L.threshold]);
+    expect(a.route.length).toBeGreaterThan(10);
+    for (let t = 0; t < 120; t++) {
+      sim.step(1);
+      if (sim.planes.length < 2) break;
+      expect(a.conflict || b.conflict).toBe(false);
+    }
+  });
+
+  it('planes cleared to parallel runways but not yet established still need separation', () => {
+    // Abeam each other 1 nm apart, cleared to 31R / 31L, but 15 nm out: outside the approach zone.
+    const sim = simWith(
+      [
+        { name: 'R', pos: onFinal(rwy31R, 15), heading: rwy31R.heading },
+        { name: 'L', pos: onFinal(rwy31L, 15), heading: rwy31L.heading },
+      ],
+      [flight('R', { altitude: 5000 }), flight('L', { altitude: 5000 })],
+    );
+    const [a, b] = sim.planes;
+    sim.setRoute(a.id, [rwy31R.threshold]);
+    sim.setRoute(b.id, [rwy31L.threshold]);
+    sim.step(0.25);
+    expect(a.conflict && b.conflict).toBe(true);
+  });
+
+  it('planes cleared to opposite ends of the same runway still need separation', () => {
+    const sim = simWith(
+      [
+        { name: 'A', pos: onFinal(rwy13L, 3), heading: rwy13L.heading },
+        { name: 'B', pos: add(onFinal(rwy13L, 3), { x: 0, y: 1 }), heading: rwy31R.heading },
+      ],
+      [flight('A'), flight('B')],
+    );
+    const [a, b] = sim.planes;
+    // Put both in the state the old exemption let through: cleared, on their last leg.
+    a.clearedRunway = rwy13L;
+    a.route = [rwy13L.threshold];
+    b.clearedRunway = rwy31R;
+    b.route = [rwy31R.threshold];
+    sim.step(0.25);
+    expect(a.conflict && b.conflict).toBe(true);
+  });
+
   it('planes leaving the square are counted as exits', () => {
     const sim = simWith([{ name: 'A', pos: { x: 0, y: 29 }, heading: 0 }], [flight('A')]);
     sim.step(60);
     expect(sim.planes).toHaveLength(0);
     expect(sim.stats.exited).toBe(1);
+  });
+});
+
+describe('limits and housekeeping', () => {
+  it('clamps commanded speed and altitude to aircraft limits', () => {
+    const sim = simWith([{ name: 'A', pos: { x: 0, y: -20 }, heading: 0 }], [flight('A')]);
+    const p = sim.planes[0];
+    sim.setSpeed(p.id, 0);
+    sim.setAltitude(p.id, 0);
+    expect(p.target).toMatchObject({ speed: 140, altitude: 1000 });
+    sim.setSpeed(p.id, 999);
+    sim.setAltitude(p.id, 99999);
+    expect(p.target).toMatchObject({ speed: 320, altitude: 20000 });
+  });
+
+  it('keeps trails and the event log bounded', () => {
+    const traffic = generateRandomTraffic(LHBP, { seed: 1, durationSec: 3000, meanIntervalSec: 30 });
+    const sim = new Sim(LHBP, traffic);
+    for (let t = 0; t < 3000; t += 10) {
+      sim.step(10);
+      for (const p of sim.planes) expect(p.trail.length).toBeLessThanOrEqual(8);
+      expect(sim.events.length).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it('skips flights whose entry point the airport does not have', () => {
+    const sim = new Sim(LHBP, [flight('NOPE', { callsign: 'BAD1' })]);
+    sim.step(1);
+    expect(sim.planes).toHaveLength(0);
+    expect(sim.events.at(-1)?.text).toContain('BAD1 skipped');
+  });
+
+  it('drops path points closer together than the minimum spacing', () => {
+    const sim = simWith([{ name: 'A', pos: { x: 0, y: -20 }, heading: 0 }], [flight('A')]);
+    const p = sim.planes[0];
+    const dense = Array.from({ length: 50 }, (_, i) => ({ x: 0, y: -20 + i * 0.1 })); // every 0.1 nm
+    sim.setRoute(p.id, dense);
+    for (let i = 1; i < p.route.length; i++) {
+      expect(dist(p.route[i - 1], p.route[i])).toBeGreaterThanOrEqual(RULES.minRouteSpacingNm - 1e-9);
+    }
   });
 });

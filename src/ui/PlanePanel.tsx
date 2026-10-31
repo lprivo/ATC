@@ -1,24 +1,20 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { normDeg } from '../engine/math';
 import type { Sim } from '../engine/sim';
+import { isFollowingRoute, nextAltitude, nextHeading, nextSpeed } from '../game/controls';
 import { useTheme } from '../theme/ThemeContext';
 import { Dial } from './Dial';
-
-const HDG_STEP = 5;
-const ALT_STEP = 1000;
-const SPD_STEP = 10;
-
-const pad3 = (n: number) => String(Math.round(n)).padStart(3, '0');
-const ft = (n: number) => `${Math.round(n).toLocaleString('en-GB')}`;
+import { feet, pad3 } from './format';
 
 interface Props {
   sim: Sim;
   selectedId: string | null;
   onClose: () => void;
+  /** Called after a dial changes the sim, so the screen can redraw while paused. */
+  onCommand: () => void;
 }
 
 /** Bottom sheet: the selected plane's strip and its three dials, or hints + log. */
-export function PlanePanel({ sim, selectedId, onClose }: Props) {
+export function PlanePanel({ sim, selectedId, onClose, onCommand }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const p = selectedId ? sim.plane(selectedId) : undefined;
@@ -42,10 +38,12 @@ export function PlanePanel({ sim, selectedId, onClose }: Props) {
     );
   }
 
-  // Heading dial: steps from the commanded heading. If the plane is following a
-  // drawn path, the first nudge starts from where it's pointing now.
-  const following = p.route.length > 0;
+  const following = isFollowingRoute(p);
   const status = p.clearedRunway ? `Cleared ${p.clearedRunway.id}` : following ? 'Own navigation' : 'Heading';
+  const command = (fn: () => void) => {
+    fn();
+    onCommand();
+  };
 
   return (
     <View style={[styles.panel, { backgroundColor: c.panel, borderColor: c.panelBorder }]} testID="plane-panel">
@@ -66,24 +64,21 @@ export function PlanePanel({ sim, selectedId, onClose }: Props) {
           label="HDG"
           value={following ? '---' : pad3(p.target.heading)}
           current={`now ${pad3(p.heading)}`}
-          onStep={(d) => {
-            const base = p.route.length > 0 ? Math.round(p.heading / HDG_STEP) * HDG_STEP : p.target.heading;
-            sim.setHeading(p.id, normDeg(base + d * HDG_STEP));
-          }}
+          onStep={(d) => command(() => sim.setHeading(p.id, nextHeading(p, d)))}
         />
         <Dial
           testID="dial-alt"
           label="ALT ft"
-          value={ft(p.target.altitude)}
-          current={`now ${ft(p.altitude)}`}
-          onStep={(d) => sim.setAltitude(p.id, Math.round(p.target.altitude / ALT_STEP) * ALT_STEP + d * ALT_STEP)}
+          value={feet(p.target.altitude)}
+          current={`now ${feet(p.altitude)}`}
+          onStep={(d) => command(() => sim.setAltitude(p.id, nextAltitude(p, d)))}
         />
         <Dial
           testID="dial-spd"
           label="SPD kt"
           value={String(Math.round(p.target.speed))}
           current={`now ${Math.round(p.speed)}`}
-          onStep={(d) => sim.setSpeed(p.id, Math.round(p.target.speed / SPD_STEP) * SPD_STEP + d * SPD_STEP)}
+          onStep={(d) => command(() => sim.setSpeed(p.id, nextSpeed(p, d)))}
         />
       </View>
     </View>

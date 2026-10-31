@@ -1,7 +1,8 @@
 import { Platform } from 'react-native';
 
 /**
- * Every colour/size the UI uses comes from here. To restyle the game, add a
+ * Every colour, the fonts and the main radar glyph sizes come from here
+ * (layout sizes and fine stroke details are still in the components). To restyle the game, add a
  * new Theme object (or edit one) — components never hard-code colours.
  */
 export interface Theme {

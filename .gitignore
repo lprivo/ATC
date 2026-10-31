@@ -30,8 +30,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# local env files (secrets such as EXPO_TOKEN live here; never commit them)
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo

@@ -1,0 +1,6 @@
+# atc.privo.uk is served by Netlify from this repo. The original browser game
+# now lives in legacy/, so publish that folder as-is (no build step) to keep
+# the live site and its old URLs (/ATC.html, /Images/...) working.
+[build]
+  publish = "legacy"
+  command = ""

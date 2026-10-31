@@ -15,13 +15,13 @@ Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
 ```bash
 npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
 npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
+npm test                    # unit tests (vitest): engine, dial controls, viewport
+npm run typecheck           # typecheck
 npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
 ```
 
-Run lint and typecheck before declaring any task done.
+Run `npm test` and `npm run typecheck` before declaring any task done. (There is no linter set up yet.)
 
 ## Navigation & Routing
 
@@ -42,6 +42,7 @@ Docs: https://docs.expo.dev/eas/index.md
 ## This project
 
 - `src/engine/` — the simulation: pure TypeScript, no React or React Native imports. Keep it that way so it stays testable (`npm test`) and reusable.
-- `src/ui/`, `src/game/` — React Native UI. Colours and sizes come only from `src/theme/themes.ts`.
+- `src/ui/`, `src/game/` — React Native UI. Colours, fonts and the main radar glyph sizes (blip, tag/label fonts, leader length) come only from `src/theme/themes.ts`; don't hard-code colours. Layout sizes (panel, dials, buttons) are still in component StyleSheets until the real design lands.
+- Pure logic used by the UI (`src/game/controls.ts`, `src/ui/viewport.ts`, `src/ui/format.ts`) has no React Native imports and is unit tested.
 - `legacy/` — the original 2019 HTML/JS sim, kept for reference. Not part of the app.
 - Run `npm test` and `npm run typecheck` before declaring a task done.

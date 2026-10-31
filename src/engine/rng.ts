@@ -11,7 +11,10 @@ export function createRng(seed: number) {
   return {
     next,
     int: (min: number, maxInclusive: number) => min + Math.floor(next() * (maxInclusive - min + 1)),
-    pick: <T>(items: readonly T[]): T => items[Math.floor(next() * items.length)],
+    pick: <T>(items: readonly T[]): T => {
+      if (items.length === 0) throw new Error('rng.pick: empty list');
+      return items[Math.floor(next() * items.length)];
+    },
   };
 }
 

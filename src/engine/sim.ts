@@ -11,6 +11,7 @@ export const PERF = {
   minAltitude: 1000,
   maxAltitude: 20000,
   approachSpeed: 150,
+  goAroundSpeed: 200,
 };
 
 export const RULES = {
@@ -29,6 +30,17 @@ export const RULES = {
   finalCheckNm: 2.5,
   /** ...to within this many degrees, or it goes around. */
   finalMaxOffDeg: 60,
+  /** Planes slow to approach speed with this much path left to the threshold. */
+  approachZoneNm: 10,
+  /** How much of the end of a drawn path decides which way the player means to land. */
+  finalLegLookbackNm: 1.5,
+  /** A waypoint this close but this far off the nose has been overflown; skip it. */
+  waypointBehindNm: 1.5,
+  waypointBehindDeg: 100,
+  /** "Established on final" (for parallel approaches): within this angle of the runway heading... */
+  establishedMaxOffDeg: 30,
+  /** ...and this close to the extended centreline (half the usual parallel-runway spacing). */
+  establishedMaxCrossTrackNm: 0.5,
 };
 
 /** Radius of a standard-rate turn at the given speed. */
@@ -36,6 +48,54 @@ export const turnRadiusNm = (speedKt: number) =>
   speedKt / 3600 / ((PERF.turnRateDegPerSec * Math.PI) / 180);
 
 const MAX_SUBSTEP_SEC = 0.25;
+
+/** Distance still to fly along the plane's route, from its current position. */
+export function remainingPathNm(p: Plane): number {
+  let total = 0;
+  let from = p.pos;
+  for (const wp of p.route) {
+    total += dist(from, wp);
+    from = wp;
+  }
+  return total;
+}
+
+/** Signed distances of `pt` relative to a runway end: `along` > 0 is past the threshold. */
+function runwayFrame(pt: Vec2, end: RunwayEnd) {
+  const d = dirOf(end.heading);
+  const v = { x: pt.x - end.threshold.x, y: pt.y - end.threshold.y };
+  return { along: v.x * d.x + v.y * d.y, cross: Math.abs(v.x * d.y - v.y * d.x) };
+}
+
+/**
+ * Established on final: cleared, within the approach zone, roughly aligned with
+ * the runway and close to its extended centreline. Judged from the plane itself,
+ * not its route, because a finger-drawn path keeps many waypoints until the end.
+ */
+function establishedOnFinal(p: Plane): boolean {
+  const r = p.clearedRunway;
+  if (!r) return false;
+  const { along, cross } = runwayFrame(p.pos, r);
+  return (
+    along < 0 &&
+    remainingPathNm(p) < RULES.approachZoneNm &&
+    Math.abs(angleDiff(p.heading, r.heading)) <= RULES.establishedMaxOffDeg &&
+    cross <= RULES.establishedMaxCrossTrackNm
+  );
+}
+
+/**
+ * Two planes established on final approaches to *parallel* runways (different
+ * runway, same landing direction) may be closer than normal separation. Head-on
+ * traffic to opposite ends of a runway, or planes still manoeuvring, may not.
+ */
+function onParallelFinals(a: Plane, b: Plane): boolean {
+  const ra = a.clearedRunway;
+  const rb = b.clearedRunway;
+  if (!ra || !rb || ra.id === rb.id) return false;
+  if (Math.abs(angleDiff(ra.heading, rb.heading)) > 1) return false;
+  return establishedOnFinal(a) && establishedOnFinal(b);
+}
 const TRAIL_EVERY_SEC = 4;
 const TRAIL_LENGTH = 8;
 const MAX_EVENTS = 20;
@@ -80,21 +140,24 @@ export class Sim {
   setHeading(id: string, heading: number) {
     const p = this.plane(id);
     if (!p) return;
+    this.cancelApproach(p);
     p.target.heading = normDeg(Math.round(heading));
     p.route = [];
-    p.clearedRunway = null;
   }
 
   setAltitude(id: string, altitude: number) {
     const p = this.plane(id);
     if (!p) return;
     p.target.altitude = clamp(altitude, PERF.minAltitude, PERF.maxAltitude);
+    // While on approach, remember the player's choice so cancelling the clearance keeps it.
+    if (p.approachFrom) p.approachFrom.altitude = p.target.altitude;
   }
 
   setSpeed(id: string, speed: number) {
     const p = this.plane(id);
     if (!p) return;
     p.target.speed = clamp(speed, PERF.minSpeed, PERF.maxSpeed);
+    if (p.approachFrom) p.approachFrom.speed = p.target.speed;
   }
 
   /**
@@ -116,19 +179,42 @@ export class Sim {
     if (route.length === 0) return;
 
     const end = route[route.length - 1];
-    // Direction of the last ~1.5 nm of the drawn path, to tell which way the player means to land.
-    let k = route.length - 1;
-    while (k > 0 && dist(route[k], end) < 1.5) k--;
-    const finalLeg = k < route.length - 1 || route.length === 1 ? headingTo(route.length === 1 ? p.pos : route[k], end) : null;
-    const runway = this.pickRunwayEnd(end, finalLeg);
+    const runway = this.pickRunwayEnd(end, this.finalLegHeading(p.pos, route));
     if (runway) {
-      route[route.length - 1] = runway.threshold;
+      // The finger may have lifted on or past the runway: drop anything beyond
+      // the threshold so the threshold is the path's real final point.
+      while (route.length && runwayFrame(route[route.length - 1], runway).along > -RULES.waypointCaptureNm) route.pop();
+      route.push(runway.threshold);
+      if (!p.clearedRunway) p.approachFrom = { altitude: p.target.altitude, speed: p.target.speed };
       p.clearedRunway = runway;
       this.log(`${p.callsign} cleared to land ${runway.id}`);
     } else {
-      p.clearedRunway = null;
+      this.cancelApproach(p);
     }
     p.route = route;
+  }
+
+  /**
+   * Heading of the last stretch of a path (about RULES.finalLegLookbackNm), used
+   * to tell which way the player means to land. Null if the path is too short to say.
+   */
+  private finalLegHeading(start: Vec2, route: Vec2[]): number | null {
+    const end = route[route.length - 1];
+    if (route.length === 1) return headingTo(start, end);
+    let k = route.length - 1;
+    while (k > 0 && dist(route[k], end) < RULES.finalLegLookbackNm) k--;
+    if (k === route.length - 1) return null;
+    return headingTo(route[k], end);
+  }
+
+  /** Drops a landing clearance and puts back the altitude/speed the approach overrode. */
+  private cancelApproach(p: Plane) {
+    if (p.approachFrom) {
+      p.target.altitude = p.approachFrom.altitude;
+      p.target.speed = p.approachFrom.speed;
+    }
+    p.approachFrom = null;
+    p.clearedRunway = null;
   }
 
   // ---- Internals -------------------------------------------------------
@@ -152,14 +238,21 @@ export class Sim {
     }
 
     this.checkBounds();
-    this.planes = this.planes.filter((p) => p.status === 'active');
+    if (this.planes.some((p) => p.status !== 'active')) {
+      this.planes = this.planes.filter((p) => p.status === 'active');
+    }
     this.checkSeparation();
   }
 
   private spawnDue() {
     while (this.pending.length && this.pending[0].time <= this.time) {
       const t = this.pending.shift()!;
-      const entry = this.airport.entries.find((e) => e.name === t.entry) ?? this.airport.entries[0];
+      const entry = this.airport.entries.find((e) => e.name === t.entry);
+      if (!entry) {
+        // Bad traffic data (e.g. a schedule file naming an entry this airport doesn't have).
+        this.log(`${t.callsign} skipped: no entry point "${t.entry}" at ${this.airport.icao}`);
+        continue;
+      }
       this.planes.push({
         id: String(this.nextId++),
         callsign: t.callsign,
@@ -172,6 +265,7 @@ export class Sim {
         target: { heading: entry.heading, altitude: t.altitude, speed: t.speed },
         route: [],
         clearedRunway: null,
+        approachFrom: null,
         status: 'active',
         conflict: false,
         trail: [],
@@ -184,11 +278,15 @@ export class Sim {
   private navigate(p: Plane) {
     const rwy = p.clearedRunway;
     if (rwy) {
-      const d = dist(p.pos, rwy.threshold);
-      p.target.altitude = Math.min(p.target.altitude, Math.max(0, Math.round(d * RULES.glideFtPerNm)));
-      if (d < 10) p.target.speed = Math.min(p.target.speed, PERF.approachSpeed);
+      // Descend and slow based on how much of the drawn path is left, not the
+      // straight-line distance: a long curving path shouldn't dive early.
+      const left = remainingPathNm(p);
+      p.target.altitude = Math.min(p.target.altitude, Math.max(0, Math.round(left * RULES.glideFtPerNm)));
+      if (left < RULES.approachZoneNm) p.target.speed = Math.min(p.target.speed, PERF.approachSpeed);
 
-      if (d <= RULES.touchdownRadiusNm) {
+      // Only the final leg can touch down; overflying the threshold earlier in the path doesn't count.
+      const onFinal = p.route.length === 1;
+      if (onFinal && dist(p.pos, rwy.threshold) <= RULES.touchdownRadiusNm) {
         const aligned = Math.abs(angleDiff(p.heading, rwy.heading)) <= RULES.touchdownMaxAngleDeg;
         if (aligned && p.altitude <= RULES.touchdownMaxAltFt) {
           p.status = 'landed';
@@ -218,7 +316,8 @@ export class Sim {
         }
         break;
       }
-      if (d < capture || (d < 1.5 && off > 100)) p.route.shift();
+      const behind = d < RULES.waypointBehindNm && off > RULES.waypointBehindDeg;
+      if (d < capture || behind) p.route.shift();
       else break;
     }
     if (p.route.length) p.target.heading = Math.round(headingTo(p.pos, p.route[0]));
@@ -227,10 +326,11 @@ export class Sim {
   private goAround(p: Plane, reason: string) {
     const rwy = p.clearedRunway;
     p.clearedRunway = null;
+    p.approachFrom = null;
     p.route = [];
     p.target.heading = rwy ? rwy.heading : p.heading;
     p.target.altitude = RULES.goAroundAltitude;
-    p.target.speed = 200;
+    p.target.speed = PERF.goAroundSpeed;
     this.stats.goArounds++;
     this.log(`${p.callsign} going around (${reason})`);
   }
@@ -262,8 +362,7 @@ export class Sim {
       for (let j = i + 1; j < this.planes.length; j++) {
         const a = this.planes[i];
         const b = this.planes[j];
-        // Parallel approaches to different runways are allowed to be close.
-        if (a.clearedRunway && b.clearedRunway && a.clearedRunway.id !== b.clearedRunway.id) continue;
+        if (onParallelFinals(a, b)) continue;
         if (
           dist(a.pos, b.pos) < RULES.separationNm &&
           Math.abs(a.altitude - b.altitude) < RULES.separationFt
@@ -294,11 +393,8 @@ export class Sim {
       for (const e of r.ends) {
         if (dist(pt, e.threshold) > RULES.runwaySnapNm) continue;
         if (finalLeg !== null && Math.abs(angleDiff(finalLeg, e.heading)) > 90) continue;
-        const d = dirOf(e.heading);
-        const v = { x: pt.x - e.threshold.x, y: pt.y - e.threshold.y };
-        const crossTrack = Math.abs(v.x * d.y - v.y * d.x);
-        const along = v.x * d.x + v.y * d.y; // >0 means past the threshold
-        const score = crossTrack + Math.max(0, along) * 0.5;
+        const { along, cross } = runwayFrame(pt, e);
+        const score = cross + Math.max(0, along) * 0.5;
         if (score < bestScore) {
           bestScore = score;
           best = e;

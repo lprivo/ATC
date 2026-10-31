@@ -17,7 +17,7 @@ The original 2019 browser version lives in [`legacy/`](legacy/) (open `legacy/AT
 ```sh
 npm install
 npx expo start          # scan the QR code with Expo Go on your phone, or press w for web
-npm test                # engine tests (vitest)
+npm test                # unit tests (vitest): engine, dial controls, viewport
 npm run typecheck
 ```
 
@@ -27,8 +27,8 @@ npm run typecheck
 | --- | --- |
 | `src/engine/` | Simulation, pure TypeScript: flight model, routes, landing, separation, traffic generation. No UI code. |
 | `src/engine/airports/` | Airport definitions (runways, fixes, entry points), in nautical miles from the airport. |
-| `src/game/` | Game screen and the hook that runs the sim loop. |
-| `src/ui/` | Radar (SVG + touch gestures), plane panel with dials, top bar. |
-| `src/theme/` | Themes. Every colour and size comes from here, so the look can be swapped wholesale. |
+| `src/game/` | Game screen, the hook that runs the sim loop, and dial logic (`controls.ts`). |
+| `src/ui/` | Radar (SVG + touch gestures), plane panel with dials, top bar; screen/world maths and hit-testing in `viewport.ts`. |
+| `src/theme/` | Themes: every colour, the fonts and the main radar glyph sizes (blip, tag and label fonts, leader length) come from here, so the look can be swapped wholesale. Layout sizes (panel, dials) still live in the components until the real design lands. |
 
 Traffic is a list of `TrafficEntry` records. Random sessions generate them today; replaying a real airport's schedule for a given date will produce the same records from downloaded data.

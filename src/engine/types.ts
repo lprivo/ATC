@@ -78,6 +78,8 @@ export interface Plane {
   route: Vec2[];
   /** Runway end the plane is cleared to land on (set when a route ends at a threshold). */
   clearedRunway: RunwayEnd | null;
+  /** Altitude/speed targets from before the approach, restored if the clearance is cancelled. */
+  approachFrom: { altitude: number; speed: number } | null;
   status: PlaneStatus;
   conflict: boolean;
   trail: Vec2[];
