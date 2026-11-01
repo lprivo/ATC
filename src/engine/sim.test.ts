@@ -530,6 +530,18 @@ describe('limits and housekeeping', () => {
     expect(new Set(seqs).size).toBe(seqs.length);
   });
 
+  it('keeps every scored incident of the session, even past the event log limit', () => {
+    const sim = simWith(
+      [{ name: 'E', pos: { x: 31.5, y: 0 }, heading: 90 }],
+      Array.from({ length: 30 }, (_, i) => flight('E', { time: i, callsign: `X${i}` })),
+    );
+    sim.step(60);
+    expect(sim.stats.exited).toBe(30);
+    expect(sim.events.length).toBeLessThanOrEqual(20);
+    expect(sim.incidents.filter((e) => e.kind === 'exited')).toHaveLength(30);
+    expect(sim.incidents.every((e) => ['landed', 'conflict', 'goAround', 'exited'].includes(e.kind))).toBe(true);
+  });
+
   it('keeps trails and the event log bounded', () => {
     const traffic = generateRandomTraffic(LHBP, { seed: 1, durationSec: 3000, meanIntervalSec: 30 });
     const sim = new Sim(LHBP, traffic);

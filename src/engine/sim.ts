@@ -103,6 +103,7 @@ function onParallelFinals(a: Plane, b: Plane): boolean {
 const TRAIL_EVERY_SEC = 2;
 export const TRAIL_LENGTH = 60;
 const MAX_EVENTS = 20;
+const SCORED = new Set<SimEventKind>(['landed', 'conflict', 'goAround', 'exited']);
 
 export class Sim {
   readonly airport: Airport;
@@ -110,6 +111,8 @@ export class Sim {
   planes: Plane[] = [];
   stats: SimStats = { landed: 0, exited: 0, goArounds: 0, separationViolations: 0 };
   events: SimEvent[] = [];
+  /** Every scored event of the session (landings, separation losses, go-arounds, exits), unbounded, for the stat explainer and summary. */
+  incidents: SimEvent[] = [];
   /** Pairs in conflict after the last step, for drawing the pair line and distance tag. */
   conflicts: Conflict[] = [];
 
@@ -440,8 +443,10 @@ export class Sim {
   }
 
   private log(kind: SimEventKind, text: string, callsigns: string[], runway?: string, reason?: string) {
-    this.events.push({ seq: this.nextEventSeq++, time: this.time, kind, text, callsigns, runway, reason });
+    const e: SimEvent = { seq: this.nextEventSeq++, time: this.time, kind, text, callsigns, runway, reason };
+    this.events.push(e);
     if (this.events.length > MAX_EVENTS) this.events.shift();
+    if (SCORED.has(kind)) this.incidents.push(e);
   }
 
 }

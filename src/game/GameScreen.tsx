@@ -8,7 +8,7 @@ import { ConfirmCard } from '../ui/ConfirmCard';
 import { ConflictBanner } from '../ui/ConflictBanner';
 import { DRAW } from '../ui/drawing';
 import { HUD_EDGE, HUD_GAP, TOP_BAR_HEIGHT } from '../ui/hudLayout';
-import { PauseOverlay } from '../ui/PauseOverlay';
+import { PauseMenu } from '../ui/PauseMenu';
 import { BottomSheet } from '../ui/BottomSheet';
 import { Radar } from '../ui/Radar';
 import { Toasts } from '../ui/Toasts';
@@ -60,17 +60,22 @@ export function GameScreen() {
           onLanding={landing.land}
           onDrawing={setDrawing}
         />
-        <View style={[styles.hud, side, { top }]} pointerEvents="box-none">
-          <TopBar sim={sim} paused={paused} onTogglePause={() => setPaused((p) => !p)} />
-        </View>
-        {banner && (
-          <View style={[styles.hud, side, { top: hudBottom }]} pointerEvents="box-none">
-            <ConflictBanner banner={banner} onSelect={select} onHeight={setBannerHeight} />
+        {/* The pause menu replaces the HUD (its own header shows the session and score). */}
+        {!paused && (
+          <>
+          <View style={[styles.hud, side, { top }]} pointerEvents="box-none">
+            <TopBar sim={sim} paused={paused} onTogglePause={() => setPaused((p) => !p)} />
           </View>
+          {banner && (
+            <View style={[styles.hud, side, { top: hudBottom }]} pointerEvents="box-none">
+              <ConflictBanner banner={banner} onSelect={select} onHeight={setBannerHeight} />
+            </View>
+          )}
+          <View style={[styles.hud, side, { top: toastTop }]} pointerEvents="none">
+            <Toasts toasts={toasts} />
+          </View>
+          </>
         )}
-        <View style={[styles.hud, side, { top: toastTop }]} pointerEvents="none">
-          <Toasts toasts={toasts} />
-        </View>
         {landing.pending && landing.plane && (
           <View style={[styles.hud, side, { bottom: sheetHeight + HUD_GAP }]} pointerEvents="box-none">
             <ConfirmCard
@@ -103,7 +108,7 @@ export function GameScreen() {
         />
       </View>
       {paused && (
-        <PauseOverlay sim={sim} onResume={() => setPaused(false)} onRestart={onRestart} />
+        <PauseMenu sim={sim} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} />
       )}
     </View>
   );
