@@ -160,3 +160,12 @@ export function pairTag(vp: Viewport, a: Vec2, b: Vec2, distNm: number, altFt: n
 export function fixTriangle(s: ScreenPt) {
   return `${s.x},${s.y - 4.5} ${s.x + 4},${s.y + 2.5} ${s.x - 4},${s.y + 2.5}`;
 }
+
+/**
+ * SVG path of a sweep wedge from the centre (cx, cy) out to radius r, between
+ * bearings a0 and a1 (degrees clockwise from north, a0 < a1).
+ */
+export function wedgePath(cx: number, cy: number, r: number, a0: number, a1: number) {
+  const p = (a: number) => `${cx + Math.sin((a * Math.PI) / 180) * r},${cy - Math.cos((a * Math.PI) / 180) * r}`;
+  return `M${cx},${cy} L${p(a0)} A${r},${r} 0 0 1 ${p(a1)} Z`;
+}

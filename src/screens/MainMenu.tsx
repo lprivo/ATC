@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
@@ -25,7 +24,6 @@ export function MainMenu({ onPlay, onChooseAirport, onHowToPlay, onBestScores, o
   const c = theme.colors;
   const t = theme.type;
   const insets = useSafeAreaInsets();
-  const box = { borderColor: c.panelBorder, borderWidth: theme.hairline };
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16 }]} testID="main-menu">
@@ -53,7 +51,7 @@ export function MainMenu({ onPlay, onChooseAirport, onHowToPlay, onBestScores, o
 
         <MenuButton label="Choose airport" onPress={onChooseAirport} testID="btn-airports" height={56} />
 
-        <View style={[styles.replay, { borderColor: c.panelBorder }]} accessible accessibilityLabel="Replay a real day. Coming soon">
+        <View style={[styles.replay, { borderColor: c.panelBorder, borderWidth: theme.hairline }]} accessible accessibilityLabel="Replay a real day. Coming soon">
           <Text style={[t.button, { color: c.textDim }]}>Replay a real day</Text>
           <Text style={[t.chip, styles.soon, { color: c.textDim, borderColor: c.textDim, borderWidth: theme.hairline }]}>COMING SOON</Text>
         </View>
@@ -64,28 +62,33 @@ export function MainMenu({ onPlay, onChooseAirport, onHowToPlay, onBestScores, o
           <MenuButton label="Settings" onPress={onSettings} testID="btn-settings" height={52} grow />
         </View>
       </View>
-      {/* Keep the border style referenced for the boxed buttons. */}
-      <View style={[box, styles.hidden]} />
     </View>
   );
+}
 
-  function MenuButton({ label, onPress, testID, height, grow }: { label: string; onPress?: () => void; testID: string; height: number; grow?: boolean }): ReactNode {
-    const disabled = !onPress;
-    return (
-      <Pressable
-        testID={testID}
-        accessibilityRole="button"
-        accessibilityState={{ disabled }}
-        disabled={disabled}
-        onPress={onPress}
-        style={({ pressed }) => [styles.button, box, grow && styles.grow, { height, backgroundColor: pressed ? c.buttonPressed : c.button, opacity: disabled ? 0.5 : 1 }]}
-      >
-        <Text style={[t.button, { color: c.buttonText }]} numberOfLines={1} adjustsFontSizeToFit>
-          {label}
-        </Text>
-      </Pressable>
-    );
-  }
+/** A boxed menu button; shown dimmed and disabled while its screen isn't there yet (no onPress). */
+function MenuButton({ label, onPress, testID, height, grow }: { label: string; onPress?: () => void; testID: string; height: number; grow?: boolean }) {
+  const { theme } = useTheme();
+  const c = theme.colors;
+  const disabled = !onPress;
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        { borderColor: c.panelBorder, borderWidth: theme.hairline, height, backgroundColor: pressed ? c.buttonPressed : c.button, opacity: disabled ? 0.5 : 1 },
+        grow && styles.grow,
+      ]}
+    >
+      <Text style={[theme.type.button, { color: c.buttonText }]} numberOfLines={1} adjustsFontSizeToFit>
+        {label}
+      </Text>
+    </Pressable>
+  );
 }
 
 /** Blueprint "+" registration marks at the four corners of a primary object. */
@@ -97,7 +100,7 @@ function CornerMarks({ color }: { color: string }) {
         <Text
           key={k}
           style={[
-            theme.type.body,
+            theme.type.mark,
             styles.mark,
             { color },
             k[0] === 't' ? { top: -2 } : { bottom: -2 },
@@ -117,11 +120,10 @@ const styles = StyleSheet.create({
   best: { marginTop: 10 },
   actions: { marginTop: 'auto', gap: 10 },
   play: { height: 72, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  mark: { position: 'absolute', fontSize: 14, lineHeight: 16, opacity: 0.7 },
+  mark: { position: 'absolute', opacity: 0.7 },
   button: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   grow: { flex: 1 },
-  replay: { height: 56, borderWidth: 1, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  replay: { height: 56, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   soon: { paddingVertical: 2, paddingHorizontal: 6 },
   row: { flexDirection: 'row', gap: 8 },
-  hidden: { display: 'none' },
 });

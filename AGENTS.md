@@ -25,7 +25,7 @@ Run `npm test` and `npm run typecheck` before declaring any task done. (There is
 
 ## Navigation & Routing
 
-- The proof of concept is a single screen (`App.tsx` → `src/game/GameScreen.tsx`) with no navigation library yet. When menus and multiple screens arrive, add **Expo Router** (routes in `src/app/`) rather than another navigator.
+- Navigation is **Expo Router**: routes live in `src/app/` (`_layout.tsx` is the root: fonts, splash, providers, the stack). Screens are in `src/screens/` and `src/game/GameScreen.tsx`; route files stay thin.
 - Docs: https://docs.expo.dev/router/introduction.md
 
 ## Building with EAS

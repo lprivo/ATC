@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
@@ -31,5 +32,13 @@ export default function RootLayout() {
 
 function ThemedStack() {
   const { theme } = useTheme();
-  return <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: theme.colors.background } }} />;
+  return (
+    <>
+      <StatusBar style={theme.statusBar} />
+      <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: theme.colors.background } }}>
+        {/* No swipe-back out of a live game: leaving goes through the pause menu's confirmed Quit. */}
+        <Stack.Screen name="game" options={{ gestureEnabled: false }} />
+      </Stack>
+    </>
+  );
 }

@@ -14,6 +14,7 @@ import {
   screenDir,
   trailAlpha,
   trailDots,
+  wedgePath,
 } from './radarGeometry';
 import { toScreen, type Viewport } from './viewport';
 
@@ -151,5 +152,14 @@ describe('radar geometry', () => {
     expect(t.rect.y).toBeCloseTo(200 + 26 - 7);
     expect(t.rect.h).toBe(14);
     expect(t.rect.w).toBeGreaterThan(40);
+  });
+});
+
+describe('sweep wedge', () => {
+  it('starts at the centre and runs out along the two bearings at radius r', () => {
+    const d = wedgePath(100, 100, 50, 0, 90);
+    expect(d.startsWith('M100,100 L100,50 ')).toBe(true); // north
+    expect(d).toContain('A50,50 0 0 1 150,100'); // east
+    expect(d.endsWith('Z')).toBe(true);
   });
 });

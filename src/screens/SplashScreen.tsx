@@ -5,7 +5,10 @@ import { useTheme } from '../theme/ThemeContext';
 import { AppIcon } from '../ui/AppIcon';
 import { RadarBackdrop } from '../ui/RadarBackdrop';
 
-/** How long the start-up splash shows (its progress bar fills over this). */
+/**
+ * How long the start-up splash shows (its progress bar fills over this). Fonts
+ * have already loaded behind the native splash, so this is purely the brand moment.
+ */
 const SPLASH_MS = 1400;
 
 /**
@@ -30,9 +33,11 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       <RadarBackdrop centreY={0.5} scale={7} />
       <View style={styles.centre}>
         <AppIcon size={104} />
-        <Text style={[t.wordmark, styles.wordmark, { color: c.text }]}>PRIVO ATC</Text>
+        <Text style={[t.wordmark, styles.wordmark, { color: c.text }]} accessibilityRole="header">
+          PRIVO ATC
+        </Text>
         <Text style={[t.tagline, { color: c.textDim }]}>APPROACH CONTROL</Text>
-        <View style={[styles.track, { backgroundColor: c.rangeRing }]} accessibilityRole="progressbar">
+        <View style={[styles.track, { backgroundColor: c.rangeRing }]} accessibilityRole="progressbar" accessibilityLabel="Loading">
           <Animated.View style={[styles.fill, { backgroundColor: c.snapHalo, transform: [{ scaleX: progress }] }]} />
         </View>
         <Text style={[t.smallTight, { color: c.textDim }]}>v{version}</Text>

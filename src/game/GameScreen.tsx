@@ -1,6 +1,5 @@
-import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LHBP } from '../engine/airports/lhbp';
 import { useTheme } from '../theme/ThemeContext';
@@ -34,6 +33,15 @@ export function GameScreen({ onQuit }: { onQuit?: () => void } = {}) {
     setSelectedId(id);
   };
 
+  // Android back opens the pause menu (and closes it again) instead of leaving a live game.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setPaused((p) => !p);
+      return true;
+    });
+    return () => sub.remove();
+  }, [setPaused]);
+
   const onRestart = () => {
     // Clear the selection with the restart: plane ids start again at "1" in the new sim.
     setSelectedId(null);
@@ -47,7 +55,6 @@ export function GameScreen({ onQuit }: { onQuit?: () => void } = {}) {
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <StatusBar style={theme.statusBar} />
       {/* While paused, hide the game from TalkBack (accessibilityViewIsModal on the overlay is iOS-only). */}
       <View style={styles.radarArea} importantForAccessibility={paused ? 'no-hide-descendants' : 'auto'}>
         <Radar

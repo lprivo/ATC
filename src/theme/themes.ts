@@ -77,6 +77,7 @@ export type TypeTokenName =
   | 'barValue'
   | 'barCount'
   | 'bannerTitle'
+  | 'mark'
   | 'wordmark'
   | 'tagline'
   | 'chip'
@@ -104,6 +105,8 @@ const type: ThemeType = {
   barValue: { fontFamily: FONT_FAMILY.condensed500, fontSize: 17, fontVariant: tabular },
   /** Top-bar counters and segmented-control labels. */
   barCount: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, fontVariant: tabular },
+  /** Blueprint "+" registration marks. */
+  mark: { fontFamily: FONT_FAMILY.body400, fontSize: 14, lineHeight: 16 },
   /** "PRIVO ATC" wordmark (splash, menu). */
   wordmark: { fontFamily: FONT_FAMILY.condensed600, fontSize: 46, letterSpacing: em(46, 0.14) },
   /** "APPROACH CONTROL" tagline. */
