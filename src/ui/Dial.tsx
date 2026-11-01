@@ -20,7 +20,7 @@ export function Dial({ label, value, current, onStep, testID }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   return (
-    <View style={[styles.dial, { borderColor: c.panelBorder }]} testID={testID}>
+    <View style={[styles.dial, { borderColor: c.panelBorder, borderWidth: theme.hairline }]} testID={testID}>
       <Text style={[theme.type.caps, styles.center, { color: c.textDim }]}>{label}</Text>
       <StepButton glyph="▲" onStep={() => onStep(1)} testID={testID && `${testID}-up`} />
       <Text style={[theme.type.stepperValue, styles.center, { color: c.text }]}>{value}</Text>
@@ -65,13 +65,13 @@ function StepButton({ glyph, onStep, testID }: { glyph: string; onStep: () => vo
       onPressOut={stop}
       style={({ pressed }) => [styles.button, { backgroundColor: pressed ? c.buttonPressed : c.button }]}
     >
-      <Text style={[theme.type.barCount, { color: c.buttonText }]}>{glyph}</Text>
+      <Text style={[theme.type.button, { color: c.buttonText }]}>{glyph}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  dial: { flex: 1, alignItems: 'stretch', borderWidth: 1, padding: 8, gap: 4 },
+  dial: { flex: 1, alignItems: 'stretch', padding: 8, gap: 4 },
   center: { textAlign: 'center' },
   button: { height: 44, alignItems: 'center', justifyContent: 'center' },
 });

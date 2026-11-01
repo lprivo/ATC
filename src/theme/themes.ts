@@ -64,7 +64,29 @@ const tabular: TextStyle['fontVariant'] = ['tabular-nums'];
 /** Letter spacing in the design is given in em; React Native wants points. */
 const em = (size: number, ems: number) => Math.round(size * ems * 100) / 100;
 
-const type = {
+/** Names of the UI type-scale tokens. */
+export type TypeTokenName =
+  | 'display'
+  | 'score'
+  | 'title'
+  | 'stepperValue'
+  | 'callsign'
+  | 'button'
+  | 'buttonLarge'
+  | 'barTitle'
+  | 'barValue'
+  | 'barCount'
+  | 'chip'
+  | 'body'
+  | 'bodyStrong'
+  | 'small'
+  | 'smallTight'
+  | 'caps'
+  | 'capsSmall';
+
+export type ThemeType = Record<TypeTokenName, TypeToken>;
+
+const type: ThemeType = {
   display: { fontFamily: FONT_FAMILY.condensed600, fontSize: 96, lineHeight: 86, fontVariant: tabular },
   /** Pause-menu score. */
   score: { fontFamily: FONT_FAMILY.condensed600, fontSize: 64, lineHeight: 64, fontVariant: tabular },
@@ -87,18 +109,28 @@ const type = {
   smallTight: { fontFamily: FONT_FAMILY.body500, fontSize: 12, fontVariant: tabular },
   caps: { fontFamily: FONT_FAMILY.body600, fontSize: 11, letterSpacing: em(11, 0.12) },
   capsSmall: { fontFamily: FONT_FAMILY.body600, fontSize: 10, letterSpacing: em(10, 0.12) },
-} satisfies Record<string, TypeToken>;
+};
 
-export type ThemeType = typeof type;
-
-/** Radar (SVG) text: family, weight-specific face and size before `labelScale`. */
+/** Radar (SVG) text: weight-specific family and size (before `labelScale` for data blocks). */
 export interface RadarFont {
   fontFamily: string;
   fontSize: number;
   letterSpacing?: number;
 }
 
-const radarFont = {
+export interface ThemeRadarFonts {
+  /** Data block line 1 (callsign); scaled by labelScale. */
+  label: RadarFont;
+  /** Data block line 2 (altitude, speed); scaled by labelScale. */
+  label2: RadarFont;
+  /** Data block line height; scaled by labelScale. */
+  labelLineHeight: number;
+  fix: RadarFont;
+  runway: RadarFont;
+  chip: RadarFont;
+}
+
+const radarFont: ThemeRadarFonts = {
   /** Data block line 1 (callsign); scaled by labelScale. */
   label: { fontFamily: FONT_FAMILY.condensed600, fontSize: 13 },
   /** Data block line 2 (altitude, speed); scaled by labelScale. */
@@ -111,15 +143,36 @@ const radarFont = {
 };
 
 /** Radar glyph sizes in points (pt). "nm" values are converted with the current zoom. */
-const size = {
+export interface ThemeSize {
+  planeSymbol: number;
+  planeStroke: number;
+  selectBracket: number;
+  selectBracketArm: number;
+  hitTarget: number;
+  hitRadius: number;
+  headingVectorMinutes: number;
+  headingVectorMin: number;
+  conflictRingNm: number;
+  conflictRingMin: number;
+  labelOffsetNear: number;
+  labelOffsetFar: number;
+  snapRadius: number;
+  loupeRadius: number;
+  loupeZoom: number;
+  trailDots: number;
+  trailDotRadius: number;
+}
+
+const size: ThemeSize = {
   /** Side of the plane square. */
   planeSymbol: 11,
   planeStroke: 1.5,
   /** Selected-plane corner brackets: box side and arm length. */
   selectBracket: 26,
   selectBracketArm: 5,
-  /** Touch target diameter around a plane symbol. */
+  /** Touch target around a plane symbol: nominal 44 pt, hit-tested with a 24 pt radius (design). */
   hitTarget: 44,
+  hitRadius: 24,
   /** Heading vector: this many minutes of flight, at least `headingVectorMin` pt. */
   headingVectorMinutes: 1,
   headingVectorMin: 14,
@@ -141,19 +194,25 @@ const size = {
 export const LABEL_SCALE = { S: 0.92, M: 1, L: 1.15 } as const;
 export type LabelSize = keyof typeof LABEL_SCALE;
 
+/**
+ * A complete theme. Plain data (no functions), so a theme can later be served by
+ * a backend and validated against this shape. Corners are always square
+ * (blueprint style), so there is no radius token.
+ */
 export interface Theme {
-  id: 'radar' | 'paper';
+  id: string;
   name: string;
   statusBar: 'light' | 'dark';
   colors: ThemeColors;
   type: ThemeType;
-  radarFont: typeof radarFont;
-  size: typeof size;
-  /** Blueprint style: square corners everywhere (device corners are hardware only). */
-  radius: 0;
+  radarFont: ThemeRadarFonts;
+  size: ThemeSize;
   /** Hairline border width. */
   hairline: number;
 }
+
+/** Everything the bundled themes share; each theme only spells out what differs. */
+const shared = { type, radarFont, size, hairline: 1 } satisfies Pick<Theme, 'type' | 'radarFont' | 'size' | 'hairline'>;
 
 export const radarTheme: Theme = {
   id: 'radar',
@@ -190,11 +249,7 @@ export const radarTheme: Theme = {
     scrim: 'rgba(6,12,18,0.72)',
     sweep: 'rgba(148,188,227,0.30)',
   },
-  type,
-  radarFont,
-  size,
-  radius: 0,
-  hairline: 1,
+  ...shared,
 };
 
 export const paperTheme: Theme = {
@@ -232,11 +287,9 @@ export const paperTheme: Theme = {
     scrim: 'rgba(29,31,32,0.45)',
     sweep: 'rgba(89,128,166,0.22)',
   },
-  type,
-  radarFont,
-  size,
-  radius: 0,
-  hairline: 1,
+  ...shared,
+  // Daylight: radar data blocks go to weight 600 for legibility (design note).
+  radarFont: { ...radarFont, label2: { ...radarFont.label2, fontFamily: FONT_FAMILY.condensed600 } },
 };
 
 export const themes = [radarTheme, paperTheme];

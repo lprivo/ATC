@@ -21,7 +21,7 @@ export function PlanePanel({ sim, selectedId, onClose, onCommand }: Props) {
 
   if (!p) {
     return (
-      <View style={[styles.panel, { backgroundColor: c.panel, borderColor: c.panelBorder }]}>
+      <View style={[styles.panel, { backgroundColor: c.panel, borderColor: c.panelBorder, borderTopWidth: theme.hairline }]}>
         <Text style={[theme.type.small, { color: c.textDim }]}>
           Tap a plane to control it · Hold & drag from a plane to draw its path · End a path on a runway
           threshold to land
@@ -45,7 +45,7 @@ export function PlanePanel({ sim, selectedId, onClose, onCommand }: Props) {
   };
 
   return (
-    <View style={[styles.panel, { backgroundColor: c.panel, borderColor: c.panelBorder }]} testID="plane-panel">
+    <View style={[styles.panel, { backgroundColor: c.panel, borderColor: c.panelBorder, borderTopWidth: theme.hairline }]} testID="plane-panel">
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={[theme.type.callsign, { color: c.planeSelected }]}>{p.callsign}</Text>
@@ -54,7 +54,7 @@ export function PlanePanel({ sim, selectedId, onClose, onCommand }: Props) {
           </Text>
         </View>
         <Pressable onPress={onClose} hitSlop={12} style={[styles.close, { borderColor: c.panelBorder, borderWidth: theme.hairline }]} testID="close-panel">
-          <Text style={[theme.type.barCount, { color: c.buttonText }]}>✕</Text>
+          <Text style={[theme.type.button, { color: c.buttonText }]}>✕</Text>
         </Pressable>
       </View>
       <View style={styles.dials}>
@@ -85,7 +85,7 @@ export function PlanePanel({ sim, selectedId, onClose, onCommand }: Props) {
 }
 
 const styles = StyleSheet.create({
-  panel: { borderTopWidth: 1, padding: 10, gap: 8, minHeight: 210 },
+  panel: { padding: 10, gap: 8, minHeight: 210 },
   header: { flexDirection: 'row', alignItems: 'center' },
   sub: { marginTop: 4 },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

@@ -1,6 +1,6 @@
 # Handoff: Privo ATC — iPhone approach-control game
 
-> Imported from the Claude Design project "Privo ATC Design" (`design_handoff_privo_atc/README.md`) on 2026-11-01. The full design canvas is `Privo ATC Design.dc.html` in this folder; it needs `support.js` and `radar.js` from the design project to open. The renderer reference (`radar.js`) is ported to TypeScript in `src/ui/` rather than copied.
+> Imported from the Claude Design project "Privo ATC Design" (`design_handoff_privo_atc/README.md`) on 2026-11-01. `radar.js` in this folder is the design's canvas renderer (theme tokens, LHBP geometry, label placement), kept **as reference only**: the app doesn't load it, and it is ported to TypeScript piecemeal by the design issues (#5 radar, #7 labels, #10 route drawing). The interactive design canvas stays in the Claude Design project; it isn't committed, because it loads external scripts and fonts.
 > Project constraint: the app is offline only for now (see issue #21).
 
 ## Overview
@@ -172,7 +172,84 @@ Never fire a haptic for ambient events, or for landings the player didn't touch.
 
 ## Design tokens
 
-Colour, type and size tokens are implemented in `src/theme/themes.ts` (Radar dark / Paper light), including the new tokens `centreline`, `labelBg`, `snapHalo`, `onDanger`, `scrim` and `sweep`.
+Implemented in `src/theme/themes.ts`. Tokens marked **NEW** were added to the original list. Values are identical to `THEMES` in `radar.js`.
+
+| Token | Radar (dark) | Paper (light) |
+| --- | --- | --- |
+| background | #0f1b26 | #f2f2f3 |
+| rangeRing | #22364a | #d4d4d7 |
+| centreline **NEW** | #34506b | #a9b0b7 |
+| runway | #e8eef4 | #1d1f20 |
+| runwayLabel | #b5d9fd | #2c455d |
+| fix | #5f7f9e | #7a7a7d |
+| fixLabel | #8aa6c1 | #5d5d60 |
+| plane | #d6ebff | #1d2d3d |
+| planeSelected | #ffffff | #000000 |
+| planeConflict | #ffb547 | #c2410c |
+| trail | #4f7090 | #a9b3bd |
+| route | #94bce3 | #597ea3 |
+| routeCleared | #6fe3c6 | #0b7a63 |
+| routeDraft | #ffffff | #1d1f20 |
+| panel | #162534 | #e9e9ea |
+| panelBorder | #2c455d | #cfcfd2 |
+| text | #eef6ff | #1d1f20 |
+| textDim | #97adc2 | #5d5d60 |
+| accent | #749dc4 | #5980a6 |
+| danger | #ffb547 | #c2410c |
+| good | #6fe3c6 | #0b7a63 |
+| button | #1f3245 | #f5f5f8 |
+| buttonPressed | #2c455d | #d6ebff |
+| buttonText | #eef6ff | #1d1f20 |
+| labelBg **NEW** | rgba(15,27,38,.84) | rgba(242,242,243,.88) |
+| snapHalo **NEW** | #b5d9fd | #416180 |
+| onDanger **NEW** | #1a1206 | #ffffff |
+| scrim **NEW** | rgba(6,12,18,.72) | rgba(29,31,32,.45) |
+| sweep **NEW** | rgba(148,188,227,.30) | rgba(89,128,166,.22) |
+
+The tutorial uses its own, darker scrim `rgba(6,12,18,.78)` (see Tutorial).
+
+### Type
+Barlow Condensed for display and numbers, Barlow for body; all numbers use tabular figures.
+
+| Token | Family / weight / size / line height |
+| --- | --- |
+| type.display | Condensed 600 96/86 |
+| type.title | Condensed 600 28/30 |
+| type.stepperValue | Condensed 600 34 |
+| type.callsign | Condensed 600 26 |
+| type.button | Condensed 600 18–24 |
+| type.barValue | Condensed 500–600 16–19 |
+| type.body | Barlow 400 15/22 |
+| type.small | Barlow 500 12–13 |
+| type.caps | Barlow 600 11, +.12em |
+| type.radarLabel | Condensed 600 13 / line 15 × labelScale (Paper: line 2 at 600) |
+| type.radarLabel2 | Condensed 500 12 × labelScale |
+| type.fix | Condensed 500 10, +.06em |
+| type.runway | Condensed 600 11 |
+
+### Size and stroke
+| Token | Value |
+| --- | --- |
+| size.planeSymbol | 11 |
+| size.selectBracket | 26 (arm 5) |
+| size.hitTarget | 44 (hit-tested with a 24 pt radius) |
+| size.headingVector | 1 min, minimum 14 |
+| size.conflictRing | 1.5 nm, minimum 16 |
+| size.labelOffset | 12 / 30 |
+| size.snapRadius | 28 |
+| size.loupe | r 62, ×2.2 |
+| stroke.ring / fix | 1 |
+| stroke.plane | 1.5 |
+| stroke.runway | clamp(3, 0.22 nm, 7) |
+| stroke.route | 2, dash 7/5 |
+| stroke.routeCleared | 2.5 |
+| stroke.routeDraft | 2.5, dot 2/5 |
+| panel.topBar | 44 |
+| panel.peek / compact / expanded | ~116 / 102 / 252 |
+| button.min | 44; steppers 56×52 |
+| radius | 0 (blueprint style) |
+| space.edge / gap | 12 / 8 |
+| labelScale | 0.92 / 1 / 1.15 |
 
 **Colour-blind safety:** the three states use steel blue (route), mint (cleared) and amber (conflict), and every state also has a shape cue (dashed ring, inverted label, `!` chip, solid line plus arrowhead, runway chip, corner brackets). Verify contrast with a tool before shipping.
 
