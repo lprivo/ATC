@@ -77,6 +77,8 @@ export type TypeTokenName =
   | 'barValue'
   | 'barCount'
   | 'bannerTitle'
+  | 'wordmark'
+  | 'tagline'
   | 'chip'
   | 'body'
   | 'bodyStrong'
@@ -102,6 +104,10 @@ const type: ThemeType = {
   barValue: { fontFamily: FONT_FAMILY.condensed500, fontSize: 17, fontVariant: tabular },
   /** Top-bar counters and segmented-control labels. */
   barCount: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, fontVariant: tabular },
+  /** "PRIVO ATC" wordmark (splash, menu). */
+  wordmark: { fontFamily: FONT_FAMILY.condensed600, fontSize: 46, letterSpacing: em(46, 0.14) },
+  /** "APPROACH CONTROL" tagline. */
+  tagline: { fontFamily: FONT_FAMILY.body500, fontSize: 13, letterSpacing: em(13, 0.24) },
   /** Conflict banner title. */
   bannerTitle: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, letterSpacing: em(16, 0.04) },
   /** Small condensed chips (status, toast kind). */

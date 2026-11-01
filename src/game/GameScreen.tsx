@@ -18,7 +18,7 @@ import { useHud } from './useHud';
 import { usePendingLanding } from './usePendingLanding';
 import { useSim } from './useSim';
 
-export function GameScreen() {
+export function GameScreen({ onQuit }: { onQuit?: () => void } = {}) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh } = useSim(LHBP);
@@ -108,7 +108,7 @@ export function GameScreen() {
         />
       </View>
       {paused && (
-        <PauseMenu sim={sim} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} />
+        <PauseMenu sim={sim} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} onQuit={onQuit} />
       )}
     </View>
   );
