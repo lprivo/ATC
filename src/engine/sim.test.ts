@@ -121,9 +121,9 @@ describe('routes and landing', () => {
   it('does not clear a path that ends at a threshold from the wrong direction', () => {
     const sim = simWith([{ name: 'A', pos: { x: -10, y: 10 }, heading: 130 }], [flight('A')]);
     const p = sim.planes[0];
-    // Approach the 31R threshold flying ~130 (i.e. landing direction of 13L, from the far side).
+    // Approach the 31R threshold flying 13L's landing direction, i.e. from the far side.
     const beyond = add(rwy31R.threshold, dirOf(rwy31R.heading), -3);
-    sim.setRoute(p.id, [add(beyond, dirOf(130), -6), add(beyond, dirOf(130), -2), add(rwy31R.threshold, dirOf(310), -0.2)]);
+    sim.setRoute(p.id, [add(beyond, dirOf(rwy13L.heading), -6), add(beyond, dirOf(rwy13L.heading), -2), add(rwy31R.threshold, dirOf(rwy31R.heading), -0.2)]);
     expect(p.clearedRunway).toBeNull();
   });
 
@@ -166,12 +166,16 @@ describe('routes and landing', () => {
   it('never circles the threshold forever: a last-second jog to the parallel runway resolves', () => {
     const sim = simWith([finalEntry], [flight('F', { altitude: 2500 })]);
     const p = sim.planes[0];
-    // Fly down the 31R centreline, then end the path on the 31L threshold ~1 nm to the side.
-    sim.setRoute(p.id, [add(rwy31R.threshold, dirOf(rwy31R.heading), -3), add(rwy31R.threshold, dirOf(rwy31R.heading), -0.8), rwy31L.threshold]);
+    // Fly down the 31R centreline until abeam a point 0.6 nm short of 31L (0.86 nm
+    // to the side), then jog across to the 31L threshold: a real last-second sidestep.
+    const abeam = add(add(rwy31L.threshold, dirOf(rwy31L.heading), -0.6), dirOf(rwy31L.heading + 90), 0.86);
+    expect(Math.abs(angleDiff(headingTo(abeam, rwy31L.threshold), rwy31L.heading))).toBeGreaterThan(50);
+    sim.setRoute(p.id, [add(rwy31R.threshold, dirOf(rwy31R.heading), -3), abeam, rwy31L.threshold]);
     expect(p.clearedRunway?.id).toBe('31L');
     sim.step(600);
-    // Either it squeaks in or it goes around — but it must not still be orbiting.
+    // Either it squeaks in or it goes around, but it must not still be orbiting.
     expect(sim.stats.landed + sim.stats.goArounds).toBe(1);
+    expect(p.status === 'landed' || p.clearedRunway === null).toBe(true);
   });
 
   it('follows a dense drawn path without getting stuck', () => {
