@@ -164,6 +164,11 @@ export interface ThemeSize {
   loupeZoom: number;
   trailDots: number;
   trailDotRadius: number;
+  /** Route drawing: candidate ring, snapped threshold ring and draft end handle radii; snap halo opacity. */
+  candidateRing: number;
+  snapRing: number;
+  draftHandle: number;
+  snapHaloOpacity: number;
 }
 
 const size: ThemeSize = {
@@ -191,6 +196,10 @@ const size: ThemeSize = {
   loupeZoom: 2.2,
   trailDots: 5,
   trailDotRadius: 1.5,
+  candidateRing: 9,
+  snapRing: 10,
+  draftHandle: 7,
+  snapHaloOpacity: 0.28,
 };
 
 /** labelScale per "Label size" setting. */

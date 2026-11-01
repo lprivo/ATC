@@ -38,6 +38,16 @@ describe('radar gestures: plane', () => {
     expect(u.state.drawing).toBe(false);
   });
 
+  it('while drawing, the finger is tracked every move; the release point travels with the route', () => {
+    let s = beginDraw(down().state, planePos).state;
+    s = onMove(s, [t(115, 100)], cam, planePos).state; // 15 pt: moved, first point recorded
+    s = onMove(s, [t(120, 100)], cam, planePos).state; // 5 pt more: no new point, but the finger moved
+    expect(s.points).toHaveLength(2);
+    expect(s.finger).toEqual(t(120, 100));
+    const u = onUp(s, t(130, 100), 900, cam);
+    expect(u.effects.find((e) => e.kind === 'route')).toMatchObject({ at: t(130, 100) });
+  });
+
   it('dragging straight off a plane starts drawing without waiting for the hold', () => {
     const m = onMove(down().state, [t(115, 100)], cam, planePos);
     expect(m.state.drawing).toBe(true);

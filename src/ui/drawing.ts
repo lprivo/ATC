@@ -50,10 +50,23 @@ export function alignment(points: readonly Vec2[], end: RunwayEnd): number {
 }
 
 /**
+ * How far (pt) the last stretch of the path is from a runway end's extended
+ * centreline: the mean sideways offset of the last 4 points. Parallel runways
+ * share a heading, so this is what tells 31L from 31R.
+ */
+export function centrelineOffsetPt(points: readonly Vec2[], end: RunwayEnd, scale: number): number {
+  const tail = points.slice(-4);
+  if (tail.length === 0) return 0;
+  const sum = tail.reduce((s, p) => s + Math.abs(trackOffsets(p, end.threshold, end.heading).cross), 0);
+  return (sum / tail.length) * scale;
+}
+
+/**
  * The runway end the path snaps to, if the finger is within snap range of a
- * threshold. Among those, the best score wins: distance (pt) − 30 × alignment,
- * so a path coming down one centreline picks that runway even when the parallel
- * threshold is nearer.
+ * threshold (design: 28 pt or 0.8 nm). Ends the path is flying away from are
+ * never candidates. Among the rest the lowest score wins: distance (pt)
+ * − 30 × alignment + offset from the centreline (pt), so a path coming down
+ * one centreline picks that runway even when the parallel threshold is nearer.
  */
 export function snapTarget(airport: Airport, vp: Viewport, points: readonly Vec2[]): string | null {
   if (points.length === 0) return null;
@@ -64,7 +77,10 @@ export function snapTarget(airport: Airport, vp: Viewport, points: readonly Vec2
   for (const e of ends(airport)) {
     const dNm = dist(e.threshold, finger);
     if (dNm > reachNm) continue;
-    const score = dNm * vp.scale - DRAW.alignWeight * alignment(points, e);
+    const align = alignment(points, e);
+    // Flying the wrong way down the runway (or away from it) isn't an approach.
+    if (points.length >= 2 && align < 0) continue;
+    const score = dNm * vp.scale - DRAW.alignWeight * align + centrelineOffsetPt(points, e, vp.scale);
     if (score < bestScore) {
       bestScore = score;
       best = e.id;
@@ -74,16 +90,40 @@ export function snapTarget(airport: Airport, vp: Viewport, points: readonly Vec2
 }
 
 /**
- * The path to send to the sim once it snapped to `end`: drawn points inside
- * 3.2 nm of the threshold (or past it) are dropped, and the path ends at a final
- * fix 3 nm out on the centreline (the sim adds the threshold itself).
+ * The path to send to the sim once it snapped to `end`: the tail of the drawn
+ * path inside 3.2 nm of the threshold (or past it) is trimmed (earlier legs,
+ * e.g. a downwind on the far side of the field, are kept), and the path ends
+ * at a final fix 3 nm out on the centreline; the sim adds the threshold itself.
+ * A plane already established inside the final fix goes straight to the threshold.
  */
-export function finalisePath(points: readonly Vec2[], end: RunwayEnd): Vec2[] {
-  const kept = points.filter((p) => {
-    const { along } = trackOffsets(p, end.threshold, end.heading);
-    return dist(p, end.threshold) > DRAW.trimNm && along < 0;
+export function finalisePath(points: readonly Vec2[], end: RunwayEnd, planePos?: Vec2): Vec2[] {
+  const inFinalZone = (p: Vec2) => dist(p, end.threshold) <= DRAW.trimNm || trackOffsets(p, end.threshold, end.heading).along >= 0;
+  const kept = [...points];
+  while (kept.length && inFinalZone(kept[kept.length - 1])) kept.pop();
+  const fix = add(end.threshold, dirOf(end.heading), -DRAW.finalFixNm);
+  // Already on final inside the fix: straight to the threshold, no turning back for the fix.
+  if (kept.length === 0 && planePos && onFinalInside(planePos, end)) return [{ ...end.threshold }];
+  return [...kept, fix];
+}
+
+/** On the extended centreline (within 0.5 nm) and already closer than the final fix. */
+function onFinalInside(p: Vec2, end: RunwayEnd) {
+  const { along, cross } = trackOffsets(p, end.threshold, end.heading);
+  return along < 0 && along > -DRAW.finalFixNm && Math.abs(cross) <= 0.5;
+}
+
+/**
+ * The drawn points still ahead of the plane: everything after the point it is
+ * closest to. Used to re-apply a path (e.g. Swap) without sending the plane
+ * back to waypoints it has already passed.
+ */
+export function remainingPoints(points: readonly Vec2[], planePos: Vec2): Vec2[] {
+  if (points.length === 0) return [];
+  let nearest = 0;
+  points.forEach((p, i) => {
+    if (dist(p, planePos) < dist(points[nearest], planePos)) nearest = i;
   });
-  return [...kept, add(end.threshold, dirOf(end.heading), -DRAW.finalFixNm)];
+  return points.slice(nearest + 1);
 }
 
 /** The parallel runway end landing the same way (31L ↔ 31R), for the confirm card's Swap button. */
@@ -97,13 +137,16 @@ export function parallelEnd(airport: Airport, id: string): RunwayEnd | null {
  * Where the loupe goes: about 150 pt above the finger, shifted to the side away
  * from it, and kept inside the screen. Returns its centre and camera.
  */
-export function loupeFor(vp: Viewport, finger: Vec2) {
+export function loupeFor(vp: Viewport, finger: Vec2, insets = { top: 0, bottom: 0 }) {
   const s = toScreen(vp, finger);
   const r = DRAW.loupeRadius;
   const awayX = s.x < vp.w / 2 ? 1 : -1;
   const cx = Math.min(vp.w - r - 4, Math.max(r + 4, s.x + awayX * r * 0.8));
+  const top = insets.top + r + 4;
+  const bottom = vp.h - insets.bottom - r - 4;
   let cy = s.y - DRAW.loupeAbovePt;
-  if (cy < r + 4) cy = s.y + DRAW.loupeAbovePt; // no room above: go below the finger
+  if (cy < top) cy = s.y + DRAW.loupeAbovePt; // no room above (under the HUD): go below the finger
+  cy = Math.min(bottom, Math.max(top, cy));
   const k = Math.max(DRAW.loupeMinK, DRAW.loupeZoom * vp.scale);
   const cam: Viewport = { w: vp.w, h: vp.h, scale: k, ox: cx - finger.x * k, oy: cy + finger.y * k };
   return { cx, cy, r, cam, zoom: k / vp.scale };

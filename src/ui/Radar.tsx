@@ -21,7 +21,7 @@ import {
   trailDots,
 } from './radarGeometry';
 import { DrawOverlay } from './DrawOverlay';
-import { finalisePath, snapTarget } from './drawing';
+import { snapTarget } from './drawing';
 import { wheelDeltaPx, wheelZoomFactor } from './gestures';
 import { HUD_EDGE } from './hudLayout';
 import { LABEL_METRICS, labelBaseline, textWidth, type LabelMode, type LabelSpec } from './labels';
@@ -63,9 +63,9 @@ interface Props {
   /** Called after the radar changes the sim (a new route), so the screen can redraw while paused. */
   onCommand: () => void;
   /**
-   * A drawn path snapped to a runway was released: the screen sets the route
-   * (with that runway) and shows the confirm card. `points` are already
-   * finalised (trimmed, ending at the 3 nm final fix).
+   * A drawn path snapped to a runway was released: the screen finalises it,
+   * clears the plane to that runway and shows the confirm card. `points` are
+   * the raw drawn points (without the plane's position).
    */
   onLanding?: (planeId: string, points: Vec2[], runway: string) => void;
   /** Drawing started or stopped (the sim runs at half speed while drawing). */
@@ -142,19 +142,37 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
       else if (e.kind === 'route') {
         // Released over the sheet: the path is dropped (design: cancel by dropping it on the sheet).
         if (e.at.y > drawnVp.current.h - insets.bottom) continue;
-        const snap = snapTarget(sim.airport, drawnVp.current, e.points);
-        const end = snap ? sim.runwayEnd(snap) : undefined;
-        if (end && onLanding) onLanding(e.id, finalisePath(e.points, end), end.id);
-        else sim.setRoute(e.id, e.points);
+        // Snap from the same points the overlay showed (plane position first).
+        const from = sim.plane(e.id)?.pos;
+        const snap = snapTarget(sim.airport, drawnVp.current, from ? [from, ...e.points] : e.points);
+        if (snap && onLanding) onLanding(e.id, e.points, snap);
+        // When the screen handles landings, a path the UI didn't snap never lands.
+        else sim.setRoute(e.id, e.points, onLanding ? null : undefined);
         onCommand();
       } else if (e.kind === 'armHold') {
         cancelHold();
         // Through a ref, so the timer uses the latest render's sim (a restart may swap it).
         hold.current = setTimeout(() => runRef.current(beginDraw(g.current, planePosRef.current(g.current.planeId))), HOLD_MS);
       } else if (e.kind === 'cancelHold') cancelHold();
-      else setDraftVersion((v) => v + 1);
+      else redrawDraft();
     }
   };
+  // The draft redraws at most once per animation frame (touch moves arrive at 60–120 Hz).
+  const draftFrame = useRef<number | null>(null);
+  const redrawDraft = () => {
+    if (draftFrame.current != null) return;
+    draftFrame.current = requestAnimationFrame(() => {
+      draftFrame.current = null;
+      setDraftVersion((v) => v + 1);
+    });
+  };
+  useEffect(
+    () => () => {
+      if (draftFrame.current != null) cancelAnimationFrame(draftFrame.current);
+      draftFrame.current = null;
+    },
+    [],
+  );
   const planePos = (id: string | null) => (id ? sim.plane(id)?.pos : undefined);
   const runRef = useRef(run);
   runRef.current = run;
@@ -238,6 +256,10 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
             {sim.planes.map((p) => (
               <RouteLine key={`r-${p.id}`} plane={p} vp={vp} theme={theme} />
             ))}
+            {/* Snap highlight and the draft sit under the planes, as in the design; the loupe and chip go on top. */}
+            {drawing && finger && (
+              <DrawOverlay layer="under" airport={sim.airport} vp={vp} theme={theme} points={g.current.points} finger={finger} snap={snap} insets={insets} />
+            )}
             {sim.conflicts.map((cf) => (
               <PairLine key={`pl-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
             ))}
@@ -252,7 +274,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
               <PairTag key={`pt-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
             ))}
             {drawing && finger && (
-              <DrawOverlay airport={sim.airport} vp={vp} theme={theme} points={g.current.points} finger={finger} snap={snap} />
+              <DrawOverlay layer="over" airport={sim.airport} vp={vp} theme={theme} points={g.current.points} finger={finger} snap={snap} insets={insets} />
             )}
           </Svg>
         </View>

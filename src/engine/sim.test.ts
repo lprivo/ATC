@@ -211,6 +211,22 @@ describe('routes and landing', () => {
     expect(p.target.heading).toBe(0);
   });
 
+  it('setRoute: a forced runway lands there, null never lands, an unknown id is just a route', () => {
+    const sim = simWith([finalEntry], [flight('F')]);
+    const p = sim.planes[0];
+    // Ends nearer 31R's threshold, but the UI chose 31L.
+    sim.setRoute(p.id, [onFinal(rwy31L, 3)], '31L');
+    expect(p.clearedRunway?.id).toBe('31L');
+    expect(p.route.at(-1)).toEqual(rwy31L.threshold);
+    // null: the same path to a threshold never clears.
+    sim.setRoute(p.id, [rwy31R.threshold], null);
+    expect(p.clearedRunway).toBeNull();
+    sim.setRoute(p.id, [onFinal(rwy31R, 2)], 'XX');
+    expect(p.clearedRunway).toBeNull();
+    expect(sim.runwayEnd('31R')).toBe(rwy31R);
+    expect(sim.runwayEnd('XX')).toBeUndefined();
+  });
+
   it('a path ending away from runways is just a route', () => {
     const sim = simWith([finalEntry], [flight('F')]);
     const p = sim.planes[0];
