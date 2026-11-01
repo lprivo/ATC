@@ -1,5 +1,5 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
+import { memo, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, G, Line, Path, Polygon, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import type { Sim } from '../engine/sim';
 import type { Airport, Conflict, Plane, Vec2 } from '../engine/types';
@@ -20,11 +20,30 @@ import {
   runwayWidth,
   trailDots,
 } from './radarGeometry';
-import { hitTest, makeViewport, polylinePoints, tagLayout, toScreen, toWorld, type TagLayout, type Viewport } from './viewport';
+import { isDoubleTap, isTap, pinchOf, TAP, wheelZoomFactor, type TouchPt } from './gestures';
+import {
+  defaultViewport,
+  ensureVisible,
+  hitTest,
+  panBy,
+  polylinePoints,
+  resizeViewport,
+  tagLayout,
+  toggleRunwayZoom,
+  toScreen,
+  toWorld,
+  zoomAt,
+  type TagLayout,
+  type Viewport,
+} from './viewport';
 
 const HOLD_MS = 220;
 const DRAG_START_PX = 10;
 const DRAFT_SPACING_PX = 6;
+/** Keep a newly selected plane at least this far below the radar's top edge. */
+const SELECT_TOP_PT = 24;
+const EDGE = 12;
+const RECENTRE_SIZE = 44;
 
 interface Props {
   sim: Sim;
@@ -34,23 +53,33 @@ interface Props {
   onCommand: () => void;
 }
 
+type Mode = 'none' | 'plane' | 'pan' | 'pinch';
+
 export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
   const { theme } = useTheme();
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  const vp = useMemo(() => makeViewport(size.w, size.h, sim.airport.rangeNm), [size.w, size.h, sim.airport.rangeNm]);
+  const c = theme.colors;
+  const [vp, setVp] = useState<Viewport>(() => defaultViewport(0, 0));
+  // Gesture handlers read the camera through a ref: touch events can arrive faster than React renders.
+  const vpRef = useRef(vp);
+  vpRef.current = vp;
   const tag = useMemo(() => tagLayout(theme.radarFont.label.fontSize), [theme.radarFont.label.fontSize]);
 
   // ---- gestures --------------------------------------------------------
-  // Gesture state lives in a ref: touch events can arrive faster than React
-  // renders, so reading anything from state on release could be stale.
+  // Gesture state lives in a ref: reading anything from state on release could be stale.
   const g = useRef({
+    mode: 'none' as Mode,
     start: { x: 0, y: 0 },
+    startT: 0,
     planeId: null as string | null,
     drawing: false,
     moved: false,
     timer: null as ReturnType<typeof setTimeout> | null,
     lastPx: { x: 0, y: 0 },
     points: [] as Vec2[],
+    /** Camera and finger positions when a pan or pinch began. */
+    camStart: vp,
+    pinch: { dist: 1, mid: { x: 0, y: 0 } },
+    lastTap: null as { t: number; at: TouchPt } | null,
   });
   // Bumped to redraw the path being drawn (needed while the game is paused).
   const [, setDraftVersion] = useState(0);
@@ -73,35 +102,70 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
     redrawDraft();
   };
 
+  const touchesOf = (e: GestureResponderEvent): TouchPt[] =>
+    e.nativeEvent.touches.map((t) => ({ x: t.locationX, y: t.locationY }));
   const xy = (e: GestureResponderEvent) => ({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
+
+  const beginPinch = (a: TouchPt, b: TouchPt) => {
+    const st = g.current;
+    clearTimer();
+    // A second finger turns any gesture into a pinch; a half-drawn path is dropped.
+    st.drawing = false;
+    st.points = [];
+    st.mode = 'pinch';
+    st.moved = true;
+    st.camStart = vpRef.current;
+    st.pinch = pinchOf(a, b);
+    redrawDraft();
+  };
 
   const onGrant = (e: GestureResponderEvent) => {
     const p = xy(e);
     const st = g.current;
     st.start = p;
+    st.startT = Date.now();
     st.lastPx = p;
     st.moved = false;
     st.drawing = false;
     st.points = [];
-    st.planeId = hitTest(sim.planes, vp, tag, p.x, p.y, theme.size.hitRadius);
+    st.camStart = vpRef.current;
     clearTimer();
+    const touches = touchesOf(e);
+    if (touches.length >= 2) return beginPinch(touches[0], touches[1]);
+    st.planeId = hitTest(sim.planes, vpRef.current, tag, p.x, p.y, theme.size.hitRadius);
+    st.mode = st.planeId ? 'plane' : 'pan';
     if (st.planeId) st.timer = setTimeout(beginDraw, HOLD_MS);
   };
 
   const onMove = (e: GestureResponderEvent) => {
-    const p = xy(e);
     const st = g.current;
-    if (!st.moved && Math.hypot(p.x - st.start.x, p.y - st.start.y) > DRAG_START_PX) {
+    const touches = touchesOf(e);
+    if (touches.length >= 2) {
+      if (st.mode !== 'pinch') beginPinch(touches[0], touches[1]);
+      const now = pinchOf(touches[0], touches[1]);
+      const k = st.camStart.scale * (now.dist / Math.max(1, st.pinch.dist));
+      // Zoom around where the fingers started, then follow the midpoint.
+      const z = zoomAt(st.camStart, k, st.pinch.mid.x, st.pinch.mid.y);
+      setVp(panBy(z, now.mid.x - st.pinch.mid.x, now.mid.y - st.pinch.mid.y));
+      return;
+    }
+    if (st.mode === 'pinch') return; // one finger lifted mid-pinch: wait for the release
+    const p = xy(e);
+    if (!st.moved && Math.hypot(p.x - st.start.x, p.y - st.start.y) > (st.mode === 'pan' ? TAP.maxMovePt : DRAG_START_PX)) {
       st.moved = true;
-      // Dragging straight off a plane also starts a path — no need to wait for the hold.
-      if (st.planeId && !st.drawing) {
+      // Dragging straight off a plane also starts a path: no need to wait for the hold.
+      if (st.mode === 'plane' && !st.drawing) {
         clearTimer();
         beginDraw();
       }
     }
+    if (st.mode === 'pan' && st.moved) {
+      setVp(panBy(st.camStart, p.x - st.start.x, p.y - st.start.y));
+      return;
+    }
     if (st.drawing && Math.hypot(p.x - st.lastPx.x, p.y - st.lastPx.y) >= DRAFT_SPACING_PX) {
       st.lastPx = p;
-      st.points.push(toWorld(vp, p.x, p.y));
+      st.points.push(toWorld(vpRef.current, p.x, p.y));
       redrawDraft();
     }
   };
@@ -109,16 +173,28 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
   const onRelease = (e: GestureResponderEvent) => {
     clearTimer();
     const st = g.current;
-    if (st.drawing && st.moved && st.planeId) {
-      // Always end exactly where the finger lifted, even if it moved < DRAFT_SPACING_PX since the last sample.
-      const p = xy(e);
-      sim.setRoute(st.planeId, [...st.points.slice(1), toWorld(vp, p.x, p.y)]);
-      onCommand();
-    } else if (!st.moved) {
-      // A tap — or a long press that never moved — only selects. It must not
-      // turn into a tiny route that would cancel the plane's clearance.
-      onSelect(st.planeId);
+    const p = xy(e);
+    if (st.mode === 'plane') {
+      if (st.drawing && st.moved && st.planeId) {
+        // Always end exactly where the finger lifted, even if it moved < DRAFT_SPACING_PX since the last sample.
+        sim.setRoute(st.planeId, [...st.points.slice(1), toWorld(vpRef.current, p.x, p.y)]);
+        onCommand();
+      } else if (!st.moved) {
+        // A tap, or a long press that never moved, only selects. It must not
+        // turn into a tiny route that would cancel the plane's clearance.
+        onSelect(st.planeId);
+      }
+    } else if (st.mode === 'pan' && isTap(Math.hypot(p.x - st.start.x, p.y - st.start.y), Date.now() - st.startT)) {
+      const now = Date.now();
+      if (isDoubleTap(st.lastTap, now, p)) {
+        st.lastTap = null;
+        setVp(toggleRunwayZoom(vpRef.current));
+      } else {
+        st.lastTap = { t: now, at: p };
+        onSelect(null);
+      }
     }
+    st.mode = 'none';
     st.drawing = false;
     st.points = [];
     redrawDraft();
@@ -126,22 +202,48 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
 
   const onTerminate = () => {
     clearTimer();
+    g.current.mode = 'none';
     g.current.drawing = false;
     g.current.points = [];
     redrawDraft();
   };
 
-  // ---- drawing ---------------------------------------------------------
+  // Scroll wheel / trackpad zoom on the web, around the pointer.
+  const hostRef = useRef<ComponentRef<typeof View>>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const el = hostRef.current as unknown as HTMLElement | null;
+    if (!el?.addEventListener) return;
+    const onWheel = (ev: WheelEvent) => {
+      ev.preventDefault();
+      const r = el.getBoundingClientRect();
+      const v = vpRef.current;
+      setVp(zoomAt(v, v.scale * wheelZoomFactor(ev.deltaY), ev.clientX - r.left, ev.clientY - r.top));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // When a plane is selected, pan just enough to keep it on screen.
+  useEffect(() => {
+    if (!selectedId) return;
+    const p = sim.plane(selectedId);
+    const v = vpRef.current;
+    if (!p || v.w === 0) return;
+    const next = ensureVisible(v, p.pos, SELECT_TOP_PT, v.h - RECENTRE_SIZE - 2 * EDGE);
+    if (next !== v) setVp(next);
+  }, [selectedId, sim]);
+
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
-    setSize({ w: width, h: height });
+    setVp((v) => resizeViewport(v, width, height));
   };
 
-  const c = theme.colors;
   const draft = g.current.drawing ? g.current.points : [];
 
   return (
     <View
+      ref={hostRef}
       style={{ flex: 1, backgroundColor: c.background, overflow: 'hidden' }}
       onLayout={onLayout}
       onStartShouldSetResponder={() => true}
@@ -153,9 +255,9 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
       onResponderTerminate={onTerminate}
       testID="radar"
     >
-      {size.w > 0 && (
+      {vp.w > 0 && (
         <View pointerEvents="none" style={{ flex: 1 }}>
-          <Svg width={size.w} height={size.h}>
+          <Svg width={vp.w} height={vp.h}>
             <StaticMap airport={sim.airport} vp={vp} theme={theme} />
             {sim.planes.map((p) => (
               <RouteLine key={`r-${p.id}`} plane={p} vp={vp} theme={theme} />
@@ -175,9 +277,35 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
           </Svg>
         </View>
       )}
+      <Pressable
+        testID="btn-recentre"
+        accessibilityLabel="Re-centre radar"
+        onPress={() => setVp(defaultViewport(vp.w, vp.h))}
+        style={({ pressed }) => [
+          styles.recentre,
+          { backgroundColor: pressed ? c.buttonPressed : c.panel, borderColor: c.panelBorder, borderWidth: theme.hairline },
+        ]}
+      >
+        <Svg width={20} height={20} viewBox="0 0 24 24">
+          <Circle cx={12} cy={12} r={3} stroke={c.text} strokeWidth={1.5} fill="none" />
+          <Path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke={c.text} strokeWidth={1.5} />
+        </Svg>
+      </Pressable>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  recentre: {
+    position: 'absolute',
+    right: EDGE,
+    bottom: EDGE,
+    width: RECENTRE_SIZE,
+    height: RECENTRE_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 /**
  * Range rings, extended centrelines, runways and fixes. These never move, so

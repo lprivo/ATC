@@ -16,7 +16,7 @@ import {
 } from './radarGeometry';
 import { toScreen, type Viewport } from './viewport';
 
-const vp = (scale: number): Viewport => ({ w: 400, h: 400, scale });
+const vp = (scale: number): Viewport => ({ w: 400, h: 400, ox: 200, oy: 200, scale });
 const plane = (over: Partial<Plane> = {}) => ({ pos: { x: 0, y: 0 }, heading: 90, speed: 240, ...over }) as Plane;
 const ends = Object.fromEntries(LHBP.runways.flatMap((r) => r.ends).map((e) => [e.id, e]));
 
