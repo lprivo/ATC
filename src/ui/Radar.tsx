@@ -11,7 +11,6 @@ import { hitTest, makeViewport, polylinePoints, tagLayout, toScreen, toWorld, ty
 
 const HOLD_MS = 220;
 const DRAG_START_PX = 10;
-const HIT_RADIUS_PX = 28;
 const DRAFT_SPACING_PX = 6;
 const RANGE_RINGS_NM = [5, 10, 20, 30, 40, 60];
 
@@ -72,7 +71,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
     st.moved = false;
     st.drawing = false;
     st.points = [];
-    st.planeId = hitTest(sim.planes, vp, tag, p.x, p.y, HIT_RADIUS_PX);
+    st.planeId = hitTest(sim.planes, vp, tag, p.x, p.y, theme.size.hitRadius);
     clearTimer();
     if (st.planeId) st.timer = setTimeout(beginDraw, HOLD_MS);
   };
@@ -223,8 +222,11 @@ function PlaneGlyph({ plane: p, vp, tag, selected }: { plane: Plane; vp: Viewpor
   const c = theme.colors;
   const s = toScreen(vp, p.pos);
   const color = p.conflict ? c.planeConflict : selected ? c.planeSelected : c.plane;
-  const lead = toScreen(vp, add(p.pos, dirOf(p.heading), (p.speed / 60) * theme.size.headingVectorMinutes));
-  const half = theme.size.planeSymbol / 2;
+  const z = theme.size;
+  // Heading vector: one minute of flight, at least headingVectorMin pt.
+  const leadPt = Math.max(z.headingVectorMin, (p.speed / 60) * z.headingVectorMinutes * vp.scale);
+  const lead = toScreen(vp, add(p.pos, dirOf(p.heading), leadPt / vp.scale));
+  const half = z.planeSymbol / 2;
 
   const altDiff = p.target.altitude - p.altitude;
   const arrow = altDiff > 50 ? '↑' : altDiff < -50 ? '↓' : ' ';
@@ -249,10 +251,20 @@ function PlaneGlyph({ plane: p, vp, tag, selected }: { plane: Plane; vp: Viewpor
           opacity={selected ? 1 : 0.6}
         />
       )}
-      {/* Two planes' circles touch exactly at minimum lateral separation. */}
-      {p.conflict && <Circle cx={s.x} cy={s.y} r={(RULES.separationNm / 2) * vp.scale} stroke={c.planeConflict} strokeWidth={1} fill="none" />}
+      {/* Dashed conflict ring: radius max(conflictRingMin pt, conflictRingNm nm), per the design. */}
+      {p.conflict && (
+        <Circle
+          cx={s.x}
+          cy={s.y}
+          r={Math.max(z.conflictRingMin, z.conflictRingNm * vp.scale)}
+          stroke={c.planeConflict}
+          strokeWidth={z.planeStroke}
+          strokeDasharray="5 4"
+          fill="none"
+        />
+      )}
       <Line x1={s.x} y1={s.y} x2={lead.x} y2={lead.y} stroke={color} strokeWidth={1} />
-      <Rect x={s.x - half} y={s.y - half} width={half * 2} height={half * 2} fill={selected ? color : 'none'} stroke={color} strokeWidth={1.5} />
+      <Rect x={s.x - half} y={s.y - half} width={half * 2} height={half * 2} fill={selected ? color : 'none'} stroke={color} strokeWidth={z.planeStroke} />
       {selected && <Rect x={tx - 3} y={ty - 2} width={tag.width} height={tag.height} fill="none" stroke={color} strokeWidth={1} />}
       <SvgText x={tx} y={ty + tag.line1} fill={color} fontFamily={f1.fontFamily} fontSize={f1.fontSize}>
         {p.callsign}
