@@ -92,6 +92,16 @@ export interface SimStats {
   separationViolations: number;
 }
 
+/** Two planes currently closer than separation minima. */
+export interface Conflict {
+  a: string;
+  b: string;
+  /** Lateral distance, nm. */
+  distNm: number;
+  /** Vertical separation, ft. */
+  altFt: number;
+}
+
 export interface SimEvent {
   time: number;
   text: string;

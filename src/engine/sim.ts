@@ -1,5 +1,5 @@
 import { add, angleDiff, approach, clamp, dirOf, dist, headingTo, normDeg } from './math';
-import type { Airport, Plane, RunwayEnd, SimEvent, SimStats, TrafficEntry, Vec2 } from './types';
+import type { Airport, Conflict, Plane, RunwayEnd, SimEvent, SimStats, TrafficEntry, Vec2 } from './types';
 
 // Aircraft performance — deliberately simple and identical for every type for now.
 export const PERF = {
@@ -106,6 +106,8 @@ export class Sim {
   planes: Plane[] = [];
   stats: SimStats = { landed: 0, exited: 0, goArounds: 0, separationViolations: 0 };
   events: SimEvent[] = [];
+  /** Pairs in conflict after the last step, for drawing the pair line and distance tag. */
+  conflicts: Conflict[] = [];
 
   private pending: TrafficEntry[];
   private conflictPairs = new Set<string>();
@@ -357,17 +359,18 @@ export class Sim {
 
   private checkSeparation() {
     const now = new Set<string>();
+    const list: Conflict[] = [];
     for (const p of this.planes) p.conflict = false;
     for (let i = 0; i < this.planes.length; i++) {
       for (let j = i + 1; j < this.planes.length; j++) {
         const a = this.planes[i];
         const b = this.planes[j];
         if (onParallelFinals(a, b)) continue;
-        if (
-          dist(a.pos, b.pos) < RULES.separationNm &&
-          Math.abs(a.altitude - b.altitude) < RULES.separationFt
-        ) {
+        const d = dist(a.pos, b.pos);
+        const v = Math.abs(a.altitude - b.altitude);
+        if (d < RULES.separationNm && v < RULES.separationFt) {
           a.conflict = b.conflict = true;
+          list.push({ a: a.id, b: b.id, distNm: d, altFt: v });
           const key = a.id < b.id ? `${a.id}|${b.id}` : `${b.id}|${a.id}`;
           now.add(key);
           if (!this.conflictPairs.has(key)) {
@@ -378,6 +381,7 @@ export class Sim {
       }
     }
     this.conflictPairs = now;
+    this.conflicts = list;
   }
 
   /**
