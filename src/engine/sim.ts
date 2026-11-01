@@ -96,8 +96,13 @@ function onParallelFinals(a: Plane, b: Plane): boolean {
   if (Math.abs(angleDiff(ra.heading, rb.heading)) > 1) return false;
   return establishedOnFinal(a) && establishedOnFinal(b);
 }
-const TRAIL_EVERY_SEC = 4;
-const TRAIL_LENGTH = 8;
+/**
+ * Position history for radar trails: one sample every 2 s, kept for 2 minutes.
+ * At sector zoom on a phone (~6.5 pt/nm) five trail dots need ~3.9 nm of path,
+ * which a plane at approach speed (140 kt) covers in ~100 s.
+ */
+const TRAIL_EVERY_SEC = 2;
+export const TRAIL_LENGTH = 60;
 const MAX_EVENTS = 20;
 
 export class Sim {

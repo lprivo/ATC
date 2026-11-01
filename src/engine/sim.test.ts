@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LHBP } from './airports/lhbp';
 import { add, angleDiff, dirOf, dist, headingTo } from './math';
-import { remainingPathNm, RULES, Sim } from './sim';
+import { remainingPathNm, RULES, Sim, TRAIL_LENGTH } from './sim';
 import { generateRandomTraffic } from './traffic';
 import type { Airport, EntryPoint, TrafficEntry } from './types';
 
@@ -325,6 +325,41 @@ describe('separation and sector', () => {
     expect(sim.stats.separationViolations).toBe(1);
   });
 
+  it('lists each pair in conflict with its lateral and vertical separation', () => {
+    const sim = simWith(
+      [
+        { name: 'A', pos: { x: -5, y: 0 }, heading: 90 },
+        { name: 'B', pos: { x: 5, y: 0 }, heading: 270 },
+      ],
+      [flight('A', { altitude: 7000 }), flight('B', { altitude: 7400 })],
+    );
+    sim.step(0.01);
+    expect(sim.conflicts).toEqual([]); // 10 nm apart
+    sim.step(60);
+    const [a, b] = sim.planes;
+    expect(sim.conflicts).toHaveLength(1);
+    expect(sim.conflicts[0]).toMatchObject({ a: a.id, b: b.id, altFt: 400 });
+    expect(sim.conflicts[0].distNm).toBeCloseTo(dist(a.pos, b.pos));
+    // Once they have passed and opened up again the list empties.
+    sim.step(60);
+    expect(sim.conflicts).toEqual([]);
+  });
+
+  it('a pair in conflict drops off the list when one of them leaves', () => {
+    const sim = simWith(
+      [
+        { name: 'A', pos: { x: 31.5, y: 0 }, heading: 90 },
+        { name: 'B', pos: { x: 31.5, y: 1 }, heading: 270 },
+      ],
+      [flight('A'), flight('B')],
+    );
+    sim.step(0.01);
+    expect(sim.conflicts).toHaveLength(1);
+    sim.step(10); // A crosses the sector edge; B heads back in
+    expect(sim.planes.map((p) => p.callsign)).toHaveLength(1);
+    expect(sim.conflicts).toEqual([]);
+  });
+
   it('vertical separation is enough', () => {
     const sim = simWith(
       [
@@ -353,6 +388,7 @@ describe('separation and sector', () => {
     sim.setRoute(b.id, [rwy31L.threshold]);
     sim.step(1);
     expect(a.conflict || b.conflict).toBe(false);
+    expect(sim.conflicts).toEqual([]);
     expect(sim.stats.separationViolations).toBe(before);
   });
 
@@ -436,7 +472,7 @@ describe('limits and housekeeping', () => {
     const sim = new Sim(LHBP, traffic);
     for (let t = 0; t < 3000; t += 10) {
       sim.step(10);
-      for (const p of sim.planes) expect(p.trail.length).toBeLessThanOrEqual(8);
+      for (const p of sim.planes) expect(p.trail.length).toBeLessThanOrEqual(TRAIL_LENGTH);
       expect(sim.events.length).toBeLessThanOrEqual(20);
     }
   });

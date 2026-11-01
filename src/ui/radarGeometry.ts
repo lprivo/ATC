@@ -86,15 +86,33 @@ export function headingVector(p: Plane, vp: Viewport, minutes: number, minPt: nu
   return { x1: s.x + d.x * start, y1: s.y + d.y * start, x2: s.x + d.x * len, y2: s.y + d.y * len };
 }
 
-/** Trail: `count` dots behind the plane along its heading, spaced max(5 pt, 0.45 nm), fading 0.84 → 0.2. */
+/** Trail dot alpha: 0.84 for the newest dot down to 0.2 for the oldest, for any dot count. */
+export const trailAlpha = (k: number, count: number) => (count <= 1 ? 0.84 : 0.84 - (k / (count - 1)) * 0.64);
+
+/**
+ * Trail: up to `count` dots along the plane's real flown path (newest history
+ * first), one every max(5 pt, 0.45 nm) of path length, fading 0.84 → 0.2.
+ * Fewer dots while the history is still short (just after spawning).
+ */
 export function trailDots(p: Plane, vp: Viewport, count: number) {
-  const s = toScreen(vp, p.pos);
-  const d = screenDir(p.heading);
   const gap = Math.max(5, 0.45 * vp.scale);
-  return Array.from({ length: count }, (_, k) => {
-    const i = k + 1;
-    return { x: s.x - d.x * gap * i, y: s.y - d.y * gap * i, opacity: 1 - i * 0.16 };
-  });
+  const path = [toScreen(vp, p.pos), ...[...p.trail].reverse().map((q) => toScreen(vp, q))];
+  const out: { x: number; y: number; opacity: number }[] = [];
+  let need = gap; // path length still to walk before the next dot
+  for (let i = 1; i < path.length && out.length < count; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    const seg = Math.hypot(b.x - a.x, b.y - a.y);
+    let used = 0;
+    while (seg - used >= need && out.length < count) {
+      used += need;
+      const t = used / seg;
+      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, opacity: 0 });
+      need = gap;
+    }
+    need -= seg - used;
+  }
+  return out.map((d, k) => ({ ...d, opacity: trailAlpha(k, count) }));
 }
 
 /** Conflict ring radius: max(minPt, ringNm). */
@@ -120,14 +138,18 @@ export function chevron(a: ScreenPt, b: ScreenPt, size = 6) {
   return `${p1.x.toFixed(1)},${p1.y.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
 }
 
-/** Midpoint label for a conflict pair, 26 pt below the line's middle. Text like "2.7 NM · 400 FT". */
+/**
+ * Midpoint label for a conflict pair, 26 pt below the line's middle. Text like
+ * "2.7 NM · 400 FT". Values round down, so a conflict never reads as the
+ * 3.0 NM / 1000 FT minimum it is breaking.
+ */
 export function pairTag(vp: Viewport, a: Vec2, b: Vec2, distNm: number, altFt: number) {
   const sa = toScreen(vp, a);
   const sb = toScreen(vp, b);
   return {
     x: (sa.x + sb.x) / 2,
     y: (sa.y + sb.y) / 2 + 26,
-    text: `${distNm.toFixed(1)} NM · ${Math.round(altFt / 100) * 100} FT`,
+    text: `${(Math.floor(distNm * 10) / 10).toFixed(1)} NM · ${Math.floor(altFt / 100) * 100} FT`,
   };
 }
 
