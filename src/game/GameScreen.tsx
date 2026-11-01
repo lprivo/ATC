@@ -20,7 +20,8 @@ export function GameScreen() {
   const { sim, paused, setPaused, timeScale, setTimeScale, restart, refresh } = useSim(LHBP);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh });
-  const [bannerHeight, setBannerHeight] = useState(0);
+  // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
+  const [bannerHeight, setBannerHeight] = useState(56);
 
   const onRestart = () => {
     // Clear the selection with the restart: plane ids start again at "1" in the new sim.
@@ -36,7 +37,8 @@ export function GameScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <StatusBar style={theme.statusBar} />
-      <View style={styles.radarArea}>
+      {/* While paused, hide the game from TalkBack (accessibilityViewIsModal on the overlay is iOS-only). */}
+      <View style={styles.radarArea} importantForAccessibility={paused ? 'no-hide-descendants' : 'auto'}>
         <Radar
           sim={sim}
           selectedId={selectedId}

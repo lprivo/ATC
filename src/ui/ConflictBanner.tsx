@@ -17,16 +17,16 @@ export function ConflictBanner({
 }) {
   const { theme } = useTheme();
   const c = theme.colors;
-  // iOS doesn't announce role="alert" by itself: announce each new conflict pair.
+  // Announce each new conflict pair once. (No live region: the distance
+  // changes every frame and Android would re-read the banner each time.)
   useEffect(() => {
     AccessibilityInfo.announceForAccessibility(`${banner.title}. ${banner.detail}`);
-  }, [banner.title, banner.detail.split(' — ')[0]]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [banner.pairKey]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <View
       style={[styles.banner, { backgroundColor: c.danger }]}
       testID="conflict-banner"
       accessibilityRole="alert"
-      accessibilityLiveRegion="assertive"
       onLayout={(e: LayoutChangeEvent) => onHeight(e.nativeEvent.layout.height)}
     >
       <WarningIcon color={c.onDanger} size={22} strokeWidth={1.75} />

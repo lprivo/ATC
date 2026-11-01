@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Sim } from '../engine/sim';
-import { conflictBanner, conflictSetKey, hasNewConflict, nextToastExpiry, pairKey, updateToasts, type Toast } from './hud';
+import { conflictBanner, conflictSetKey, hasNewConflict, nextToastExpiry, pairKey, stepToastState, type ToastState } from './hud';
 
 /**
  * HUD state for the game screen: event toasts (per sim, so a restart starts
@@ -10,11 +10,9 @@ import { conflictBanner, conflictSetKey, hasNewConflict, nextToastExpiry, pairKe
 export function useHud(sim: Sim, opts: { paused: boolean; timeScale: number; setTimeScale: (s: number) => void; refresh: () => void }) {
   const { paused, timeScale, setTimeScale, refresh } = opts;
 
-  const toastState = useRef({ sim, toasts: [] as Toast[], lastSeq: 0 });
-  if (toastState.current.sim !== sim) toastState.current = { sim, toasts: [], lastSeq: 0 };
-  const next = updateToasts(toastState.current.toasts, sim.events, toastState.current.lastSeq, Date.now());
-  toastState.current = { sim, ...next };
-  const toasts = next.toasts;
+  const toastState = useRef<ToastState>({ owner: sim, toasts: [], lastSeq: 0 });
+  toastState.current = stepToastState(toastState.current, sim, sim.events, Date.now());
+  const toasts = toastState.current.toasts;
 
   // Paused: nothing re-renders on its own, so wake up when the oldest toast is due to expire.
   const expiry = nextToastExpiry(toasts);

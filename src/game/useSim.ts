@@ -64,6 +64,5 @@ export function useSim(airport: Airport) {
     setPaused(false);
   }, [airport]);
 
-
   return { sim, paused, setPaused, timeScale, setTimeScale, restart, refresh };
 }

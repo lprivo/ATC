@@ -49,6 +49,19 @@ export function updateToasts(current: readonly Toast[], events: readonly SimEven
   return { toasts, lastSeq: seq };
 }
 
+export interface ToastState {
+  /** The sim these toasts belong to; a new sim (restart) starts clean. */
+  owner: unknown;
+  toasts: Toast[];
+  lastSeq: number;
+}
+
+/** One render's toast update, starting over when the sim (`owner`) changes. */
+export function stepToastState(state: ToastState, owner: unknown, events: readonly SimEvent[], now: number): ToastState {
+  const base = state.owner === owner ? state : { owner, toasts: [], lastSeq: 0 };
+  return { owner, ...updateToasts(base.toasts, events, base.lastSeq, now) };
+}
+
 /** When the oldest of `toasts` expires (ms timestamp), or null if there are none. */
 export const nextToastExpiry = (toasts: readonly Toast[]) => (toasts.length ? Math.min(...toasts.map((t) => t.at)) + TOAST_MS : null);
 
@@ -58,6 +71,8 @@ export interface Banner {
   detail: string;
   /** Plane the SELECT button selects. */
   selectId: string;
+  /** Identifies the pair, e.g. to announce each new conflict once. */
+  pairKey: string;
 }
 
 /** The conflict banner for the first current conflict, or null when there is none. */
@@ -70,15 +85,15 @@ export function conflictBanner(sim: Sim): Banner | null {
     const nm = (Math.floor(cf.distNm * 10) / 10).toFixed(1);
     // Always under 1,000 ft in a conflict, so no thousands separator is needed.
     const ft = Math.floor(cf.altFt / 100) * 100;
-    return { title: 'SEPARATION LOST', detail: `${a.callsign} · ${b.callsign} — ${nm} nm, ${ft} ft`, selectId: a.id };
+    return { title: 'SEPARATION LOST', detail: `${a.callsign} · ${b.callsign} — ${nm} nm, ${ft} ft`, selectId: a.id, pairKey: pairKey(cf) };
   }
   return null;
 }
 
 export const pairKey = (cf: Conflict) => (cf.a < cf.b ? `${cf.a}|${cf.b}` : `${cf.b}|${cf.a}`);
 
-/** Whether any current conflict pair wasn't in `known` (design: a new conflict drops the sim to ×1). */
 /** A stable key for the current set of conflict pairs (changes only when the set changes). */
 export const conflictSetKey = (conflicts: readonly Conflict[]) => conflicts.map(pairKey).sort().join(',');
 
+/** Whether any current conflict pair wasn't in `known` (design: a new conflict drops the sim to ×1). */
 export const hasNewConflict = (known: ReadonlySet<string>, conflicts: readonly Conflict[]) => conflicts.some((cf) => !known.has(pairKey(cf)));

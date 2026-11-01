@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LHBP } from '../engine/airports/lhbp';
 import { Sim } from '../engine/sim';
 import type { SimEvent } from '../engine/types';
-import { conflictBanner, conflictSetKey, hasNewConflict, MAX_TOASTS, nextToastExpiry, pairKey, TOAST_MS, toastFor, updateToasts } from './hud';
+import { conflictBanner, conflictSetKey, hasNewConflict, MAX_TOASTS, nextToastExpiry, pairKey, stepToastState, TOAST_MS, toastFor, updateToasts } from './hud';
 
 const ev = (seq: number, kind: SimEvent['kind'], callsigns: string[], extra: Partial<SimEvent> = {}): SimEvent => ({
   seq,
@@ -82,10 +82,17 @@ describe('toast timing and keys', () => {
     expect(nextToastExpiry([])).toBeNull();
   });
 
-  it('a fresh sim (seq from 1 again) gets its toasts when its state starts clean', () => {
-    // useHud resets lastSeq to 0 for a new sim; with the old lastSeq the new events would be skipped.
-    expect(updateToasts([], [ev(1, 'exited', ['N'])], 0, 0).toasts).toHaveLength(1);
-    expect(updateToasts([], [ev(1, 'exited', ['N'])], 7, 0).toasts).toHaveLength(0);
+  it('a new sim (restart: seq from 1 again) starts clean; the same sim keeps its toasts', () => {
+    const oldSim = {};
+    const newSim = {};
+    const before = stepToastState({ owner: oldSim, toasts: [], lastSeq: 0 }, oldSim, [ev(6, 'exited', ['OLD']), ev(7, 'exited', ['OLD2'])], 0);
+    expect(before.lastSeq).toBe(7);
+    // Same sim: nothing new, toasts kept.
+    expect(stepToastState(before, oldSim, [ev(7, 'exited', ['OLD2'])], 10).toasts).toHaveLength(2);
+    // New sim with seq 1: its event shows and the old toasts are gone.
+    const after = stepToastState(before, newSim, [ev(1, 'exited', ['NEW'])], 20);
+    expect(after.toasts.map((t) => t.text)).toEqual(['NEW left the sector']);
+    expect(after.owner).toBe(newSim);
   });
 
   it('the conflict set key ignores pair order', () => {
