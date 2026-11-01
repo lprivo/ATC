@@ -24,5 +24,9 @@ export function pinchOf(a: TouchPt, b: TouchPt) {
   return { dist: Math.hypot(a.x - b.x, a.y - b.y), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
 }
 
+/** Wheel delta in pixels: Firefox reports lines (deltaMode 1) or pages (2) instead. */
+export const wheelDeltaPx = (ev: { deltaY: number; deltaMode: number }) =>
+  ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaMode === 2 ? ev.deltaY * 800 : ev.deltaY;
+
 /** Zoom factor for one wheel event (web): ~10% per notch, smooth for trackpads. */
 export const wheelZoomFactor = (deltaY: number) => Math.exp(-deltaY * 0.0015);

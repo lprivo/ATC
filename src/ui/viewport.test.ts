@@ -85,6 +85,11 @@ describe('viewport', () => {
     expect(v.scale).toBe(d.scale);
     const high = { x: 0, y: 40 };
     expect(toScreen(ensureVisible(d, high, 120, 560), high).y).toBeCloseTo(120);
+    const east = { x: 30, y: 0 }; // 240 pt right of the airport → off the right edge
+    const ve = ensureVisible(d, east, 120, 560);
+    expect(toScreen(ve, east).x).toBeCloseTo(390 - 24);
+    const west = { x: -30, y: 0 };
+    expect(toScreen(ensureVisible(d, west, 120, 560), west).x).toBeCloseTo(24);
     const inside = { x: 0, y: 0 };
     expect(ensureVisible(d, inside, 120, 560)).toBe(d);
   });
