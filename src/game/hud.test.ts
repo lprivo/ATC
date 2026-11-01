@@ -61,6 +61,12 @@ describe('conflict banner and slow-down', () => {
     expect(b.selectId).toBe(sim.planes[0].id);
   });
 
+  it('the banner can be limited to pairs a filter accepts (e.g. only the new pair)', () => {
+    const sim = pairSim();
+    expect(conflictBanner(sim, () => false)).toBeNull();
+    expect(conflictBanner(sim, (cf) => cf.a === sim.planes[0].id)?.selectId).toBe(sim.planes[0].id);
+  });
+
   it('no banner without a conflict', () => {
     const sim = new Sim(LHBP, []);
     expect(conflictBanner(sim)).toBeNull();

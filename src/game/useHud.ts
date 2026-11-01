@@ -32,7 +32,8 @@ export function useHud(sim: Sim, opts: { paused: boolean; timeScale: number; set
     if (hasNewConflict(known.current.pairs, sim.conflicts)) {
       haptic('conflict');
       // Announced here, once per new pair, so pausing (which hides the banner) doesn't repeat it.
-      const b = conflictBanner(sim);
+      // Announce the pair that is new, not whichever pair the banner shows first.
+      const b = conflictBanner(sim, (cf) => !known.current.pairs.has(pairKey(cf)));
       if (b) AccessibilityInfo.announceForAccessibility(`${b.title}. ${b.detail}`);
       if (timeScale !== 1) setTimeScale(1);
     }

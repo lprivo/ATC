@@ -77,9 +77,10 @@ export interface Banner {
   pairKey: string;
 }
 
-/** The conflict banner for the first current conflict, or null when there is none. */
-export function conflictBanner(sim: Sim): Banner | null {
+/** The conflict banner for the first current conflict (or the first one `only` accepts), or null when there is none. */
+export function conflictBanner(sim: Sim, only: (cf: Conflict) => boolean = () => true): Banner | null {
   for (const cf of sim.conflicts) {
+    if (!only(cf)) continue;
     const a = sim.plane(cf.a);
     const b = sim.plane(cf.b);
     if (!a || !b) continue;

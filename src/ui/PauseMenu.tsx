@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { AccessibilityInfo, findNodeHandle, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, findNodeHandle, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { score } from '../engine/scoring';
 import type { Sim } from '../engine/sim';
@@ -151,8 +151,14 @@ function ExplainerSheet({ sim, stat, onClose, bottomInset }: { sim: Sim; stat: S
   // Screen readers start on the sheet's title when it opens.
   const titleRef = useRef<ComponentRef<typeof Text>>(null);
   useEffect(() => {
-    const node = titleRef.current ? findNodeHandle(titleRef.current) : null;
-    if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    // Native only (findNodeHandle throws on react-native-web). A short delay lets the sheet join
+    // the accessibility tree first, or the focus request is lost.
+    if (Platform.OS === 'web') return;
+    const t = setTimeout(() => {
+      const node = titleRef.current ? findNodeHandle(titleRef.current) : null;
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, 250);
+    return () => clearTimeout(t);
   }, [stat]);
   const c = theme.colors;
   const t = theme.type;
