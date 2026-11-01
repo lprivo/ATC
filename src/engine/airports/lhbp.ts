@@ -50,13 +50,14 @@ export const LHBP: Airport = {
     { name: 'ERLOS', pos: { x: 1, y: -15.4 } },
     { name: 'BABOX', pos: { x: 10.8, y: -19.2 } },
   ],
-  // Where arrivals appear: on the sector edge, pointing inbound.
+  // Where arrivals appear: 29 nm out on the ±30 nm sector edge, pointing
+  // roughly at the field (illustrative, like the fixes).
   entries: [
-    { name: 'N', pos: { x: -12.4, y: 16.6 }, heading: 150 },
-    { name: 'NE', pos: { x: 29.6, y: 13.7 }, heading: 248 },
-    { name: 'SE', pos: { x: 20.6, y: -19.4 }, heading: 353 },
-    { name: 'SW', pos: { x: -21.4, y: -19.4 }, heading: 18 },
-    { name: 'W', pos: { x: -30.4, y: 0.4 }, heading: 80 },
+    { name: 'N', pos: { x: -10, y: 29 }, heading: 160 },
+    { name: 'NE', pos: { x: 29, y: 14 }, heading: 245 },
+    { name: 'SE', pos: { x: 21, y: -29 }, heading: 325 },
+    { name: 'SW', pos: { x: -22, y: -29 }, heading: 35 },
+    { name: 'W', pos: { x: -29, y: 1 }, heading: 90 },
   ],
   airlines: ['WZZ', 'WZZ', 'WZZ', 'RYR', 'RYR', 'DLH', 'AFR', 'BAW', 'EZY', 'KLM', 'LOT', 'AUA', 'SWR', 'THY', 'QTR', 'EWG'],
 };
