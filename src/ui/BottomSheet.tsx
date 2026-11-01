@@ -41,8 +41,14 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
   const { theme } = useTheme();
   const c = theme.colors;
   const plane = selectedId ? sim.plane(selectedId) : undefined;
-  // Compact is remembered per selection, so a new selection always opens expanded.
+  // A new selection always opens expanded: compact belongs to the selection it was set for
+  // and is cleared (during render, no stale frame) whenever the selection changes.
   const [compactFor, setCompactFor] = useState<string | null>(null);
+  const [lastSelected, setLastSelected] = useState(selectedId);
+  if (lastSelected !== selectedId) {
+    setLastSelected(selectedId);
+    if (compactFor !== null) setCompactFor(null);
+  }
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
   const setCompact = (on: boolean) => setCompactFor(on ? selectedRef.current : null);

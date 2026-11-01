@@ -319,8 +319,10 @@ describe('routes and landing', () => {
     // Asking for the altitude it's already targeting changes nothing and keeps the clearance.
     sim.setRoute(p.id, [rwy31R.threshold]);
     sim.step(0.25);
+    const eventsBefore = sim.events.length;
     sim.setAltitude(p.id, p.target.altitude);
     expect(p.clearedRunway?.id).toBe('31R');
+    expect(sim.events.length).toBe(eventsBefore);
     // A heading command cancels it with an event too.
     sim.setHeading(p.id, 90);
     expect(sim.events.at(-1)).toMatchObject({ kind: 'cancelled', runway: '31R' });
@@ -330,6 +332,11 @@ describe('routes and landing', () => {
     sim.step(0.25);
     sim.setRoute(p.id, [{ x: 20, y: 20 }]);
     expect(p.clearedRunway).toBeNull();
+    expect(sim.events.at(-1)).toMatchObject({ kind: 'cancelled', runway: '31R' });
+    // Commands to an uncleared plane don't announce anything.
+    const quiet = sim.events.length;
+    sim.setHeading(p.id, 180);
+    expect(sim.events.length).toBe(quiet);
     expect(p.target).toMatchObject({ altitude: 5000, speed: 250 });
   });
 });
