@@ -26,7 +26,7 @@ export function useSim(airport: Airport) {
   const [sim, setSim] = useState(() => newSim(airport));
   const [, setFrame] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [timeScale, setTimeScale] = useState(2);
+  const [timeScale, setTimeScale] = useState(1);
 
   // The rAF loop reads these through a ref so it never needs restarting.
   const live = useRef({ sim, paused, timeScale });
@@ -69,5 +69,5 @@ export function useSim(airport: Airport) {
     [],
   );
 
-  return { sim, paused, setPaused, timeScale, cycleTimeScale, restart, refresh };
+  return { sim, paused, setPaused, timeScale, setTimeScale, cycleTimeScale, restart, refresh };
 }

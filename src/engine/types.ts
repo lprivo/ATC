@@ -104,7 +104,17 @@ export interface Conflict {
   altFt: number;
 }
 
+export type SimEventKind = 'entered' | 'cleared' | 'landed' | 'goAround' | 'conflict' | 'exited' | 'info';
+
 export interface SimEvent {
+  /** Increases by one per event, so the UI can tell which events are new. */
+  seq: number;
   time: number;
+  kind: SimEventKind;
+  /** Human-readable, e.g. "RYR41HB cleared to land 31R". */
   text: string;
+  /** Planes involved (one, or two for a conflict). */
+  callsigns: string[];
+  /** Runway end, for clearances, landings and go-arounds. */
+  runway?: string;
 }

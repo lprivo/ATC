@@ -1,67 +1,68 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Sim } from '../engine/sim';
 import { useTheme } from '../theme/ThemeContext';
+import { clock } from './format';
+import { CheckIcon, PauseIcon, PlayIcon, WarningIcon } from './icons';
+
+export const TOP_BAR_HEIGHT = 44;
 
 interface Props {
   sim: Sim;
   paused: boolean;
   onTogglePause: () => void;
-  timeScale: number;
-  onCycleTimeScale: () => void;
-  onRestart: () => void;
 }
 
-const clock = (sec: number) => {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-};
-
-export function TopBar({ sim, paused, onTogglePause, timeScale, onCycleTimeScale, onRestart }: Props) {
-  const { theme, cycleTheme } = useTheme();
+/**
+ * Design top bar: airport, sim clock, landed and separation-loss counts, and a
+ * pause button. Everything else (theme, restart, other stats) lives in the
+ * pause menu. The separation cell inverts to `danger` once there is a loss.
+ */
+export function TopBar({ sim, paused, onTogglePause }: Props) {
+  const { theme } = useTheme();
   const c = theme.colors;
+  const t = theme.type;
   const s = sim.stats;
+  const lost = s.separationViolations > 0;
+  const box = { backgroundColor: c.panel, borderColor: c.panelBorder, borderWidth: theme.hairline };
 
   return (
-    <View style={[styles.bar, { backgroundColor: c.panel, borderColor: c.panelBorder, borderBottomWidth: theme.hairline }]}>
-      <View style={styles.row}>
-        <Text style={[theme.type.barTitle, { color: c.text }]}>
-          {sim.airport.icao} <Text style={[theme.type.barValue, { color: c.textDim }]}>{clock(sim.time)}</Text>
-        </Text>
-        <View style={styles.buttons}>
-          <Btn testID="btn-pause" label={paused ? '▶' : '❚❚'} onPress={onTogglePause} />
-          <Btn testID="btn-speed" label={`×${timeScale}`} onPress={onCycleTimeScale} />
-          <Btn testID="btn-theme" label={theme.name} onPress={cycleTheme} />
-          <Btn testID="btn-restart" label="↺" onPress={onRestart} />
+    <View style={styles.row} testID="top-bar">
+      <View style={[styles.info, box]}>
+        <Text style={[t.barTitle, { color: c.text }]}>{sim.airport.icao}</Text>
+        <Text style={[t.barValue, { color: c.textDim }]}>{clock(sim.time)}</Text>
+        <View style={styles.counts}>
+          <View style={styles.count} accessibilityLabel={`${s.landed} landed`} testID="stat-landed">
+            <CheckIcon color={c.good} />
+            <Text style={[t.barCount, { color: c.good }]}>{s.landed}</Text>
+          </View>
+          <View
+            style={[styles.count, styles.sepCell, lost && { backgroundColor: c.danger }]}
+            accessibilityLabel={`${s.separationViolations} separation losses`}
+            testID="stat-sep"
+          >
+            <WarningIcon color={lost ? c.onDanger : c.textDim} />
+            <Text style={[t.barCount, { color: lost ? c.onDanger : c.textDim }]}>{s.separationViolations}</Text>
+          </View>
         </View>
       </View>
-      <Text style={[theme.type.smallTight, { color: c.textDim }]} testID="stats">
-        <Text style={{ color: c.good }}>Landed {s.landed}</Text>
-        {'  '}
-        <Text style={{ color: s.separationViolations ? c.danger : c.textDim }}>Sep {s.separationViolations}</Text>
-        {'  '}Go-arounds {s.goArounds}{'  '}Exits {s.exited}{'  '}Airborne {sim.planes.length}
-      </Text>
+      <Pressable
+        testID="btn-pause"
+        accessibilityRole="button"
+        accessibilityLabel={paused ? 'Resume' : 'Pause'}
+        onPress={onTogglePause}
+        style={({ pressed }) => [styles.pause, box, pressed && { backgroundColor: c.buttonPressed }]}
+      >
+        {paused ? <PlayIcon color={c.text} /> : <PauseIcon color={c.text} />}
+      </Pressable>
     </View>
   );
 }
 
-function Btn({ label, onPress, testID }: { label: string; onPress: () => void; testID: string }) {
-  const { theme } = useTheme();
-  const c = theme.colors;
-  return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      style={({ pressed }) => [styles.btn, { borderColor: c.panelBorder, borderWidth: theme.hairline, backgroundColor: pressed ? c.buttonPressed : c.button }]}
-    >
-      <Text style={[theme.type.barCount, { color: c.buttonText }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  bar: { paddingHorizontal: 10, paddingVertical: 6, gap: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  buttons: { flexDirection: 'row', gap: 6 },
-  btn: { paddingHorizontal: 10, height: 36, alignItems: 'center', justifyContent: 'center', minWidth: 36 },
+  row: { flexDirection: 'row', gap: 8, height: TOP_BAR_HEIGHT },
+  info: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12 },
+  counts: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  count: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 4, height: 28 },
+  sepCell: { paddingHorizontal: 6 },
+  pause: { width: TOP_BAR_HEIGHT, alignItems: 'center', justifyContent: 'center' },
 });

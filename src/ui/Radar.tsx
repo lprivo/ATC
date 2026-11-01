@@ -45,16 +45,13 @@ import {
   type Viewport,
 } from './viewport';
 
-/**
- * Band a newly selected plane is kept inside, in radar coordinates. The design's
- * "below y = 120" is measured from the top of the full-bleed screen; here the
- * top bar sits above the radar, so a small margin is the equivalent.
- */
-const SELECT_TOP_PT = 24;
+/** Gap kept between a selected plane and the HUD above it. */
+const SELECT_TOP_GAP = 24;
 const EDGE = 12;
 const RECENTRE_SIZE = 44;
 /** Keep the selected plane above the re-centre button. */
 const SELECT_BOTTOM_INSET = RECENTRE_SIZE + 2 * EDGE;
+const NO_INSETS = { top: 0, bottom: 0 };
 
 interface Props {
   sim: Sim;
@@ -62,6 +59,11 @@ interface Props {
   onSelect: (id: string | null) => void;
   /** Called after the radar changes the sim (a new route), so the screen can redraw while paused. */
   onCommand: () => void;
+  /**
+   * Screen space covered by HUD overlays (top bar, toasts, sheet): a selected
+   * plane is kept between them and the re-centre button sits above the bottom one.
+   */
+  insets?: { top: number; bottom: number };
   /** While paused nothing re-renders on its own, so labels snap instead of easing. */
   paused?: boolean;
   /** Plane labels setting (Auto | Full | Min); default Auto. Wired to Settings in #15. */
@@ -70,14 +72,14 @@ interface Props {
   labelScale?: number;
 }
 
-export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, labelMode = 'auto', labelScale = 1 }: Props) {
+export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [vp, setVp] = useState<Viewport>(() => defaultViewport(0, 0));
 
   // Data blocks: content every frame, placement at 2 Hz. Touch handlers read the
   // last drawn rectangles so a tap on a label selects its plane.
-  const labels = useLabelLayout(sim, vp, theme, { selectedId, mode: labelMode, labelScale, animate: !paused });
+  const labels = useLabelLayout(sim, vp, theme, { selectedId, mode: labelMode, labelScale, animate: !paused, insets });
   const labelsRef = useRef(labels);
   labelsRef.current = labels;
   // Hit-test against what is on screen: label boxes and symbols from the same (rendered) camera.
@@ -183,9 +185,10 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
     if (!selectedId || g.current.drawing) return;
     const p = sim.plane(selectedId);
     if (!p || vp.w === 0) return;
-    updateCam((v) => ensureVisible(v, p.pos, SELECT_TOP_PT, v.h - SELECT_BOTTOM_INSET));
+    // The design keeps it below y = 120 on the full-bleed screen: that's the HUD plus a gap.
+    updateCam((v) => ensureVisible(v, p.pos, insets.top + SELECT_TOP_GAP, v.h - insets.bottom - SELECT_BOTTOM_INSET));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, sim, vp.w, vp.h]);
+  }, [selectedId, sim, vp.w, vp.h, insets.top, insets.bottom]);
 
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -242,6 +245,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
         onPress={() => updateCam((v) => defaultViewport(v.w, v.h))}
         style={({ pressed }) => [
           styles.recentre,
+          { bottom: insets.bottom + EDGE },
           { backgroundColor: pressed ? c.buttonPressed : c.panel, borderColor: c.panelBorder, borderWidth: theme.hairline },
         ]}
       >

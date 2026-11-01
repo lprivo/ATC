@@ -1,5 +1,5 @@
 import { add, angleDiff, approach, clamp, dirOf, dist, headingTo, normDeg, trackOffsets } from './math';
-import type { Airport, Conflict, Plane, RunwayEnd, SimEvent, SimStats, TrafficEntry, Vec2 } from './types';
+import type { Airport, Conflict, Plane, RunwayEnd, SimEvent, SimEventKind, SimStats, TrafficEntry, Vec2 } from './types';
 
 // Aircraft performance — deliberately simple and identical for every type for now.
 export const PERF = {
@@ -117,6 +117,7 @@ export class Sim {
   private conflictPairs = new Set<string>();
   private trailTimer = 0;
   private nextId = 1;
+  private nextEventSeq = 1;
 
   constructor(airport: Airport, traffic: TrafficEntry[]) {
     this.airport = airport;
@@ -193,7 +194,7 @@ export class Sim {
       route.push(runway.threshold);
       if (!p.clearedRunway) p.approachFrom = { altitude: p.target.altitude, speed: p.target.speed };
       p.clearedRunway = runway;
-      this.log(`${p.callsign} cleared to land ${runway.id}`);
+      this.log('cleared', `${p.callsign} cleared to land ${runway.id}`, [p.callsign], runway.id);
     } else {
       this.cancelApproach(p);
     }
@@ -256,7 +257,7 @@ export class Sim {
       const entry = this.airport.entries.find((e) => e.name === t.entry);
       if (!entry) {
         // Bad traffic data (e.g. a schedule file naming an entry this airport doesn't have).
-        this.log(`${t.callsign} skipped: no entry point "${t.entry}" at ${this.airport.icao}`);
+        this.log('info', `${t.callsign} skipped: no entry point "${t.entry}" at ${this.airport.icao}`, [t.callsign]);
         continue;
       }
       this.planes.push({
@@ -277,7 +278,7 @@ export class Sim {
         conflict: false,
         trail: [],
       });
-      this.log(`${t.callsign} entering from ${entry.name}`);
+      this.log('entered', `${t.callsign} entering from ${entry.name}`, [t.callsign]);
     }
   }
 
@@ -298,7 +299,7 @@ export class Sim {
         if (aligned && p.altitude <= RULES.touchdownMaxAltFt) {
           p.status = 'landed';
           this.stats.landed++;
-          this.log(`${p.callsign} landed ${rwy.id}`);
+          this.log('landed', `${p.callsign} landed ${rwy.id}`, [p.callsign], rwy.id);
         } else {
           this.goAround(p, aligned ? 'too high' : 'not aligned');
         }
@@ -340,7 +341,7 @@ export class Sim {
     p.target.speed = PERF.goAroundSpeed;
     p.goAroundAt = this.time;
     this.stats.goArounds++;
-    this.log(`${p.callsign} going around (${reason})`);
+    this.log('goAround', `${p.callsign} going around (${reason})`, [p.callsign], rwy?.id);
   }
 
   private fly(p: Plane, dt: number) {
@@ -358,7 +359,7 @@ export class Sim {
       if (Math.abs(p.pos.x) > lim || Math.abs(p.pos.y) > lim) {
         p.status = 'exited';
         this.stats.exited++;
-        this.log(`${p.callsign} left the sector`);
+        this.log('exited', `${p.callsign} left the sector`, [p.callsign]);
       }
     }
   }
@@ -381,7 +382,7 @@ export class Sim {
           now.add(key);
           if (!this.conflictPairs.has(key)) {
             this.stats.separationViolations++;
-            this.log(`Separation lost: ${a.callsign} / ${b.callsign}`);
+            this.log('conflict', `Separation lost: ${a.callsign} / ${b.callsign}`, [a.callsign, b.callsign]);
           }
         }
       }
@@ -415,8 +416,9 @@ export class Sim {
     return best;
   }
 
-  private log(text: string) {
-    this.events.push({ time: this.time, text });
+  private log(kind: SimEventKind, text: string, callsigns: string[], runway?: string) {
+    this.events.push({ seq: this.nextEventSeq++, time: this.time, kind, text, callsigns, runway });
     if (this.events.length > MAX_EVENTS) this.events.shift();
   }
+
 }

@@ -36,7 +36,7 @@ export function useLabelLayout(
   sim: Sim,
   vp: Viewport,
   theme: Theme,
-  opts: { selectedId: string | null; mode: LabelMode; labelScale: number; animate: boolean },
+  opts: { selectedId: string | null; mode: LabelMode; labelScale: number; animate: boolean; insets?: { top: number; bottom: number } },
 ) {
   const state = useRef({ at: 0, key: '', slots: new Map<string, Slot>() as ReadonlyMap<string, Slot> });
   const now = Date.now();
@@ -74,7 +74,7 @@ export function useLabelLayout(
     });
     const placed = placeLabels(
       items.map((i) => ({ id: i.p.id, x: i.s.x, y: i.s.y, heading: i.p.heading, w: i.size.w, h: i.size.h, rank: i.rank })),
-      { near: theme.size.labelOffsetNear, far: theme.size.labelOffsetFar, safe: { x: 0, y: 0, w: vp.w, h: vp.h }, obstacles },
+      { near: theme.size.labelOffsetNear, far: theme.size.labelOffsetFar, safe: safeArea(vp, opts.insets), obstacles },
     );
     const byId = new Map(items.map((i) => [i.p.id, i.s]));
     const offsets = new Map<string, Rect>();
@@ -97,3 +97,6 @@ export function useLabelLayout(
   }
   return out;
 }
+
+/** Where labels may go: the radar minus the HUD overlays at the top and bottom. */
+const safeArea = (vp: Viewport, insets = { top: 0, bottom: 0 }) => ({ x: 0, y: insets.top, w: vp.w, h: Math.max(0, vp.h - insets.top - insets.bottom) });
