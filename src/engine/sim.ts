@@ -175,14 +175,13 @@ export class Sim {
   }
 
   /**
-   * Assigns a drawn path. If the path ends near a runway threshold the plane
-   * is cleared to land there and will descend on the glideslope by itself.
+   * Assigns a drawn path. With a landing runway the plane is cleared to land
+   * there and descends on the glideslope by itself.
+   * - `runwayId` a string: land on that runway (the UI already chose it).
+   * - `null`: never land, just fly the path (the UI decided there's no snap).
+   * - omitted: infer the runway from where the path ends.
    */
-  /**
-   * `runwayId` forces the landing runway (the UI's snap / confirm card already
-   * chose it); otherwise it is inferred from where the path ends.
-   */
-  setRoute(id: string, points: Vec2[], runwayId?: string) {
+  setRoute(id: string, points: Vec2[], runwayId?: string | null) {
     const p = this.plane(id);
     if (!p || points.length === 0) return;
 
@@ -197,8 +196,12 @@ export class Sim {
     if (route.length === 0) return;
 
     const end = route[route.length - 1];
-    const forced = runwayId ? this.runwayEnd(runwayId) : undefined;
-    const runway = forced ?? this.pickRunwayEnd(end, this.finalLegHeading(p.pos, route));
+    const runway =
+      runwayId === null
+        ? null
+        : runwayId !== undefined
+          ? (this.runwayEnd(runwayId) ?? null)
+          : this.pickRunwayEnd(end, this.finalLegHeading(p.pos, route));
     if (runway) {
       // The finger may have lifted on or past the runway: drop anything beyond
       // the threshold so the threshold is the path's real final point.

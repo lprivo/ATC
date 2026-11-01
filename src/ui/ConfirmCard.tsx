@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { CheckIcon } from './icons';
 
@@ -10,12 +10,14 @@ interface Props {
   swapTo: string | null;
   /** Auto-confirm delay (design: 3 s), shown as a draining 3 pt bar. */
   durationMs: number;
+  /** The countdown holds while the game is paused. */
+  paused: boolean;
   onSwap: () => void;
   onConfirm: () => void;
 }
 
 /** Confirm card shown above the sheet after a path snaps to a runway: `Swap to 31R` or `✓ 31L`; auto-confirms. */
-export function ConfirmCard({ callsign, runway, swapTo, durationMs, onSwap, onConfirm }: Props) {
+export function ConfirmCard({ callsign, runway, swapTo, durationMs, paused, onSwap, onConfirm }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -23,17 +25,31 @@ export function ConfirmCard({ callsign, runway, swapTo, durationMs, onSwap, onCo
   const confirm = useRef(onConfirm);
   confirm.current = onConfirm;
 
-  // (Re)start the countdown whenever the runway changes (a swap gives a fresh 3 s).
+  // Screen-reader users get no countdown (WCAG 2.2.1): the card waits for them. Everyone hears it.
+  const [screenReader, setScreenReader] = useState(false);
   useEffect(() => {
-    progress.setValue(1);
-    const anim = Animated.timing(progress, { toValue: 0, duration: durationMs, easing: Easing.linear, useNativeDriver: true });
+    AccessibilityInfo.isScreenReaderEnabled().then(setScreenReader, () => {});
+    AccessibilityInfo.announceForAccessibility(`${callsign}, land ${runway}?${swapTo ? ` Swap to ${swapTo} available.` : ''}`);
+    // Announce once per card (the parent re-keys the card for each landing or swap).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Countdown: holds while paused and resumes from where it was (the card is re-keyed per landing/swap).
+  const left = useRef(1);
+  useEffect(() => {
+    if (paused || screenReader) return;
+    progress.setValue(left.current);
+    const anim = Animated.timing(progress, { toValue: 0, duration: durationMs * left.current, easing: Easing.linear, useNativeDriver: true });
     anim.start(({ finished }) => finished && confirm.current());
-    return () => anim.stop();
-  }, [runway, durationMs, progress]);
+    return () => {
+      anim.stop();
+      progress.stopAnimation((v) => (left.current = v));
+    };
+  }, [paused, screenReader, durationMs, progress]);
 
   const box = { borderColor: c.panelBorder, borderWidth: theme.hairline };
   return (
-    <View style={[styles.card, box, { backgroundColor: c.panel }]} testID="confirm-card" accessibilityLiveRegion="polite">
+    <View style={[styles.card, box, { backgroundColor: c.panel }]} testID="confirm-card">
       <Text style={[t.small, { color: c.textDim }]}>
         <Text style={{ color: c.text }}>{callsign}</Text> · land {runway}?
       </Text>

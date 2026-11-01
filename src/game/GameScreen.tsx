@@ -4,10 +4,9 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LHBP } from '../engine/airports/lhbp';
 import { useTheme } from '../theme/ThemeContext';
-import type { Vec2 } from '../engine/types';
 import { ConfirmCard } from '../ui/ConfirmCard';
 import { ConflictBanner } from '../ui/ConflictBanner';
-import { DRAW, parallelEnd } from '../ui/drawing';
+import { DRAW } from '../ui/drawing';
 import { HUD_EDGE, HUD_GAP, TOP_BAR_HEIGHT } from '../ui/hudLayout';
 import { PauseOverlay } from '../ui/PauseOverlay';
 import { BottomSheet } from '../ui/BottomSheet';
@@ -16,6 +15,7 @@ import { Toasts } from '../ui/Toasts';
 import { TopBar } from '../ui/TopBar';
 import { haptic } from './haptics';
 import { useHud } from './useHud';
+import { usePendingLanding } from './usePendingLanding';
 import { useSim } from './useSim';
 
 export function GameScreen() {
@@ -27,21 +27,7 @@ export function GameScreen() {
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
   const [bannerHeight, setBannerHeight] = useState(56);
   const [sheetHeight, setSheetHeight] = useState(0);
-  // A path that snapped to a runway, waiting on the confirm card (Swap or ✓; auto-confirms).
-  const [pending, setPending] = useState<{ planeId: string; points: Vec2[]; runway: string } | null>(null);
-  const onLanding = (planeId: string, points: Vec2[], runway: string) => {
-    sim.setRoute(planeId, points, runway);
-    setPending({ planeId, points, runway });
-  };
-  const swap = () => {
-    if (!pending) return;
-    const other = parallelEnd(sim.airport, pending.runway);
-    if (!other) return;
-    sim.setRoute(pending.planeId, pending.points, other.id);
-    setPending({ ...pending, runway: other.id });
-    refresh();
-  };
-  const pendingPlane = pending ? sim.plane(pending.planeId) : undefined;
+  const landing = usePendingLanding(sim);
   /** Selecting a plane (by tap, label or the banner's SELECT) gives a light tap. */
   const select = (id: string | null, opts?: { silent?: boolean }) => {
     if (id && id !== selectedId && !opts?.silent) haptic('select');
@@ -71,7 +57,7 @@ export function GameScreen() {
           onCommand={refresh}
           paused={paused}
           insets={{ top: toastTop, bottom: sheetHeight }}
-          onLanding={onLanding}
+          onLanding={landing.land}
           onDrawing={setDrawing}
         />
         <View style={[styles.hud, side, { top }]} pointerEvents="box-none">
@@ -85,18 +71,22 @@ export function GameScreen() {
         <View style={[styles.hud, side, { top: toastTop }]} pointerEvents="none">
           <Toasts toasts={toasts} />
         </View>
-        {pending && pendingPlane && (
+        {landing.pending && landing.plane && (
           <View style={[styles.hud, side, { bottom: sheetHeight + HUD_GAP }]} pointerEvents="box-none">
             <ConfirmCard
-              key={pending.planeId}
-              callsign={pendingPlane.callsign}
-              runway={pending.runway}
-              swapTo={parallelEnd(sim.airport, pending.runway)?.id ?? null}
+              key={landing.pending.seq}
+              callsign={landing.plane.callsign}
+              runway={landing.pending.runway}
+              swapTo={landing.swapTo}
               durationMs={DRAW.confirmMs}
-              onSwap={swap}
+              paused={paused}
+              onSwap={() => {
+                landing.swap();
+                refresh();
+              }}
               onConfirm={() => {
                 haptic('landingConfirmed');
-                setPending(null);
+                landing.done();
               }}
             />
           </View>
