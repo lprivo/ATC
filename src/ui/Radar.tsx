@@ -20,6 +20,8 @@ import {
   runwayWidth,
   trailDots,
 } from './radarGeometry';
+import { DrawOverlay } from './DrawOverlay';
+import { finalisePath, snapTarget } from './drawing';
 import { wheelDeltaPx, wheelZoomFactor } from './gestures';
 import { HUD_EDGE } from './hudLayout';
 import { LABEL_METRICS, labelBaseline, textWidth, type LabelMode, type LabelSpec } from './labels';
@@ -42,6 +44,7 @@ import {
   polylinePoints,
   resizeViewport,
   toScreen,
+  toWorld,
   zoomAt,
   type Viewport,
 } from './viewport';
@@ -60,6 +63,14 @@ interface Props {
   /** Called after the radar changes the sim (a new route), so the screen can redraw while paused. */
   onCommand: () => void;
   /**
+   * A drawn path snapped to a runway was released: the screen sets the route
+   * (with that runway) and shows the confirm card. `points` are already
+   * finalised (trimmed, ending at the 3 nm final fix).
+   */
+  onLanding?: (planeId: string, points: Vec2[], runway: string) => void;
+  /** Drawing started or stopped (the sim runs at half speed while drawing). */
+  onDrawing?: (drawing: boolean) => void;
+  /**
    * Screen space covered by HUD overlays (top bar, toasts, sheet): a selected
    * plane is kept between them and the re-centre button sits above the bottom one.
    */
@@ -72,7 +83,7 @@ interface Props {
   labelScale?: number;
 }
 
-export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS }: Props) {
+export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawing, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [vp, setVp] = useState<Viewport>(() => defaultViewport(0, 0));
@@ -122,12 +133,19 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
   useEffect(() => cancelHold, []);
 
   const run = (step: Step) => {
+    const wasDrawing = g.current.drawing;
     g.current = step.state;
+    if (step.state.drawing !== wasDrawing) onDrawing?.(step.state.drawing);
     for (const e of step.effects) {
       if (e.kind === 'camera') updateCam(() => e.vp);
       else if (e.kind === 'select') onSelect(e.id);
       else if (e.kind === 'route') {
-        sim.setRoute(e.id, e.points);
+        // Released over the sheet: the path is dropped (design: cancel by dropping it on the sheet).
+        if (e.at.y > drawnVp.current.h - insets.bottom) continue;
+        const snap = snapTarget(sim.airport, drawnVp.current, e.points);
+        const end = snap ? sim.runwayEnd(snap) : undefined;
+        if (end && onLanding) onLanding(e.id, finalisePath(e.points, end), end.id);
+        else sim.setRoute(e.id, e.points);
         onCommand();
       } else if (e.kind === 'armHold') {
         cancelHold();
@@ -195,12 +213,15 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
     updateCam((v) => resizeViewport(v, width, height));
   };
 
-  const draft = g.current.drawing ? g.current.points : [];
+  const drawing = g.current.drawing;
+  const finger = drawing ? toWorld(vp, g.current.finger.x, g.current.finger.y) : null;
+  const drawn = drawing && finger ? [...g.current.points, finger] : [];
+  const snap = drawing ? snapTarget(sim.airport, vp, drawn) : null;
 
   return (
     <View
       ref={hostRef}
-      style={{ flex: 1, backgroundColor: c.background, overflow: 'hidden' }}
+      style={[styles.host, { backgroundColor: c.background }]}
       onLayout={onLayout}
       onStartShouldSetResponder={() => true}
       onResponderTerminationRequest={() => false}
@@ -217,10 +238,6 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
             {sim.planes.map((p) => (
               <RouteLine key={`r-${p.id}`} plane={p} vp={vp} theme={theme} />
             ))}
-            {/* The path being drawn sits under the planes, as in the design. */}
-            {draft.length > 1 && (
-              <Polyline points={polylinePoints(vp, draft)} fill="none" stroke={c.routeDraft} strokeWidth={2.5} strokeDasharray="2 5" />
-            )}
             {sim.conflicts.map((cf) => (
               <PairLine key={`pl-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
             ))}
@@ -234,6 +251,9 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
             {sim.conflicts.map((cf) => (
               <PairTag key={`pt-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
             ))}
+            {drawing && finger && (
+              <DrawOverlay airport={sim.airport} vp={vp} theme={theme} points={g.current.points} finger={finger} snap={snap} />
+            )}
           </Svg>
         </View>
       )}
@@ -259,6 +279,8 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
 }
 
 const styles = StyleSheet.create({
+  // Drags on the radar pan or draw; on the web they must not select label text.
+  host: { flex: 1, overflow: 'hidden', ...Platform.select({ web: { userSelect: 'none' as const }, default: {} }) },
   recentre: {
     position: 'absolute',
     right: HUD_EDGE,

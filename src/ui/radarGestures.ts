@@ -27,6 +27,8 @@ export interface GestureState {
   drawing: boolean;
   moved: boolean;
   lastPt: TouchPt;
+  /** Where the finger is now while drawing (screen), between recorded points too. */
+  finger: TouchPt;
   /** Drawn path in world coordinates; the first point is the plane's position. */
   points: Vec2[];
   /** Camera and finger pair when the current pan or pinch (re)started. */
@@ -38,7 +40,8 @@ export interface GestureState {
 export type Effect =
   | { kind: 'camera'; vp: Viewport }
   | { kind: 'select'; id: string | null }
-  | { kind: 'route'; id: string; points: Vec2[] }
+  /** A drawn path was released at screen point `at`. */
+  | { kind: 'route'; id: string; points: Vec2[]; at: TouchPt }
   /** Start the hold timer for the plane under the finger. */
   | { kind: 'armHold' }
   | { kind: 'cancelHold' }
@@ -59,6 +62,7 @@ export function initialGesture(cam: Viewport): GestureState {
     drawing: false,
     moved: false,
     lastPt: { x: 0, y: 0 },
+    finger: { x: 0, y: 0 },
     points: [],
     camStart: cam,
     pinch: { dist: 1, mid: { x: 0, y: 0 }, ids: [-1, -1] },
@@ -79,7 +83,7 @@ function startPinch(st: GestureState, a: Touch, b: Touch, cam: Viewport): Step {
 
 /** First finger down. `hit` is the plane under it, if any. */
 export function onDown(st: GestureState, touches: Touch[], now: number, hit: string | null, cam: Viewport): Step {
-  const base: GestureState = { ...st, start: touches[0], startT: now, lastPt: touches[0], moved: false, drawing: false, points: [], camStart: cam };
+  const base: GestureState = { ...st, start: touches[0], startT: now, lastPt: touches[0], finger: touches[0], moved: false, drawing: false, points: [], camStart: cam };
   if (touches.length >= 2) return startPinch(base, touches[0], touches[1], cam);
   if (hit) return { state: { ...base, mode: 'plane', planeId: hit }, effects: [{ kind: 'armHold' }] };
   return { state: { ...base, mode: 'pan', planeId: null }, effects: [{ kind: 'cancelHold' }] };
@@ -121,8 +125,12 @@ export function onMove(st: GestureState, touches: Touch[], cam: Viewport, planeP
   }
   if (state.mode === 'pan' && state.moved) {
     effects.push({ kind: 'camera', vp: panBy(state.camStart, p.x - state.start.x, p.y - state.start.y) });
-  } else if (state.drawing && Math.hypot(p.x - state.lastPt.x, p.y - state.lastPt.y) >= DRAFT_SPACING_PT) {
-    state = { ...state, lastPt: p, points: [...state.points, toWorld(cam, p.x, p.y)] };
+  } else if (state.drawing) {
+    // The finger is followed every move (snap highlight, loupe); points are recorded every 14 pt.
+    state = { ...state, finger: p };
+    if (Math.hypot(p.x - state.lastPt.x, p.y - state.lastPt.y) >= DRAFT_SPACING_PT) {
+      state = { ...state, lastPt: p, points: [...state.points, toWorld(cam, p.x, p.y)] };
+    }
     effects.push({ kind: 'draft' });
   }
   return { state, effects };
@@ -135,7 +143,7 @@ export function onUp(st: GestureState, p: TouchPt, now: number, cam: Viewport): 
   if (st.mode === 'plane' && st.planeId) {
     if (st.drawing && st.moved) {
       // Always end exactly where the finger lifted, even if it moved less than the spacing since the last point.
-      effects.push({ kind: 'route', id: st.planeId, points: [...st.points.slice(1), toWorld(cam, p.x, p.y)] });
+      effects.push({ kind: 'route', id: st.planeId, points: [...st.points.slice(1), toWorld(cam, p.x, p.y)], at: p });
     } else if (!st.moved) {
       // A tap, or a long press that never moved, only selects. It must not
       // turn into a tiny route that would cancel the plane's clearance.

@@ -27,10 +27,12 @@ export function useSim(airport: Airport) {
   const [, setFrame] = useState(0);
   const [paused, setPaused] = useState(false);
   const [timeScale, setTimeScale] = useState(1);
+  /** Design: while a path is being drawn the sim runs at half speed. */
+  const [drawing, setDrawing] = useState(false);
 
   // The rAF loop reads these through a ref so it never needs restarting.
-  const live = useRef({ sim, paused, timeScale });
-  live.current = { sim, paused, timeScale };
+  const live = useRef({ sim, paused, timeScale, drawing });
+  live.current = { sim, paused, timeScale, drawing };
 
   const refresh = useCallback(() => setFrame((f) => f + 1), []);
 
@@ -41,9 +43,9 @@ export function useSim(airport: Airport) {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000); // cap so a background tab doesn't jump
       last = now;
-      const { sim, paused, timeScale } = live.current;
+      const { sim, paused, timeScale, drawing } = live.current;
       if (!paused) {
-        sim.step(dt * timeScale);
+        sim.step(dt * timeScale * (drawing ? 0.5 : 1));
         if (now - lastRender >= RENDER_INTERVAL_MS) {
           lastRender = now;
           refresh();
@@ -64,5 +66,5 @@ export function useSim(airport: Airport) {
     setPaused(false);
   }, [airport]);
 
-  return { sim, paused, setPaused, timeScale, setTimeScale, restart, refresh };
+  return { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh };
 }

@@ -4,7 +4,10 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LHBP } from '../engine/airports/lhbp';
 import { useTheme } from '../theme/ThemeContext';
+import type { Vec2 } from '../engine/types';
+import { ConfirmCard } from '../ui/ConfirmCard';
 import { ConflictBanner } from '../ui/ConflictBanner';
+import { DRAW, parallelEnd } from '../ui/drawing';
 import { HUD_EDGE, HUD_GAP, TOP_BAR_HEIGHT } from '../ui/hudLayout';
 import { PauseOverlay } from '../ui/PauseOverlay';
 import { BottomSheet } from '../ui/BottomSheet';
@@ -17,12 +20,27 @@ import { useSim } from './useSim';
 export function GameScreen() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { sim, paused, setPaused, timeScale, setTimeScale, restart, refresh } = useSim(LHBP);
+  const { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh } = useSim(LHBP);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh });
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
   const [bannerHeight, setBannerHeight] = useState(56);
   const [sheetHeight, setSheetHeight] = useState(0);
+  // A path that snapped to a runway, waiting on the confirm card (Swap or ✓; auto-confirms).
+  const [pending, setPending] = useState<{ planeId: string; points: Vec2[]; runway: string } | null>(null);
+  const onLanding = (planeId: string, points: Vec2[], runway: string) => {
+    sim.setRoute(planeId, points, runway);
+    setPending({ planeId, points, runway });
+  };
+  const swap = () => {
+    if (!pending) return;
+    const other = parallelEnd(sim.airport, pending.runway);
+    if (!other) return;
+    sim.setRoute(pending.planeId, pending.points, other.id);
+    setPending({ ...pending, runway: other.id });
+    refresh();
+  };
+  const pendingPlane = pending ? sim.plane(pending.planeId) : undefined;
 
   const onRestart = () => {
     // Clear the selection with the restart: plane ids start again at "1" in the new sim.
@@ -47,6 +65,8 @@ export function GameScreen() {
           onCommand={refresh}
           paused={paused}
           insets={{ top: toastTop, bottom: sheetHeight }}
+          onLanding={onLanding}
+          onDrawing={setDrawing}
         />
         <View style={[styles.hud, side, { top }]} pointerEvents="box-none">
           <TopBar sim={sim} paused={paused} onTogglePause={() => setPaused((p) => !p)} />
@@ -59,6 +79,19 @@ export function GameScreen() {
         <View style={[styles.hud, side, { top: toastTop }]} pointerEvents="none">
           <Toasts toasts={toasts} />
         </View>
+        {pending && pendingPlane && (
+          <View style={[styles.hud, side, { bottom: sheetHeight + HUD_GAP }]} pointerEvents="box-none">
+            <ConfirmCard
+              key={pending.planeId}
+              callsign={pendingPlane.callsign}
+              runway={pending.runway}
+              swapTo={parallelEnd(sim.airport, pending.runway)?.id ?? null}
+              durationMs={DRAW.confirmMs}
+              onSwap={swap}
+              onConfirm={() => setPending(null)}
+            />
+          </View>
+        )}
         <BottomSheet
           sim={sim}
           selectedId={selectedId}
