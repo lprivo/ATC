@@ -206,6 +206,13 @@ describe('label timing', () => {
     expect(slotOffset(next.get('a')!, 1000).x).toBe(100);
   });
 
+  it('turning animation off mid-ease jumps the label to its target', () => {
+    const prev = nextSlots(new Map(), new Map([['a', r(0)]]), 0, true);
+    const moving = nextSlots(prev, new Map([['a', r(100)]]), 1000, true).get('a')!;
+    expect(slotOffset(moving, 1000 + EASE_MS / 3).x).toBeLessThan(100);
+    expect(slotOffset(moving, 1000 + EASE_MS / 3, false).x).toBe(100);
+  });
+
   it('only planes on or near the screen get labels', () => {
     expect(onScreen(-29, 10, 390, 700)).toBe(true);
     expect(onScreen(-31, 10, 390, 700)).toBe(false);

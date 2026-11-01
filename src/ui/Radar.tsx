@@ -6,7 +6,6 @@ import type { Airport, Conflict, Plane, Vec2 } from '../engine/types';
 import { useTheme } from '../theme/ThemeContext';
 import { useLabelLayout, type DrawnLabel } from './useLabelLayout';
 import type { Theme } from '../theme/themes';
-import { altHundreds } from './format';
 import {
   bracketPath,
   centreline,
@@ -81,6 +80,9 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
   const labels = useLabelLayout(sim, vp, theme, { selectedId, mode: labelMode, labelScale, animate: !paused });
   const labelsRef = useRef(labels);
   labelsRef.current = labels;
+  // Hit-test against what is on screen: label boxes and symbols from the same (rendered) camera.
+  const drawnVp = useRef(vp);
+  drawnVp.current = vp;
 
   // ---- camera ------------------------------------------------------------
   // `cam` always holds the newest camera, including updates not rendered yet,
@@ -152,7 +154,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
     origin.current = { x: ne.pageX - ne.locationX, y: ne.pageY - ne.locationY };
     const touches = touchesOf(e);
     const first = touches[0] ?? pointOf(e);
-    const hit = hitTest(sim.planes, cam.current, labelsRef.current, first.x, first.y, theme.size.hitRadius);
+    const hit = hitTest(sim.planes, drawnVp.current, labelsRef.current, first.x, first.y, theme.size.hitRadius);
     run(onDown(g.current, touches.length ? touches : [{ ...first, id: 0 }], Date.now(), hit, cam.current));
   };
   const onMoveEvent = (e: GestureResponderEvent) => run(onMove(g.current, touchesOf(e), cam.current, planePos(g.current.planeId)));

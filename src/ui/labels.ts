@@ -206,8 +206,11 @@ export interface Slot {
   t0: number;
 }
 
-/** Offset to draw now for a slot. */
-export const slotOffset = (s: Slot, now: number) => easeRect(s.from, s.to, (now - s.t0) / EASE_MS);
+/**
+ * Offset to draw now for a slot. When not animating (paused: nothing re-renders
+ * to finish an ease) the label goes straight to its target, even mid-ease.
+ */
+export const slotOffset = (s: Slot, now: number, animate = true) => (animate ? easeRect(s.from, s.to, (now - s.t0) / EASE_MS) : s.to);
 
 /**
  * New slots after a placement run. `placed` are offsets from each symbol. A
