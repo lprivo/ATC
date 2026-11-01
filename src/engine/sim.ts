@@ -43,6 +43,9 @@ export const RULES = {
   establishedMaxCrossTrackNm: 0.5,
 };
 
+/** A plane further than this (east-west or north-south, nm) from the airport has left the sector. */
+export const sectorLimitNm = (airport: Airport) => airport.rangeNm + 2;
+
 /** Radius of a standard-rate turn at the given speed. */
 export const turnRadiusNm = (speedKt: number) =>
   speedKt / 3600 / ((PERF.turnRateDegPerSec * Math.PI) / 180);
@@ -380,7 +383,7 @@ export class Sim {
   }
 
   private checkBounds() {
-    const lim = this.airport.rangeNm + 2;
+    const lim = sectorLimitNm(this.airport);
     for (const p of this.planes) {
       if (Math.abs(p.pos.x) > lim || Math.abs(p.pos.y) > lim) {
         p.status = 'exited';

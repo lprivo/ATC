@@ -6,7 +6,6 @@ interface ThemeCtx {
   /** All selectable themes, for pickers. */
   themes: readonly Theme[];
   setTheme: (id: string) => void;
-  cycleTheme: () => void;
 }
 
 const Ctx = createContext<ThemeCtx | null>(null);
@@ -21,7 +20,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const i = themes.findIndex((t) => t.id === id);
         if (i >= 0) setIndex(i);
       },
-      cycleTheme: () => setIndex((i) => (i + 1) % themes.length),
     }),
     [index],
   );

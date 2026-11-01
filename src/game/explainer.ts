@@ -1,7 +1,7 @@
 // Content for the pause menu's stat explainer (design S5b). Pure: the text is
 // built from the sim's actual rules, so it can't drift from how the game plays.
 import { SCORING } from '../engine/scoring';
-import { RULES, type Sim } from '../engine/sim';
+import { RULES, sectorLimitNm, type Sim } from '../engine/sim';
 import type { SimEvent, SimEventKind } from '../engine/types';
 import { clock } from '../ui/format';
 
@@ -59,7 +59,7 @@ function reasonOf(e: SimEvent) {
     case 'goAround':
       return e.reason ?? 'go-around';
     case 'conflict':
-      return 'under 3 nm and 1,000 ft';
+      return `under ${RULES.separationNm} nm and ${RULES.separationFt.toLocaleString('en-GB')} ft`;
     case 'exited':
       return 'left the sector';
     default:
@@ -91,11 +91,8 @@ export function explain(sim: Sim, key: StatKey): Explainer {
         tone: 'danger',
         title: 'SEPARATION LOST',
         headline: `${pts(SCORING.separationLoss)} points each`,
-        body: `Every pair of planes must stay ${RULES.separationNm} nm apart sideways or ${RULES.separationFt.toLocaleString('en-GB')} ft apart vertically. Each new encounter that breaks both counts once.`,
-        causes: [
-          `Two planes were closer than ${RULES.separationNm} nm and less than ${RULES.separationFt.toLocaleString('en-GB')} ft apart at the same time.`,
-          'Planes established on final to the two parallel runways are allowed closer.',
-        ],
+        body: `Every pair of planes must stay ${RULES.separationNm} nm apart sideways or ${RULES.separationFt.toLocaleString('en-GB')} ft apart vertically. Each new encounter that breaks both counts once. Planes established on final to parallel runways are allowed closer.`,
+        causes: [`Two planes were closer than ${RULES.separationNm} nm and less than ${RULES.separationFt.toLocaleString('en-GB')} ft apart at the same time.`],
         incidents,
         tip: 'Give converging planes different altitudes early: 1,000 ft is enough, and a climb or descent takes time.',
       };
@@ -105,14 +102,14 @@ export function explain(sim: Sim, key: StatKey): Explainer {
         tone: 'danger',
         title: 'GO-AROUND',
         headline: `${pts(SCORING.goAround)} points each`,
-        body: 'A cleared plane that can’t land safely climbs away to 3,000 ft and flies the runway heading, waiting for a new path.',
+        body: `A cleared plane that can’t land safely climbs away to ${RULES.goAroundAltitude.toLocaleString('en-GB')} ft and flies the runway heading, waiting for a new path.`,
         causes: [
           `Too high: above ${RULES.touchdownMaxAltFt.toLocaleString('en-GB')} ft at the threshold (it descends about ${RULES.glideFtPerNm} ft per nm on final).`,
           `Not lined up: more than ${RULES.touchdownMaxAngleDeg}° off the runway heading at touchdown.`,
           `Not lined up on short final: within ${RULES.finalCheckNm} nm of the threshold and pointing more than ${RULES.finalMaxOffDeg}° away from it.`,
         ],
         incidents,
-        tip: 'Start the final at least 3 nm out, straight down the centreline, and lower the plane before you clear it.',
+        tip: 'Give the plane a long, straight final down the centreline, and bring it lower before you clear it.',
       };
     case 'exits':
       return {
@@ -121,7 +118,7 @@ export function explain(sim: Sim, key: StatKey): Explainer {
         title: 'EXITS',
         headline: `${pts(SCORING.exit)} points each`,
         body: 'A plane that flies off the edge of the sector is lost to you.',
-        causes: [`It went more than ${sim.airport.rangeNm + 2} nm from the airport, east-west or north-south.`],
+        causes: [`It went more than ${sectorLimitNm(sim.airport)} nm from the airport, east-west or north-south.`],
         incidents,
         tip: 'Planes keep their heading until you change it: turn arrivals in before they reach the edge.',
       };

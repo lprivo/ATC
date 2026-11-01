@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { AccessibilityInfo } from 'react-native';
 import type { Sim } from '../engine/sim';
 import { haptic } from './haptics';
 import { conflictBanner, conflictSetKey, hasNewConflict, nextToastExpiry, pairKey, stepToastState, type ToastState } from './hud';
@@ -30,6 +31,9 @@ export function useHud(sim: Sim, opts: { paused: boolean; timeScale: number; set
     if (known.current.sim !== sim) known.current = { sim, pairs: new Set() };
     if (hasNewConflict(known.current.pairs, sim.conflicts)) {
       haptic('conflict');
+      // Announced here, once per new pair, so pausing (which hides the banner) doesn't repeat it.
+      const b = conflictBanner(sim);
+      if (b) AccessibilityInfo.announceForAccessibility(`${b.title}. ${b.detail}`);
       if (timeScale !== 1) setTimeScale(1);
     }
     known.current.pairs = new Set(sim.conflicts.map(pairKey));

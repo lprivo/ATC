@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { AccessibilityInfo, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import type { Banner } from '../game/hud';
 import { useTheme } from '../theme/ThemeContext';
 import { WarningIcon } from './icons';
@@ -17,11 +16,6 @@ export function ConflictBanner({
 }) {
   const { theme } = useTheme();
   const c = theme.colors;
-  // Announce each new conflict pair once. (No live region: the distance
-  // changes every frame and Android would re-read the banner each time.)
-  useEffect(() => {
-    AccessibilityInfo.announceForAccessibility(`${banner.title}. ${banner.detail}`);
-  }, [banner.pairKey]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <View
       style={[styles.banner, { backgroundColor: c.danger }]}

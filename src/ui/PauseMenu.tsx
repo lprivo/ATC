@@ -1,11 +1,16 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { AccessibilityInfo, findNodeHandle, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Line } from 'react-native-svg';
 import { score } from '../engine/scoring';
 import type { Sim } from '../engine/sim';
 import { explain, statCells, type StatKey } from '../game/explainer';
 import { useTheme } from '../theme/ThemeContext';
 import { clock } from './format';
 import { CloseIcon } from './icons';
+import { Segmented } from './Segmented';
+
+/** An armed Restart / Quit disarms after this long. */
+const CONFIRM_MS = 4000;
 
 interface Props {
   sim: Sim;
@@ -33,14 +38,26 @@ export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, on
   const box = { borderColor: c.panelBorder, borderWidth: theme.hairline };
   const session = `PAUSED · ${sim.airport.icao} · ${clock(sim.time)}${sessionSec ? ` / ${clock(sessionSec)}` : ''}`;
 
+  // An armed Restart / Quit disarms on its own after a few seconds, and on any other press.
+  useEffect(() => {
+    if (!confirming) return;
+    const t = setTimeout(() => setConfirming(null), CONFIRM_MS);
+    return () => clearTimeout(t);
+  }, [confirming]);
+  const disarm = () => setConfirming(null);
+
   const action = (kind: 'restart' | 'quit', label: string, run: () => void) => {
     const asking = confirming === kind;
     return (
       <Pressable
         testID={`btn-${kind}`}
         accessibilityRole="button"
-        accessibilityHint={asking ? undefined : 'Asks to confirm'}
-        onPress={() => (asking ? run() : setConfirming(kind))}
+        accessibilityHint={asking ? 'Tap again to confirm' : 'Asks to confirm'}
+        onPress={() => {
+          if (asking) return run();
+          setConfirming(kind);
+          AccessibilityInfo.announceForAccessibility(`${label}? Tap again to confirm.`);
+        }}
         style={({ pressed }) => [styles.button, styles.grow, box, { backgroundColor: asking ? c.danger : pressed ? c.buttonPressed : c.button }]}
       >
         <Text style={[t.button, { color: asking ? c.onDanger : c.buttonText }]}>{asking ? `${label}? Tap again` : label}</Text>
@@ -50,14 +67,18 @@ export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, on
 
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: c.scrim }]} testID="pause-menu" accessibilityViewIsModal>
-      <View style={[styles.head, { paddingTop: topInset + 24 }]}>
+      {/* While the explainer is open, hide the menu behind it from TalkBack too (accessibilityViewIsModal is iOS-only). */}
+      <View style={[styles.head, { paddingTop: topInset + 24 }]} importantForAccessibility={explaining ? 'no-hide-descendants' : 'auto'}>
         <Text style={[t.caps, { color: c.textDim }]}>{session}</Text>
         <Text style={[t.score, { color: c.text }]} testID="pause-score">
           {score(sim.stats).toLocaleString('en-GB')}
         </Text>
         <Text style={[t.small, { color: c.textDim }]}>points so far</Text>
       </View>
-      <View style={[styles.panel, box, { backgroundColor: c.panel, paddingBottom: Math.max(bottomInset, 12) + 8 }]}>
+      <View
+        style={[styles.panel, box, { backgroundColor: c.panel, paddingBottom: Math.max(bottomInset, 12) + 8 }]}
+        importantForAccessibility={explaining ? 'no-hide-descendants' : 'auto'}
+      >
         <View style={styles.stats}>
           {statCells(sim).map((s) => (
             <Pressable
@@ -65,32 +86,28 @@ export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, on
               testID={`stat-${s.key}`}
               accessibilityRole="button"
               accessibilityLabel={`${s.label}: ${s.value}. Explain`}
-              onPress={() => setExplaining(s.key)}
+              onPress={() => {
+                disarm();
+                setExplaining(s.key);
+              }}
               style={styles.stat}
             >
               <Text style={[t.barTitle, { color: s.key === 'sep' && s.value > 0 ? c.danger : c.text }]}>{s.value}</Text>
-              <Text style={[t.capsSmall, styles.dotted, { color: c.textDim, textDecorationColor: c.textDim }]}>{s.label.toUpperCase()}</Text>
+              <DottedUnderline color={c.textDim}>
+                <Text style={[t.capsSmall, { color: c.textDim }]}>{s.label.toUpperCase()}</Text>
+              </DottedUnderline>
             </Pressable>
           ))}
         </View>
         <Text style={[t.capsSmall, { color: c.textDim }]}>THEME</Text>
-        <View style={[styles.segments, box]} accessibilityRole="radiogroup">
-          {themes.map((th, i) => {
-            const active = th.id === theme.id;
-            return (
-              <Pressable
-                key={th.id}
-                testID={`theme-${th.id}`}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: active }}
-                onPress={() => setTheme(th.id)}
-                style={[styles.segment, i > 0 && { borderLeftColor: c.panelBorder, borderLeftWidth: theme.hairline }, active && { backgroundColor: c.accent }]}
-              >
-                <Text style={[t.barCount, { color: active ? c.background : c.text }]}>{th.name}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Segmented
+          options={themes.map((th) => ({ value: th.id, label: th.name, testID: `theme-${th.id}` }))}
+          value={theme.id}
+          onChange={(id) => {
+            disarm();
+            setTheme(id);
+          }}
+        />
         <View style={styles.row}>
           {action('restart', 'Restart', onRestart)}
           {onQuit && action('quit', 'Quit to menu', onQuit)}
@@ -98,7 +115,10 @@ export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, on
         <Pressable
           testID="btn-resume"
           accessibilityRole="button"
-          onPress={onResume}
+          onPress={() => {
+            disarm();
+            onResume();
+          }}
           style={({ pressed }) => [styles.button, { backgroundColor: c.accent, opacity: pressed ? 0.85 : 1 }]}
         >
           <Text style={[t.buttonLarge, { color: c.background }]}>RESUME</Text>
@@ -109,9 +129,31 @@ export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, on
   );
 }
 
+/** Incidents listed in the explainer before "+ n more". */
+const MAX_INCIDENTS = 8;
+
+/** A dotted underline drawn as a dashed line, the same on every platform (textDecorationStyle is iOS-only). */
+function DottedUnderline({ color, children }: { color: string; children: ReactNode }) {
+  const [w, setW] = useState(0);
+  return (
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+      {children}
+      <Svg width={w} height={2}>
+        <Line x1={0} y1={1} x2={w} y2={1} stroke={color} strokeWidth={1} strokeDasharray="1 2" />
+      </Svg>
+    </View>
+  );
+}
+
 /** Design S5b: a sheet from y = 150 explaining one stat. */
 function ExplainerSheet({ sim, stat, onClose, bottomInset }: { sim: Sim; stat: StatKey; onClose: () => void; bottomInset: number }) {
   const { theme } = useTheme();
+  // Screen readers start on the sheet's title when it opens.
+  const titleRef = useRef<ComponentRef<typeof Text>>(null);
+  useEffect(() => {
+    const node = titleRef.current ? findNodeHandle(titleRef.current) : null;
+    if (node) AccessibilityInfo.setAccessibilityFocus(node);
+  }, [stat]);
   const c = theme.colors;
   const t = theme.type;
   const e = explain(sim, stat);
@@ -120,7 +162,9 @@ function ExplainerSheet({ sim, stat, onClose, bottomInset }: { sim: Sim; stat: S
     <View style={[styles.sheet, { backgroundColor: c.panel, borderColor: c.panelBorder, borderTopWidth: theme.hairline }]} testID="explainer" accessibilityViewIsModal>
       <View style={styles.sheetHead}>
         <Text style={[t.chip, styles.chip, { color: tone, borderColor: tone, borderWidth: theme.hairline }]}>{e.chip}</Text>
-        <Text style={[t.caps, { color: c.textDim }]}>{e.title}</Text>
+        <Text ref={titleRef} style={[t.caps, { color: c.textDim }]} accessibilityRole="header">
+          {e.title}
+        </Text>
         <Pressable
           testID="close-explainer"
           accessibilityRole="button"
@@ -145,7 +189,7 @@ function ExplainerSheet({ sim, stat, onClose, bottomInset }: { sim: Sim; stat: S
           <>
             <Text style={[t.caps, { color: c.textDim }]}>THIS SESSION · {e.incidents.length}</Text>
             {e.incidents.length === 0 && <Text style={[t.small, { color: c.textDim }]}>None yet.</Text>}
-            {e.incidents.slice(0, 8).map((i, k) => (
+            {e.incidents.slice(0, MAX_INCIDENTS).map((i, k) => (
               <View key={k} style={styles.incident}>
                 <Text style={[t.barCount, { color: c.text }]}>{i.who}</Text>
                 <Text style={[t.smallTight, { color: c.textDim }]}>{i.time}</Text>
@@ -155,6 +199,9 @@ function ExplainerSheet({ sim, stat, onClose, bottomInset }: { sim: Sim; stat: S
               </View>
             ))}
           </>
+        )}
+        {e.incidents.length > MAX_INCIDENTS && (
+          <Text style={[t.small, { color: c.textDim }]}>+ {e.incidents.length - MAX_INCIDENTS} more</Text>
         )}
         <View style={[styles.tip, { borderColor: c.panelBorder, borderWidth: theme.hairline }]}>
           <Text style={[t.caps, { color: c.accent }]}>TIP</Text>
@@ -170,9 +217,6 @@ const styles = StyleSheet.create({
   panel: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, gap: 12 },
   stats: { flexDirection: 'row', justifyContent: 'space-between' },
   stat: { alignItems: 'flex-start', gap: 2, minHeight: 44, justifyContent: 'center' },
-  dotted: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
-  segments: { flexDirection: 'row', alignSelf: 'flex-start' },
-  segment: { minWidth: 88, height: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', gap: 8 },
   button: { height: 56, alignItems: 'center', justifyContent: 'center' },
   grow: { flex: 1 },
