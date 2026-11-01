@@ -20,14 +20,13 @@ const clock = (sec: number) => {
 export function TopBar({ sim, paused, onTogglePause, timeScale, onCycleTimeScale, onRestart }: Props) {
   const { theme, cycleTheme } = useTheme();
   const c = theme.colors;
-  const mono = { fontFamily: theme.font.mono };
   const s = sim.stats;
 
   return (
     <View style={[styles.bar, { backgroundColor: c.panel, borderColor: c.panelBorder }]}>
       <View style={styles.row}>
-        <Text style={[styles.title, mono, { color: c.text }]}>
-          {sim.airport.icao} <Text style={{ color: c.textDim }}>{clock(sim.time)}</Text>
+        <Text style={[theme.type.barTitle, { color: c.text }]}>
+          {sim.airport.icao} <Text style={[theme.type.barValue, { color: c.textDim }]}>{clock(sim.time)}</Text>
         </Text>
         <View style={styles.buttons}>
           <Btn testID="btn-pause" label={paused ? '▶' : '❚❚'} onPress={onTogglePause} />
@@ -36,7 +35,7 @@ export function TopBar({ sim, paused, onTogglePause, timeScale, onCycleTimeScale
           <Btn testID="btn-restart" label="↺" onPress={onRestart} />
         </View>
       </View>
-      <Text style={[styles.stats, mono, { color: c.textDim }]} testID="stats">
+      <Text style={[theme.type.smallTight, { color: c.textDim }]} testID="stats">
         <Text style={{ color: c.good }}>Landed {s.landed}</Text>
         {'  '}
         <Text style={{ color: s.separationViolations ? c.danger : c.textDim }}>Sep {s.separationViolations}</Text>
@@ -53,9 +52,9 @@ function Btn({ label, onPress, testID }: { label: string; onPress: () => void; t
     <Pressable
       testID={testID}
       onPress={onPress}
-      style={({ pressed }) => [styles.btn, { backgroundColor: pressed ? c.buttonPressed : c.button }]}
+      style={({ pressed }) => [styles.btn, { borderColor: c.panelBorder, borderWidth: theme.hairline, backgroundColor: pressed ? c.buttonPressed : c.button }]}
     >
-      <Text style={[styles.btnText, { fontFamily: theme.font.mono, color: c.buttonText }]}>{label}</Text>
+      <Text style={[theme.type.barCount, { color: c.buttonText }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -63,9 +62,6 @@ function Btn({ label, onPress, testID }: { label: string; onPress: () => void; t
 const styles = StyleSheet.create({
   bar: { borderBottomWidth: 1, paddingHorizontal: 10, paddingVertical: 6, gap: 4 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 16, fontWeight: '700' },
   buttons: { flexDirection: 'row', gap: 6 },
-  btn: { paddingHorizontal: 10, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', minWidth: 36 },
-  btnText: { fontSize: 13 },
-  stats: { fontSize: 11 },
+  btn: { paddingHorizontal: 10, height: 36, alignItems: 'center', justifyContent: 'center', minWidth: 36 },
 });

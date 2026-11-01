@@ -27,7 +27,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
   const { theme } = useTheme();
   const [size, setSize] = useState({ w: 0, h: 0 });
   const vp = useMemo(() => makeViewport(size.w, size.h, sim.airport.rangeNm), [size.w, size.h, sim.airport.rangeNm]);
-  const tag = useMemo(() => tagLayout(theme.size.tagFont), [theme.size.tagFont]);
+  const tag = useMemo(() => tagLayout(theme.radarFont.label.fontSize), [theme.radarFont.label.fontSize]);
 
   // ---- gestures --------------------------------------------------------
   // Gesture state lives in a ref: touch events can arrive faster than React
@@ -166,7 +166,8 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
  */
 const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airport: Airport; vp: Viewport; theme: Theme }) {
   const c = theme.colors;
-  const fontProps = { fontFamily: theme.font.mono };
+  const fixFont = theme.radarFont.fix;
+  const rwyFont = theme.radarFont.runway;
   const centre = toScreen(vp, { x: 0, y: 0 });
   return (
     <G>
@@ -179,7 +180,7 @@ const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airport: Air
         r.ends.map((end) => {
           const a = toScreen(vp, end.threshold);
           const b = toScreen(vp, add(end.threshold, dirOf(end.heading), -RULES.approachZoneNm));
-          return <Line key={`cl-${end.id}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={c.rangeRing} strokeWidth={1} strokeDasharray="4 6" />;
+          return <Line key={`cl-${end.id}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={c.centreline} strokeWidth={1} strokeDasharray="4 6" />;
         }),
       )}
 
@@ -188,7 +189,7 @@ const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airport: Air
         return (
           <G key={f.name}>
             <Polygon points={`${s.x},${s.y - 4} ${s.x - 3.5},${s.y + 3} ${s.x + 3.5},${s.y + 3}`} fill="none" stroke={c.fix} strokeWidth={1} />
-            <SvgText x={s.x + 6} y={s.y + 3} fill={c.fixLabel} fontSize={theme.size.labelFont} {...fontProps}>
+            <SvgText x={s.x + 6} y={s.y + 3} fill={c.fixLabel} fontFamily={fixFont.fontFamily} fontSize={fixFont.fontSize} letterSpacing={fixFont.letterSpacing}>
               {f.name}
             </SvgText>
           </G>
@@ -201,11 +202,11 @@ const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airport: Air
         const b = toScreen(vp, e2.threshold);
         return (
           <G key={r.name}>
-            <Line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={c.runway} strokeWidth={4} strokeLinecap="round" />
+            <Line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={c.runway} strokeWidth={Math.min(7, Math.max(3, 0.22 * vp.scale))} strokeLinecap="butt" />
             {r.ends.map((end) => {
               const l = toScreen(vp, add(end.threshold, dirOf(end.heading), -0.9));
               return (
-                <SvgText key={end.id} x={l.x} y={l.y + 3} fill={c.runwayLabel} fontSize={theme.size.labelFont} textAnchor="middle" {...fontProps}>
+                <SvgText key={end.id} x={l.x} y={l.y + 3} fill={c.runwayLabel} fontFamily={rwyFont.fontFamily} fontSize={rwyFont.fontSize} textAnchor="middle">
                   {end.id}
                 </SvgText>
               );
@@ -222,15 +223,16 @@ function PlaneGlyph({ plane: p, vp, tag, selected }: { plane: Plane; vp: Viewpor
   const c = theme.colors;
   const s = toScreen(vp, p.pos);
   const color = p.conflict ? c.planeConflict : selected ? c.planeSelected : c.plane;
-  const lead = toScreen(vp, add(p.pos, dirOf(p.heading), (p.speed / 60) * theme.size.leaderMinutes));
-  const half = theme.size.blip / 2;
+  const lead = toScreen(vp, add(p.pos, dirOf(p.heading), (p.speed / 60) * theme.size.headingVectorMinutes));
+  const half = theme.size.planeSymbol / 2;
 
   const altDiff = p.target.altitude - p.altitude;
   const arrow = altDiff > 50 ? '↑' : altDiff < -50 ? '↓' : ' ';
   const line2 = `${altHundreds(p.altitude)}${arrow} ${Math.round(p.speed)}${p.clearedRunway ? ` ${p.clearedRunway.id}` : ''}`;
   const tx = s.x + tag.offsetX;
   const ty = s.y + tag.offsetY;
-  const fontProps = { fontFamily: theme.font.mono, fontSize: theme.size.tagFont };
+  const f1 = theme.radarFont.label;
+  const f2 = theme.radarFont.label2;
 
   return (
     <G>
@@ -251,11 +253,11 @@ function PlaneGlyph({ plane: p, vp, tag, selected }: { plane: Plane; vp: Viewpor
       {p.conflict && <Circle cx={s.x} cy={s.y} r={(RULES.separationNm / 2) * vp.scale} stroke={c.planeConflict} strokeWidth={1} fill="none" />}
       <Line x1={s.x} y1={s.y} x2={lead.x} y2={lead.y} stroke={color} strokeWidth={1} />
       <Rect x={s.x - half} y={s.y - half} width={half * 2} height={half * 2} fill={selected ? color : 'none'} stroke={color} strokeWidth={1.5} />
-      {selected && <Rect x={tx - 3} y={ty - 2} width={tag.width} height={tag.height} fill="none" stroke={color} strokeWidth={1} rx={3} />}
-      <SvgText x={tx} y={ty + tag.line1} fill={color} {...fontProps}>
+      {selected && <Rect x={tx - 3} y={ty - 2} width={tag.width} height={tag.height} fill="none" stroke={color} strokeWidth={1} />}
+      <SvgText x={tx} y={ty + tag.line1} fill={color} fontFamily={f1.fontFamily} fontSize={f1.fontSize}>
         {p.callsign}
       </SvgText>
-      <SvgText x={tx} y={ty + tag.line2} fill={color} {...fontProps}>
+      <SvgText x={tx} y={ty + tag.line2} fill={color} fontFamily={f2.fontFamily} fontSize={f2.fontSize}>
         {line2}
       </SvgText>
     </G>

@@ -46,3 +46,5 @@ Docs: https://docs.expo.dev/eas/index.md
 - Pure logic used by the UI (`src/game/controls.ts`, `src/ui/viewport.ts`, `src/ui/format.ts`) has no React Native imports and is unit tested.
 - `legacy/` — the original 2019 HTML/JS sim, kept for reference. Not part of the app.
 - Run `npm test` and `npm run typecheck` before declaring a task done.
+- Content is data. Airports, traffic files, themes and tutorial copy must stay plain serialisable objects (no functions or logic in airport files), because a backend will later serve them and the app will self-update over the air (EAS Update, with the user's consent; see issue #21). For now the app is offline only: no network calls.
+- Design reference: `docs/design/` (Claude Design handoff "Privo ATC Design"). Track work against the epic, issue #20.

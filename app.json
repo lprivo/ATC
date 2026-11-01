@@ -26,6 +26,9 @@
         "projectId": "3123c803-2bb8-4877-b5fc-7cfd6fd49d3d"
       }
     },
-    "owner": "soosgyul"
+    "owner": "soosgyul",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

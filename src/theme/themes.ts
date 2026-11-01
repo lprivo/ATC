@@ -1,112 +1,242 @@
-import { Platform } from 'react-native';
+import type { TextStyle } from 'react-native';
 
 /**
- * Every colour, the fonts and the main radar glyph sizes come from here
- * (layout sizes and fine stroke details are still in the components). To restyle the game, add a
- * new Theme object (or edit one) — components never hard-code colours.
+ * Every colour, font and the main radar glyph size comes from here. Layout
+ * sizes (panel, buttons) still live in the component StyleSheets. To restyle
+ * the game, add a new Theme object or edit one; components never hard-code
+ * colours.
+ *
+ * Values follow the Privo ATC design handoff (docs/design/README.md, "Design tokens").
  */
-export interface Theme {
-  name: string;
-  statusBar: 'light' | 'dark';
-  colors: {
-    background: string;
-    rangeRing: string;
-    runway: string;
-    runwayLabel: string;
-    fix: string;
-    fixLabel: string;
-    plane: string;
-    planeSelected: string;
-    planeConflict: string;
-    trail: string;
-    route: string;
-    routeCleared: string;
-    routeDraft: string;
-    panel: string;
-    panelBorder: string;
-    text: string;
-    textDim: string;
-    accent: string;
-    danger: string;
-    good: string;
-    button: string;
-    buttonPressed: string;
-    buttonText: string;
-  };
-  font: { mono: string };
-  size: {
-    blip: number;
-    tagFont: number;
-    labelFont: number;
-    /** Leader line length in minutes of flight. */
-    leaderMinutes: number;
-  };
+export interface ThemeColors {
+  background: string;
+  rangeRing: string;
+  /** Extended runway centrelines. */
+  centreline: string;
+  runway: string;
+  runwayLabel: string;
+  fix: string;
+  fixLabel: string;
+  plane: string;
+  planeSelected: string;
+  planeConflict: string;
+  trail: string;
+  route: string;
+  routeCleared: string;
+  routeDraft: string;
+  panel: string;
+  panelBorder: string;
+  text: string;
+  textDim: string;
+  accent: string;
+  danger: string;
+  good: string;
+  button: string;
+  buttonPressed: string;
+  buttonText: string;
+  /** Solid backing behind radar data blocks. */
+  labelBg: string;
+  /** Runway snap highlight while drawing a path. */
+  snapHalo: string;
+  /** Text and icons drawn on a `danger` fill. */
+  onDanger: string;
+  /** Dims the radar behind menus and coach marks. */
+  scrim: string;
+  /** Radar sweep on the splash and menu. */
+  sweep: string;
 }
 
-const mono = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'ui-monospace, Menlo, monospace' });
+/** Font family names registered by `useAppFonts` (one family per weight, which works on every platform). */
+export const FONT_FAMILY = {
+  condensed400: 'BarlowCondensed_400Regular',
+  condensed500: 'BarlowCondensed_500Medium',
+  condensed600: 'BarlowCondensed_600SemiBold',
+  body400: 'Barlow_400Regular',
+  body500: 'Barlow_500Medium',
+  body600: 'Barlow_600SemiBold',
+  body700: 'Barlow_700Bold',
+} as const;
+
+/** A text style token. A subset of TextStyle, so it can be spread straight into a style. */
+export type TypeToken = Pick<TextStyle, 'fontFamily' | 'fontSize' | 'lineHeight' | 'letterSpacing' | 'fontVariant'>;
+
+const tabular: TextStyle['fontVariant'] = ['tabular-nums'];
+/** Letter spacing in the design is given in em; React Native wants points. */
+const em = (size: number, ems: number) => Math.round(size * ems * 100) / 100;
+
+const type = {
+  display: { fontFamily: FONT_FAMILY.condensed600, fontSize: 96, lineHeight: 86, fontVariant: tabular },
+  /** Pause-menu score. */
+  score: { fontFamily: FONT_FAMILY.condensed600, fontSize: 64, lineHeight: 64, fontVariant: tabular },
+  title: { fontFamily: FONT_FAMILY.condensed600, fontSize: 28, lineHeight: 30 },
+  stepperValue: { fontFamily: FONT_FAMILY.condensed600, fontSize: 34, lineHeight: 36, fontVariant: tabular },
+  callsign: { fontFamily: FONT_FAMILY.condensed600, fontSize: 26, lineHeight: 28, letterSpacing: em(26, 0.02) },
+  button: { fontFamily: FONT_FAMILY.condensed600, fontSize: 18, letterSpacing: em(18, 0.04) },
+  buttonLarge: { fontFamily: FONT_FAMILY.condensed600, fontSize: 24, letterSpacing: em(24, 0.06) },
+  /** Top-bar airport code. */
+  barTitle: { fontFamily: FONT_FAMILY.condensed600, fontSize: 19, letterSpacing: em(19, 0.03) },
+  /** Top-bar clock. */
+  barValue: { fontFamily: FONT_FAMILY.condensed500, fontSize: 17, fontVariant: tabular },
+  /** Top-bar counters and segmented-control labels. */
+  barCount: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, fontVariant: tabular },
+  /** Small condensed chips (status, toast kind). */
+  chip: { fontFamily: FONT_FAMILY.condensed600, fontSize: 12, letterSpacing: em(12, 0.08) },
+  body: { fontFamily: FONT_FAMILY.body400, fontSize: 15, lineHeight: 22 },
+  bodyStrong: { fontFamily: FONT_FAMILY.body500, fontSize: 14 },
+  small: { fontFamily: FONT_FAMILY.body500, fontSize: 13, lineHeight: 17 },
+  smallTight: { fontFamily: FONT_FAMILY.body500, fontSize: 12, fontVariant: tabular },
+  caps: { fontFamily: FONT_FAMILY.body600, fontSize: 11, letterSpacing: em(11, 0.12) },
+  capsSmall: { fontFamily: FONT_FAMILY.body600, fontSize: 10, letterSpacing: em(10, 0.12) },
+} satisfies Record<string, TypeToken>;
+
+export type ThemeType = typeof type;
+
+/** Radar (SVG) text: family, weight-specific face and size before `labelScale`. */
+export interface RadarFont {
+  fontFamily: string;
+  fontSize: number;
+  letterSpacing?: number;
+}
+
+const radarFont = {
+  /** Data block line 1 (callsign); scaled by labelScale. */
+  label: { fontFamily: FONT_FAMILY.condensed600, fontSize: 13 },
+  /** Data block line 2 (altitude, speed); scaled by labelScale. */
+  label2: { fontFamily: FONT_FAMILY.condensed500, fontSize: 12 },
+  /** Data block line height; scaled by labelScale. */
+  labelLineHeight: 15,
+  fix: { fontFamily: FONT_FAMILY.condensed500, fontSize: 10, letterSpacing: em(10, 0.06) },
+  runway: { fontFamily: FONT_FAMILY.condensed600, fontSize: 11 },
+  chip: { fontFamily: FONT_FAMILY.condensed600, fontSize: 10 },
+};
+
+/** Radar glyph sizes in points (pt). "nm" values are converted with the current zoom. */
+const size = {
+  /** Side of the plane square. */
+  planeSymbol: 11,
+  planeStroke: 1.5,
+  /** Selected-plane corner brackets: box side and arm length. */
+  selectBracket: 26,
+  selectBracketArm: 5,
+  /** Touch target diameter around a plane symbol. */
+  hitTarget: 44,
+  /** Heading vector: this many minutes of flight, at least `headingVectorMin` pt. */
+  headingVectorMinutes: 1,
+  headingVectorMin: 14,
+  /** Conflict ring radius: max(conflictRingNm, conflictRingMin pt). */
+  conflictRingNm: 1.5,
+  conflictRingMin: 16,
+  /** Label distance from the symbol: near ring and far ring (with a leader line). */
+  labelOffsetNear: 12,
+  labelOffsetFar: 30,
+  /** Snap distance to a runway threshold while drawing. */
+  snapRadius: 28,
+  loupeRadius: 62,
+  loupeZoom: 2.2,
+  trailDots: 5,
+  trailDotRadius: 1.5,
+};
+
+/** labelScale per "Label size" setting. */
+export const LABEL_SCALE = { S: 0.92, M: 1, L: 1.15 } as const;
+export type LabelSize = keyof typeof LABEL_SCALE;
+
+export interface Theme {
+  id: 'radar' | 'paper';
+  name: string;
+  statusBar: 'light' | 'dark';
+  colors: ThemeColors;
+  type: ThemeType;
+  radarFont: typeof radarFont;
+  size: typeof size;
+  /** Blueprint style: square corners everywhere (device corners are hardware only). */
+  radius: 0;
+  /** Hairline border width. */
+  hairline: number;
+}
 
 export const radarTheme: Theme = {
+  id: 'radar',
   name: 'Radar',
   statusBar: 'light',
   colors: {
-    background: '#0b1f26',
-    rangeRing: '#1d3a44',
-    runway: '#c9d6db',
-    runwayLabel: '#7f9aa3',
-    fix: '#3f6b78',
-    fixLabel: '#4f7f8c',
-    plane: '#5dffa0',
+    background: '#0f1b26',
+    rangeRing: '#22364a',
+    centreline: '#34506b',
+    runway: '#e8eef4',
+    runwayLabel: '#b5d9fd',
+    fix: '#5f7f9e',
+    fixLabel: '#8aa6c1',
+    plane: '#d6ebff',
     planeSelected: '#ffffff',
-    planeConflict: '#ff4d4d',
-    trail: '#3a8a64',
-    route: '#5ac8ff',
-    routeCleared: '#ffd34d',
+    planeConflict: '#ffb547',
+    trail: '#4f7090',
+    route: '#94bce3',
+    routeCleared: '#6fe3c6',
     routeDraft: '#ffffff',
-    panel: '#10282f',
-    panelBorder: '#21434d',
-    text: '#d8e6ea',
-    textDim: '#7f9aa3',
-    accent: '#5dffa0',
-    danger: '#ff4d4d',
-    good: '#5dffa0',
-    button: '#183840',
-    buttonPressed: '#24525d',
-    buttonText: '#d8e6ea',
+    panel: '#162534',
+    panelBorder: '#2c455d',
+    text: '#eef6ff',
+    textDim: '#97adc2',
+    accent: '#749dc4',
+    danger: '#ffb547',
+    good: '#6fe3c6',
+    button: '#1f3245',
+    buttonPressed: '#2c455d',
+    buttonText: '#eef6ff',
+    labelBg: 'rgba(15,27,38,0.84)',
+    snapHalo: '#b5d9fd',
+    onDanger: '#1a1206',
+    scrim: 'rgba(6,12,18,0.72)',
+    sweep: 'rgba(148,188,227,0.30)',
   },
-  font: { mono },
-  size: { blip: 7, tagFont: 11, labelFont: 9, leaderMinutes: 1 },
+  type,
+  radarFont,
+  size,
+  radius: 0,
+  hairline: 1,
 };
 
 export const paperTheme: Theme = {
+  id: 'paper',
   name: 'Paper',
   statusBar: 'dark',
   colors: {
-    background: '#f4f1ea',
-    rangeRing: '#ddd6c8',
-    runway: '#333333',
-    runwayLabel: '#777777',
-    fix: '#9a9282',
-    fixLabel: '#8a8272',
-    plane: '#1f5fbf',
+    background: '#f2f2f3',
+    rangeRing: '#d4d4d7',
+    centreline: '#a9b0b7',
+    runway: '#1d1f20',
+    runwayLabel: '#2c455d',
+    fix: '#7a7a7d',
+    fixLabel: '#5d5d60',
+    plane: '#1d2d3d',
     planeSelected: '#000000',
-    planeConflict: '#d62828',
-    trail: '#9db6dc',
-    route: '#1f9bbf',
-    routeCleared: '#d98e04',
-    routeDraft: '#000000',
-    panel: '#ffffff',
-    panelBorder: '#ddd6c8',
-    text: '#222222',
-    textDim: '#777777',
-    accent: '#1f5fbf',
-    danger: '#d62828',
-    good: '#2a9d4b',
-    button: '#ece7dc',
-    buttonPressed: '#d8d0c0',
-    buttonText: '#222222',
+    planeConflict: '#c2410c',
+    trail: '#a9b3bd',
+    route: '#597ea3',
+    routeCleared: '#0b7a63',
+    routeDraft: '#1d1f20',
+    panel: '#e9e9ea',
+    panelBorder: '#cfcfd2',
+    text: '#1d1f20',
+    textDim: '#5d5d60',
+    accent: '#5980a6',
+    danger: '#c2410c',
+    good: '#0b7a63',
+    button: '#f5f5f8',
+    buttonPressed: '#d6ebff',
+    buttonText: '#1d1f20',
+    labelBg: 'rgba(242,242,243,0.88)',
+    snapHalo: '#416180',
+    onDanger: '#ffffff',
+    scrim: 'rgba(29,31,32,0.45)',
+    sweep: 'rgba(89,128,166,0.22)',
   },
-  font: { mono },
-  size: { blip: 7, tagFont: 11, labelFont: 9, leaderMinutes: 1 },
+  type,
+  radarFont,
+  size,
+  radius: 0,
+  hairline: 1,
 };
 
 export const themes = [radarTheme, paperTheme];
