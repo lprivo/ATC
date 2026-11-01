@@ -43,8 +43,8 @@ export function GameScreen() {
   };
   const pendingPlane = pending ? sim.plane(pending.planeId) : undefined;
   /** Selecting a plane (by tap, label or the banner's SELECT) gives a light tap. */
-  const select = (id: string | null) => {
-    if (id && id !== selectedId) haptic('select');
+  const select = (id: string | null, opts?: { silent?: boolean }) => {
+    if (id && id !== selectedId && !opts?.silent) haptic('select');
     setSelectedId(id);
   };
 

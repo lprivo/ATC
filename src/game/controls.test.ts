@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Plane } from '../engine/types';
-import { atLimit, nextAltitude, nextHeading, nextRepeatDelay, nextSpeed, statusChip, STEP_LIMITS, trend } from './controls';
+import { atLimit, nextAltitude, nextHeading, nextRepeatDelay, nextSpeed, pressStepsOnPress, statusChip, STEP_LIMITS, stepHapticDue, trend } from './controls';
 
 function plane(over: Partial<Plane> = {}): Plane {
   return {
@@ -116,5 +116,26 @@ describe('sheet status priority and thresholds', () => {
     expect(trend('altitude', at({ altitude: 5040 }))).toBe('');
     expect(trend('speed', at({ speed: 251 }))).toBe('');
     expect(trend('speed', at({ speed: 247 }))).toBe('↑');
+  });
+});
+
+describe('stepper press handling', () => {
+  it('a press with its own press-in never steps again on onPress (even after a long hold)', () => {
+    // Press-in happened (1), onPress arrives: no extra step.
+    expect(pressStepsOnPress(1, 0)).toEqual({ step: false, consumed: 1 });
+  });
+
+  it('a press with no press-in (keyboard / accessibility activation) steps on onPress', () => {
+    expect(pressStepsOnPress(3, 3)).toEqual({ step: true, consumed: 3 });
+  });
+
+  it('a press-in taken over by a swipe (no onPress) does not swallow the next tap', () => {
+    // Swipe: press-in 1, never consumed. Next tap: press-in 2, then onPress.
+    expect(pressStepsOnPress(2, 0)).toEqual({ step: false, consumed: 2 });
+  });
+
+  it('step haptics are throttled to one per 120 ms during the fast repeat', () => {
+    expect(stepHapticDue(1000, 1060)).toBe(false);
+    expect(stepHapticDue(1000, 1120)).toBe(true);
   });
 });

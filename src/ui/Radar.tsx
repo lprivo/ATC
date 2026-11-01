@@ -60,7 +60,7 @@ const NO_INSETS = { top: 0, bottom: 0 };
 interface Props {
   sim: Sim;
   selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, opts?: { silent?: boolean }) => void;
   /** Called after the radar changes the sim (a new route), so the screen can redraw while paused. */
   onCommand: () => void;
   /**
@@ -142,7 +142,8 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
     }
     for (const e of step.effects) {
       if (e.kind === 'camera') updateCam(() => e.vp);
-      else if (e.kind === 'select') onSelect(e.id);
+      // A select that comes with starting a draw is silent: the draw-start haptic covers it.
+      else if (e.kind === 'select') onSelect(e.id, { silent: step.state.drawing && !wasDrawing });
       else if (e.kind === 'route') {
         // Released over the sheet: the path is dropped (design: cancel by dropping it on the sheet).
         if (e.at.y > drawnVp.current.h - insets.bottom) continue;

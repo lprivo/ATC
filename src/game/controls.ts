@@ -52,6 +52,21 @@ export const REPEAT = { firstMs: 400, everyMs: 120, fastAfterMs: 1500, fastEvery
 export const nextRepeatDelay = (heldMs: number) =>
   heldMs < REPEAT.firstMs ? REPEAT.firstMs - heldMs : heldMs >= REPEAT.fastAfterMs ? REPEAT.fastEveryMs : REPEAT.everyMs;
 
+/**
+ * Whether a button's onPress should step. Each press-in steps (and starts the
+ * hold-repeat) itself; its onPress, which also arrives after a long hold, must
+ * not step again. Only a press with no press-in of its own (keyboard or
+ * accessibility activation) steps on onPress. Press-ins are counted, so a
+ * press-in taken over by a swipe (no onPress) can't swallow a later tap.
+ */
+export function pressStepsOnPress(pressIns: number, consumed: number) {
+  return { step: pressIns === consumed, consumed: pressIns };
+}
+
+/** At most one step haptic per this many ms, so the fast hold-repeat (60 ms) doesn't turn into a buzz. */
+export const STEP_HAPTIC_MIN_MS = REPEAT.everyMs;
+export const stepHapticDue = (lastAt: number, now: number) => now - lastAt >= STEP_HAPTIC_MIN_MS;
+
 /** Sheet status chip, most important first: conflict, go-around, cleared, then climbing/descending. */
 export type StatusChip = { text: string; tone: 'danger' | 'good' | 'info' } | null;
 /** How long after a go-around the sheet keeps saying GO-AROUND, in sim seconds. */

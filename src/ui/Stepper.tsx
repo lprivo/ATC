@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { nextRepeatDelay } from '../game/controls';
+import { nextRepeatDelay, pressStepsOnPress, stepHapticDue } from '../game/controls';
 import { haptic } from '../game/haptics';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -69,10 +69,16 @@ function StepButton({
   stepRef.current = onStep;
   const atLimitRef = useRef(atLimit);
   atLimitRef.current = atLimit;
-  // react-native-web delays onPressIn and skips it for very quick taps, so
-  // onPress steps too unless press-in already did.
-  const steppedOnPressIn = useRef(false);
-  const pressedInAt = useRef(0);
+  // Press-ins step themselves; onPress only steps for a press that had none (see pressStepsOnPress).
+  const pressIns = useRef(0);
+  const consumed = useRef(0);
+  const lastStepHaptic = useRef(0);
+  const stepFeedback = () => {
+    const now = Date.now();
+    if (!stepHapticDue(lastStepHaptic.current, now)) return;
+    lastStepHaptic.current = now;
+    haptic('step');
+  };
 
   const stop = () => {
     if (timer.current) clearTimeout(timer.current);
@@ -82,14 +88,13 @@ function StepButton({
 
   const start = () => {
     stop();
-    steppedOnPressIn.current = true;
-    pressedInAt.current = Date.now();
-    // At a limit the button only dims: no steps (the limit haptic comes with #11).
+    pressIns.current += 1;
+    // At a limit the button only dims and gives the rigid limit haptic: no steps.
     if (atLimitRef.current) {
       haptic('limit');
       return;
     }
-    haptic('step');
+    stepFeedback();
     stepRef.current();
     const t0 = Date.now();
     const loop = () => {
@@ -97,7 +102,7 @@ function StepButton({
         haptic('limit'); // reached the limit mid-hold
         return;
       }
-      haptic('step');
+      stepFeedback();
       stepRef.current();
       timer.current = setTimeout(loop, nextRepeatDelay(Date.now() - t0));
     };
@@ -112,15 +117,14 @@ function StepButton({
       accessibilityState={{ disabled: !!atLimit }}
       onPressIn={start}
       onPress={() => {
-        // Step only if press-in didn't (web skips press-in for very quick taps). A press-in
-        // more than a second old belongs to an earlier press that never got its onPress
-        // (taken over by a swipe), so it doesn't count.
-        const fresh = steppedOnPressIn.current && Date.now() - pressedInAt.current < 1000;
-        if (!fresh) {
-          haptic(atLimitRef.current ? 'limit' : 'step');
-          if (!atLimitRef.current) stepRef.current();
+        const d = pressStepsOnPress(pressIns.current, consumed.current);
+        consumed.current = d.consumed;
+        if (!d.step) return;
+        if (atLimitRef.current) haptic('limit');
+        else {
+          stepFeedback();
+          stepRef.current();
         }
-        steppedOnPressIn.current = false;
       }}
       onPressOut={stop}
       style={({ pressed }) => [
