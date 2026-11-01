@@ -134,6 +134,8 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
 
   const run = (step: Step) => {
     const wasDrawing = g.current.drawing;
+    // Where the path being drawn started (the plane's position then), as the overlay used it.
+    const drawStart = g.current.points[0];
     g.current = step.state;
     if (step.state.drawing !== wasDrawing) onDrawing?.(step.state.drawing);
     for (const e of step.effects) {
@@ -142,9 +144,8 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
       else if (e.kind === 'route') {
         // Released over the sheet: the path is dropped (design: cancel by dropping it on the sheet).
         if (e.at.y > drawnVp.current.h - insets.bottom) continue;
-        // Snap from the same points the overlay showed (plane position first).
-        const from = sim.plane(e.id)?.pos;
-        const snap = snapTarget(sim.airport, drawnVp.current, from ? [from, ...e.points] : e.points);
+        // Snap from the same points the overlay showed (the draw's start point first).
+        const snap = snapTarget(sim.airport, drawnVp.current, drawStart ? [drawStart, ...e.points] : e.points);
         if (snap && onLanding) onLanding(e.id, e.points, snap);
         // When the screen handles landings, a path the UI didn't snap never lands.
         else sim.setRoute(e.id, e.points, onLanding ? null : undefined);

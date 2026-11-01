@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LHBP } from '../engine/airports/lhbp';
 import { add, dirOf, dist } from '../engine/math';
-import { alignment, candidates, centrelineOffsetPt, DRAW, finalisePath, loupeFor, parallelEnd, remainingPoints, snapTarget } from './drawing';
+import { alignment, candidates, centrelineOffsetPt, DRAW, finalisePath, loupeFor, parallelEnd, pastFinalFix, remainingPoints, snapTarget } from './drawing';
 import { defaultViewport, toScreen } from './viewport';
 
 const end = (id: string) => LHBP.runways.flatMap((r) => r.ends).find((e) => e.id === id)!;
@@ -79,10 +79,28 @@ describe('route drawing', () => {
     expect(dist(finalisePath([out('31L', 1)], end('31L'), wide)[0], end('31L').threshold)).toBeCloseTo(3);
   });
 
-  it('remaining points drop everything up to the one nearest the plane', () => {
+  it('remaining points: from the nearest point, dropping it only once the plane is past it', () => {
     const pts = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }];
-    expect(remainingPoints(pts, { x: 1.2, y: 0.1 })).toEqual([{ x: 2, y: 0 }, { x: 3, y: 0 }]);
+    expect(remainingPoints(pts, { x: 1.2, y: 0.1 })).toEqual([{ x: 2, y: 0 }, { x: 3, y: 0 }]); // past (1,0)
+    expect(remainingPoints(pts, { x: 0.8, y: 0.1 })).toEqual([{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }]); // not yet
     expect(remainingPoints([], { x: 0, y: 0 })).toEqual([]);
+  });
+
+  it('a plane just outside the final fix with all drawn points inside the trim zone still goes straight in', () => {
+    const plane = out('31L', 3.3);
+    expect(finalisePath([out('31L', 2.5), out('31L', 1)], end('31L'), plane)).toEqual([end('31L').threshold]);
+  });
+
+  it('a path down the parallel centreline is trimmed before it would jog onto the new runway at the fix', () => {
+    const path = finalisePath([out('31R', 8), out('31R', 5), out('31R', 1.4)], end('31L')); // 1.4 nm out of 31R = 3.0 nm short of 31L
+    expect(path).toHaveLength(3);
+    expect(dist(path[2], end('31L').threshold)).toBeCloseTo(3);
+  });
+
+  it('past a runway end\'s final fix', () => {
+    expect(pastFinalFix(out('31L', 2), end('31L'))).toBe(true);
+    expect(pastFinalFix(out('31L', 4), end('31L'))).toBe(false);
+    expect(pastFinalFix(out('31L', 2), end('31R'))).toBe(true);
   });
 
   it('swap goes to the parallel runway landing the same way', () => {

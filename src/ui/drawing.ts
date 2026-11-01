@@ -24,6 +24,10 @@ export const DRAW = {
   loupeMinK: 26,
   loupeZoom: 2.2,
   loupeAbovePt: 150,
+  /** Snap rejects ends the path's last stretch points away from (alignment below this). */
+  minAlignment: -0.25,
+  /** A plane on the centreline within this much of the final fix (or inside it) is "on final" and goes straight in. */
+  onFinalMarginNm: 0.5,
   /** Confirm card auto-confirms after this long. */
   confirmMs: 3000,
 };
@@ -79,7 +83,8 @@ export function snapTarget(airport: Airport, vp: Viewport, points: readonly Vec2
     if (dNm > reachNm) continue;
     const align = alignment(points, e);
     // Flying the wrong way down the runway (or away from it) isn't an approach.
-    if (points.length >= 2 && align < 0) continue;
+    // A little tolerance keeps tight base-to-final turns snapping.
+    if (points.length >= 2 && align < DRAW.minAlignment) continue;
     const score = dNm * vp.scale - DRAW.alignWeight * align + centrelineOffsetPt(points, e, vp.scale);
     if (score < bestScore) {
       bestScore = score;
@@ -97,7 +102,12 @@ export function snapTarget(airport: Airport, vp: Viewport, points: readonly Vec2
  * A plane already established inside the final fix goes straight to the threshold.
  */
 export function finalisePath(points: readonly Vec2[], end: RunwayEnd, planePos?: Vec2): Vec2[] {
-  const inFinalZone = (p: Vec2) => dist(p, end.threshold) <= DRAW.trimNm || trackOffsets(p, end.threshold, end.heading).along >= 0;
+  // The tail inside 3.2 nm, past the threshold, or not short of the final fix is trimmed
+  // (so a path drawn down the parallel runway doesn't jog sideways just before the fix).
+  const inFinalZone = (p: Vec2) => {
+    const { along } = trackOffsets(p, end.threshold, end.heading);
+    return dist(p, end.threshold) <= DRAW.trimNm || along > -(DRAW.finalFixNm + 0.3);
+  };
   const kept = [...points];
   while (kept.length && inFinalZone(kept[kept.length - 1])) kept.pop();
   const fix = add(end.threshold, dirOf(end.heading), -DRAW.finalFixNm);
@@ -106,15 +116,20 @@ export function finalisePath(points: readonly Vec2[], end: RunwayEnd, planePos?:
   return [...kept, fix];
 }
 
-/** On the extended centreline (within 0.5 nm) and already closer than the final fix. */
-function onFinalInside(p: Vec2, end: RunwayEnd) {
+/** On the extended centreline (within 0.5 nm) and inside, at, or just short of the final fix. */
+export function onFinalInside(p: Vec2, end: RunwayEnd) {
   const { along, cross } = trackOffsets(p, end.threshold, end.heading);
-  return along < 0 && along > -DRAW.finalFixNm && Math.abs(cross) <= 0.5;
+  return along < 0 && along > -(DRAW.finalFixNm + DRAW.onFinalMarginNm) && Math.abs(cross) <= 0.5;
+}
+
+/** Past (or at) a runway end's final fix: sending the plane to that fix would turn it back. */
+export function pastFinalFix(p: Vec2, end: RunwayEnd) {
+  return trackOffsets(p, end.threshold, end.heading).along > -DRAW.finalFixNm;
 }
 
 /**
- * The drawn points still ahead of the plane: everything after the point it is
- * closest to. Used to re-apply a path (e.g. Swap) without sending the plane
+ * The drawn points still ahead of the plane: from the point it is closest to
+ * (or the one after, once it has passed it). Used to re-apply a path (e.g. Swap) without sending the plane
  * back to waypoints it has already passed.
  */
 export function remainingPoints(points: readonly Vec2[], planePos: Vec2): Vec2[] {
@@ -123,7 +138,11 @@ export function remainingPoints(points: readonly Vec2[], planePos: Vec2): Vec2[]
   points.forEach((p, i) => {
     if (dist(p, planePos) < dist(points[nearest], planePos)) nearest = i;
   });
-  return points.slice(nearest + 1);
+  // Drop the nearest point only once the plane is past it (beyond it towards the next point).
+  const a = points[nearest];
+  const b = points[nearest + 1];
+  const passed = b ? (planePos.x - a.x) * (b.x - a.x) + (planePos.y - a.y) * (b.y - a.y) > 0 : dist(a, planePos) < 0.5;
+  return points.slice(passed ? nearest + 1 : nearest);
 }
 
 /** The parallel runway end landing the same way (31L ↔ 31R), for the confirm card's Swap button. */

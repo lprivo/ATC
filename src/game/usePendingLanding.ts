@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Sim } from '../engine/sim';
 import type { Plane, Vec2 } from '../engine/types';
-import { finalisePath, parallelEnd, remainingPoints } from '../ui/drawing';
+import { finalisePath, parallelEnd, pastFinalFix, remainingPoints } from '../ui/drawing';
 
 interface Pending {
   /** Increases per landing, so the confirm card (and its countdown) restarts for each one. */
@@ -32,7 +32,9 @@ export function usePendingLanding(sim: Sim) {
     setPending((prev) => ({ seq: (prev?.seq ?? 0) + 1, sim, planeId, raw, runway: end.id }));
   };
 
-  const swapTo = live ? (parallelEnd(sim.airport, live.runway)?.id ?? null) : null;
+  // No swap once the plane is past the other runway's final fix: the swap would turn it back.
+  const other = live ? parallelEnd(sim.airport, live.runway) : null;
+  const swapTo = other && plane && !pastFinalFix(plane.pos, other) ? other.id : null;
   const swap = () => {
     if (!live || !plane || !swapTo) return;
     const end = sim.runwayEnd(swapTo)!;
