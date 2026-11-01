@@ -1,8 +1,10 @@
 import { normDeg } from '../engine/math';
 import type { Plane } from '../engine/types';
 
-/** How much one tap on a dial arrow changes each value. */
+/** How much one tap on a stepper button changes each value (design). */
 export const DIAL_STEP = { heading: 5, altitude: 1000, speed: 10 };
+/** Stepper limits (design): altitude 2,000–15,000 ft, speed 140–300 kt. Headings wrap. */
+export const STEP_LIMITS = { altitude: { min: 2000, max: 15000 }, speed: { min: 140, max: 300 } };
 
 export type StepDirection = 1 | -1;
 
@@ -19,12 +21,53 @@ export function nextHeading(p: Plane, dir: StepDirection): number {
   return normDeg(base + dir * step);
 }
 
-/** Next commanded altitude: snap to the step grid, then move one step. The sim clamps limits. */
+/** Next commanded altitude: snap to the step grid, move one step, keep within the stepper limits. */
 export const nextAltitude = (p: Plane, dir: StepDirection) =>
-  snap(p.target.altitude, DIAL_STEP.altitude) + dir * DIAL_STEP.altitude;
+  clampTo(snap(p.target.altitude, DIAL_STEP.altitude) + dir * DIAL_STEP.altitude, STEP_LIMITS.altitude);
 
-/** Next commanded speed: snap to the step grid, then move one step. The sim clamps limits. */
+/** Next commanded speed: snap to the step grid, move one step, keep within the stepper limits. */
 export const nextSpeed = (p: Plane, dir: StepDirection) =>
-  snap(p.target.speed, DIAL_STEP.speed) + dir * DIAL_STEP.speed;
+  clampTo(snap(p.target.speed, DIAL_STEP.speed) + dir * DIAL_STEP.speed, STEP_LIMITS.speed);
+
+/** Whether a stepper button can't move further (it dims and buzzes at the limit). */
+export function atLimit(kind: 'altitude' | 'speed', p: Plane, dir: StepDirection) {
+  const v = kind === 'altitude' ? p.target.altitude : p.target.speed;
+  const lim = STEP_LIMITS[kind];
+  return dir > 0 ? v >= lim.max : v <= lim.min;
+}
+
+/**
+ * Hold-to-repeat timing (design): the first repeat after 400 ms, then every
+ * 120 ms; once the button has been held 1.5 s, every 60 ms. Returns the delay
+ * before the next repeat given how long the button has been held.
+ */
+export const REPEAT = { firstMs: 400, everyMs: 120, fastAfterMs: 1500, fastEveryMs: 60 };
+export const nextRepeatDelay = (heldMs: number) =>
+  heldMs < REPEAT.firstMs ? REPEAT.firstMs - heldMs : heldMs >= REPEAT.fastAfterMs ? REPEAT.fastEveryMs : REPEAT.everyMs;
+
+/** Sheet status chip, most important first: conflict, go-around, cleared, then climbing/descending. */
+export type StatusChip = { text: string; tone: 'danger' | 'good' | 'info' } | null;
+/** How long after a go-around the sheet keeps saying GO-AROUND, in sim seconds. */
+export const GO_AROUND_STATUS_SEC = 60;
+export function statusChip(p: Plane, time: number): StatusChip {
+  if (p.conflict) return { text: '! CONFLICT', tone: 'danger' };
+  if (p.goAroundAt != null && time - p.goAroundAt < GO_AROUND_STATUS_SEC) return { text: 'GO-AROUND', tone: 'danger' };
+  if (p.clearedRunway) return { text: `CLEARED ${p.clearedRunway.id}`, tone: 'good' };
+  const diff = p.target.altitude - p.altitude;
+  if (diff > 50) return { text: '↑ CLIMBING', tone: 'info' };
+  if (diff < -50) return { text: '↓ DESCENDING', tone: 'info' };
+  return null;
+}
+
+/** Trend arrow for a stepper's "now" line: ↑/↓ for altitude and speed, ↻/↺ for a turn. */
+export function trend(kind: 'heading' | 'altitude' | 'speed', p: Plane) {
+  if (kind === 'heading') {
+    const d = ((p.target.heading - p.heading + 540) % 360) - 180;
+    return Math.abs(d) < 1 ? '' : d > 0 ? '↻' : '↺';
+  }
+  const d = kind === 'altitude' ? p.target.altitude - p.altitude : p.target.speed - p.speed;
+  return Math.abs(d) < (kind === 'altitude' ? 50 : 2) ? '' : d > 0 ? '↑' : '↓';
+}
 
 const snap = (v: number, step: number) => Math.round(v / step) * step;
+const clampTo = (v: number, lim: { min: number; max: number }) => Math.min(lim.max, Math.max(lim.min, v));

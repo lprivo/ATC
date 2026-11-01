@@ -104,7 +104,7 @@ export interface Conflict {
   altFt: number;
 }
 
-export type SimEventKind = 'entered' | 'cleared' | 'landed' | 'goAround' | 'conflict' | 'exited' | 'info';
+export type SimEventKind = 'entered' | 'cleared' | 'cancelled' | 'landed' | 'goAround' | 'conflict' | 'exited' | 'info';
 
 export interface SimEvent {
   /** Increases by one per event, so the UI can tell which events are new. */

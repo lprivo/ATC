@@ -53,3 +53,16 @@ export const RestartIcon = ({ color, size = 18, strokeWidth = 1.5 }: IconProps) 
     <Path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" stroke={color} strokeWidth={strokeWidth} fill="none" />
   </Svg>
 );
+
+const chevron = (d: string) =>
+  function Chevron({ color, size = 22, strokeWidth = 1.75 }: IconProps) {
+    return (
+      <Svg {...frame(size)}>
+        <Path d={d} stroke={color} strokeWidth={strokeWidth} fill="none" />
+      </Svg>
+    );
+  };
+export const ChevronLeft = chevron('m15 18-6-6 6-6');
+export const ChevronRight = chevron('m9 18 6-6-6-6');
+export const ChevronDown = chevron('m6 9 6 6 6-6');
+export const ChevronUp = chevron('m18 15-6-6-6 6');

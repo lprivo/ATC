@@ -24,6 +24,8 @@ export function toastFor(e: SimEvent, at: number): Toast | null {
   switch (e.kind) {
     case 'cleared':
       return { seq: e.seq, chip: e.runway ?? 'CLR', tone: 'good', text: `${who} cleared to land ${e.runway ?? ''}`.trim(), at };
+    case 'cancelled':
+      return { seq: e.seq, chip: e.runway ?? 'CLR', tone: 'dim', text: `${who} clearance cancelled`, at };
     case 'landed':
       return { seq: e.seq, chip: e.runway ?? 'LND', tone: 'good', text: `${who} landed`, at };
     case 'goAround':

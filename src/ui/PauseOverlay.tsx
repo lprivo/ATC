@@ -1,22 +1,19 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Sim } from '../engine/sim';
-import { TIME_SCALES } from '../game/useSim';
 import { useTheme } from '../theme/ThemeContext';
 
 interface Props {
   sim: Sim;
-  timeScale: number;
-  onTimeScale: (s: number) => void;
   onResume: () => void;
   onRestart: () => void;
 }
 
 /**
- * Interim pause menu: the settings that left the top bar (theme, restart, sim
- * speed). The full pause menu with score and stats is #12; sim speed moves to
- * the bottom sheet in #9.
+ * Interim pause menu: stats, theme and restart, which left the top bar. The
+ * full pause menu (score, stat explainer) is #12. Sim speed lives in the
+ * bottom sheet.
  */
-export function PauseOverlay({ sim, timeScale, onTimeScale, onResume, onRestart }: Props) {
+export function PauseOverlay({ sim, onResume, onRestart }: Props) {
   const { theme, cycleTheme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -50,21 +47,6 @@ export function PauseOverlay({ sim, timeScale, onTimeScale, onResume, onRestart 
             </View>
           ))}
         </View>
-        <Text style={[t.capsSmall, { color: c.textDim }]}>SIM SPEED</Text>
-        <View style={[styles.segments, box]}>
-          {TIME_SCALES.map((s) => (
-            <Pressable
-              key={s}
-              testID={`speed-${s}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: s === timeScale }}
-              onPress={() => onTimeScale(s)}
-              style={[styles.segment, { backgroundColor: s === timeScale ? c.accent : 'transparent' }]}
-            >
-              <Text style={[t.barCount, { color: s === timeScale ? c.background : c.text }]}>×{s}</Text>
-            </Pressable>
-          ))}
-        </View>
         <View style={styles.row}>
           {btn(`Theme: ${theme.name}`, cycleTheme, 'btn-theme', false, true)}
           {btn('Restart', onRestart, 'btn-restart', false, true)}
@@ -78,8 +60,6 @@ export function PauseOverlay({ sim, timeScale, onTimeScale, onResume, onRestart 
 const styles = StyleSheet.create({
   scrim: { justifyContent: 'flex-end' },
   panel: { padding: 16, paddingBottom: 40, gap: 12 },
-  segments: { flexDirection: 'row', alignSelf: 'flex-start' },
-  segment: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', gap: 8 },
   stats: { flexDirection: 'row', justifyContent: 'space-between' },
   stat: { alignItems: 'flex-start', gap: 2 },

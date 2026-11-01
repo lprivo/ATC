@@ -152,12 +152,20 @@ export class Sim {
     p.route = [];
   }
 
+  /**
+   * A new altitude cancels a landing clearance (the approach descends on its
+   * own, so an altitude command means the player wants it off the approach).
+   * The drawn path is kept as an ordinary route.
+   */
   setAltitude(id: string, altitude: number) {
     const p = this.plane(id);
     if (!p) return;
+    const rwy = p.clearedRunway;
+    if (rwy) {
+      this.cancelApproach(p);
+      this.log('cancelled', `${p.callsign} clearance to ${rwy.id} cancelled`, [p.callsign], rwy.id);
+    }
     p.target.altitude = clamp(altitude, PERF.minAltitude, PERF.maxAltitude);
-    // While on approach, remember the player's choice so cancelling the clearance keeps it.
-    if (p.approachFrom) p.approachFrom.altitude = p.target.altitude;
   }
 
   setSpeed(id: string, speed: number) {

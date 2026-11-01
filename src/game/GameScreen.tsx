@@ -7,7 +7,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { ConflictBanner } from '../ui/ConflictBanner';
 import { HUD_EDGE, HUD_GAP, TOP_BAR_HEIGHT } from '../ui/hudLayout';
 import { PauseOverlay } from '../ui/PauseOverlay';
-import { PlanePanel } from '../ui/PlanePanel';
+import { BottomSheet } from '../ui/BottomSheet';
 import { Radar } from '../ui/Radar';
 import { Toasts } from '../ui/Toasts';
 import { TopBar } from '../ui/TopBar';
@@ -22,6 +22,7 @@ export function GameScreen() {
   const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh });
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
   const [bannerHeight, setBannerHeight] = useState(56);
+  const [sheetHeight, setSheetHeight] = useState(0);
 
   const onRestart = () => {
     // Clear the selection with the restart: plane ids start again at "1" in the new sim.
@@ -45,7 +46,7 @@ export function GameScreen() {
           onSelect={setSelectedId}
           onCommand={refresh}
           paused={paused}
-          insets={{ top: toastTop, bottom: 0 }}
+          insets={{ top: toastTop, bottom: sheetHeight }}
         />
         <View style={[styles.hud, side, { top }]} pointerEvents="box-none">
           <TopBar sim={sim} paused={paused} onTogglePause={() => setPaused((p) => !p)} />
@@ -58,12 +59,19 @@ export function GameScreen() {
         <View style={[styles.hud, side, { top: toastTop }]} pointerEvents="none">
           <Toasts toasts={toasts} />
         </View>
-      </View>
-      <View style={{ paddingBottom: insets.bottom, backgroundColor: theme.colors.panel }}>
-        <PlanePanel sim={sim} selectedId={selectedId} onClose={() => setSelectedId(null)} onCommand={refresh} />
+        <BottomSheet
+          sim={sim}
+          selectedId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onCommand={refresh}
+          timeScale={timeScale}
+          onTimeScale={setTimeScale}
+          bottomInset={insets.bottom}
+          onHeight={setSheetHeight}
+        />
       </View>
       {paused && (
-        <PauseOverlay sim={sim} timeScale={timeScale} onTimeScale={setTimeScale} onResume={() => setPaused(false)} onRestart={onRestart} />
+        <PauseOverlay sim={sim} onResume={() => setPaused(false)} onRestart={onRestart} />
       )}
     </View>
   );
