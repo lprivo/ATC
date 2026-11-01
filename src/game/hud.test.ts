@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LHBP } from '../engine/airports/lhbp';
 import { Sim } from '../engine/sim';
 import type { SimEvent } from '../engine/types';
-import { conflictBanner, hasNewConflict, MAX_TOASTS, pairKey, TOAST_MS, toastFor, updateToasts } from './hud';
+import { conflictBanner, conflictSetKey, hasNewConflict, MAX_TOASTS, nextToastExpiry, pairKey, TOAST_MS, toastFor, updateToasts } from './hud';
 
 const ev = (seq: number, kind: SimEvent['kind'], callsigns: string[], extra: Partial<SimEvent> = {}): SimEvent => ({
   seq,
@@ -17,7 +17,7 @@ describe('toasts', () => {
   it('chips: runway for clearances and landings, GA, ! and EXIT', () => {
     expect(toastFor(ev(1, 'cleared', ['RYR41HB'], { runway: '31R' }), 0)).toMatchObject({ chip: '31R', tone: 'good', text: 'RYR41HB cleared to land 31R' });
     expect(toastFor(ev(2, 'landed', ['RYR41HB'], { runway: '31R' }), 0)).toMatchObject({ chip: '31R', tone: 'good' });
-    expect(toastFor(ev(3, 'goAround', ['WZZ1'], { text: 'WZZ1 going around (too high)' }), 0)).toMatchObject({ chip: 'GA', tone: 'danger', text: 'WZZ1 going around, too high' });
+    expect(toastFor(ev(3, 'goAround', ['WZZ1'], { reason: 'too high' }), 0)).toMatchObject({ chip: 'GA', tone: 'danger', text: 'WZZ1 going around, too high' });
     expect(toastFor(ev(4, 'conflict', ['A', 'B']), 0)).toMatchObject({ chip: '!', text: 'Separation lost: A · B' });
     expect(toastFor(ev(5, 'exited', ['A']), 0)).toMatchObject({ chip: 'EXIT', tone: 'dim' });
     expect(toastFor(ev(6, 'entered', ['A']), 0)).toBeNull();
@@ -71,5 +71,27 @@ describe('conflict banner and slow-down', () => {
     expect(hasNewConflict(new Set(), sim.conflicts)).toBe(true);
     expect(hasNewConflict(new Set(sim.conflicts.map(pairKey)), sim.conflicts)).toBe(false);
     expect(pairKey({ a: '2', b: '1', distNm: 0, altFt: 0 })).toBe(pairKey({ a: '1', b: '2', distNm: 0, altFt: 0 }));
+  });
+});
+
+describe('toast timing and keys', () => {
+  it('the next expiry is when the oldest toast reaches 4 s', () => {
+    const r = updateToasts([], [ev(1, 'exited', ['A'])], 0, 1000);
+    const later = updateToasts(r.toasts, [ev(2, 'exited', ['B'])], r.lastSeq, 3000);
+    expect(nextToastExpiry(later.toasts)).toBe(1000 + TOAST_MS);
+    expect(nextToastExpiry([])).toBeNull();
+  });
+
+  it('a fresh sim (seq from 1 again) gets its toasts when its state starts clean', () => {
+    // useHud resets lastSeq to 0 for a new sim; with the old lastSeq the new events would be skipped.
+    expect(updateToasts([], [ev(1, 'exited', ['N'])], 0, 0).toasts).toHaveLength(1);
+    expect(updateToasts([], [ev(1, 'exited', ['N'])], 7, 0).toasts).toHaveLength(0);
+  });
+
+  it('the conflict set key ignores pair order', () => {
+    const a = { a: '1', b: '2', distNm: 1, altFt: 0 };
+    const b = { a: '4', b: '3', distNm: 1, altFt: 0 };
+    expect(conflictSetKey([a, b])).toBe(conflictSetKey([b, a]));
+    expect(conflictSetKey([])).toBe('');
   });
 });

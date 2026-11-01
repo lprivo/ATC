@@ -21,6 +21,7 @@ import {
   trailDots,
 } from './radarGeometry';
 import { wheelDeltaPx, wheelZoomFactor } from './gestures';
+import { HUD_EDGE } from './hudLayout';
 import { LABEL_METRICS, labelBaseline, textWidth, type LabelMode, type LabelSpec } from './labels';
 import {
   beginDraw,
@@ -47,10 +48,9 @@ import {
 
 /** Gap kept between a selected plane and the HUD above it. */
 const SELECT_TOP_GAP = 24;
-const EDGE = 12;
 const RECENTRE_SIZE = 44;
 /** Keep the selected plane above the re-centre button. */
-const SELECT_BOTTOM_INSET = RECENTRE_SIZE + 2 * EDGE;
+const SELECT_BOTTOM_INSET = RECENTRE_SIZE + 2 * HUD_EDGE;
 const NO_INSETS = { top: 0, bottom: 0 };
 
 interface Props {
@@ -245,7 +245,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
         onPress={() => updateCam((v) => defaultViewport(v.w, v.h))}
         style={({ pressed }) => [
           styles.recentre,
-          { bottom: insets.bottom + EDGE },
+          { bottom: insets.bottom + HUD_EDGE },
           { backgroundColor: pressed ? c.buttonPressed : c.panel, borderColor: c.panelBorder, borderWidth: theme.hairline },
         ]}
       >
@@ -261,8 +261,8 @@ export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, la
 const styles = StyleSheet.create({
   recentre: {
     position: 'absolute',
-    right: EDGE,
-    bottom: EDGE,
+    right: HUD_EDGE,
+    bottom: HUD_EDGE,
     width: RECENTRE_SIZE,
     height: RECENTRE_SIZE,
     alignItems: 'center',

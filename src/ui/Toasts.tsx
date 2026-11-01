@@ -12,7 +12,7 @@ export function Toasts({ toasts }: { toasts: readonly Toast[] }) {
       {toasts.map((t) => (
         <View key={t.seq} style={[styles.toast, { backgroundColor: c.panel, borderColor: c.panelBorder, borderWidth: theme.hairline }]}>
           <Text style={[theme.type.chip, styles.chip, { color: tone[t.tone], borderColor: tone[t.tone], borderWidth: theme.hairline }]}>{t.chip}</Text>
-          <Text style={[theme.type.bodyStrong, { color: c.text }]} numberOfLines={1}>
+          <Text style={[theme.type.bodyStrong, styles.text, { color: c.text }]} numberOfLines={1}>
             {t.text}
           </Text>
         </View>
@@ -25,4 +25,5 @@ const styles = StyleSheet.create({
   stack: { gap: 6, alignItems: 'flex-start' },
   toast: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 10, maxWidth: '100%' },
   chip: { paddingVertical: 2, paddingHorizontal: 4 },
+  text: { flexShrink: 1 },
 });

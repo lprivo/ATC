@@ -471,6 +471,22 @@ describe('limits and housekeeping', () => {
     expect(p.target).toMatchObject({ speed: 320, altitude: 20000 });
   });
 
+  it('events are structured: kind, callsigns, runway, reason, and a seq that keeps counting', () => {
+    const entry: EntryPoint = { name: 'F', pos: onFinal(rwy31R, 2), heading: rwy31R.heading };
+    const sim = simWith([entry], [flight('F', { altitude: 5000 })]);
+    const p = sim.planes[0];
+    expect(sim.events.at(-1)).toMatchObject({ kind: 'entered', callsigns: [p.callsign] });
+    sim.setRoute(p.id, [rwy31R.threshold]);
+    expect(sim.events.at(-1)).toMatchObject({ kind: 'cleared', runway: '31R', callsigns: [p.callsign] });
+    sim.step(120); // 5,000 ft at 2 nm is far too high: it goes around
+    const ga = sim.events.find((e) => e.kind === 'goAround');
+    expect(ga).toMatchObject({ runway: '31R', callsigns: [p.callsign] });
+    expect(ga?.reason).toMatch(/too high|not aligned|not lined up/);
+    const seqs = sim.events.map((e) => e.seq);
+    expect(seqs).toEqual([...seqs].sort((x, y) => x - y));
+    expect(new Set(seqs).size).toBe(seqs.length);
+  });
+
   it('keeps trails and the event log bounded', () => {
     const traffic = generateRandomTraffic(LHBP, { seed: 1, durationSec: 3000, meanIntervalSec: 30 });
     const sim = new Sim(LHBP, traffic);

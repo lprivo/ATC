@@ -76,6 +76,7 @@ export type TypeTokenName =
   | 'barTitle'
   | 'barValue'
   | 'barCount'
+  | 'bannerTitle'
   | 'chip'
   | 'body'
   | 'bodyStrong'
@@ -101,6 +102,8 @@ const type: ThemeType = {
   barValue: { fontFamily: FONT_FAMILY.condensed500, fontSize: 17, fontVariant: tabular },
   /** Top-bar counters and segmented-control labels. */
   barCount: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, fontVariant: tabular },
+  /** Conflict banner title. */
+  bannerTitle: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, letterSpacing: em(16, 0.04) },
   /** Small condensed chips (status, toast kind). */
   chip: { fontFamily: FONT_FAMILY.condensed600, fontSize: 12, letterSpacing: em(12, 0.08) },
   body: { fontFamily: FONT_FAMILY.body400, fontSize: 15, lineHeight: 22 },

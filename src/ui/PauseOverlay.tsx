@@ -1,8 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { Sim } from '../engine/sim';
 import { TIME_SCALES } from '../game/useSim';
 import { useTheme } from '../theme/ThemeContext';
 
 interface Props {
+  sim: Sim;
   timeScale: number;
   onTimeScale: (s: number) => void;
   onResume: () => void;
@@ -14,7 +16,7 @@ interface Props {
  * speed). The full pause menu with score and stats is #12; sim speed moves to
  * the bottom sheet in #9.
  */
-export function PauseOverlay({ timeScale, onTimeScale, onResume, onRestart }: Props) {
+export function PauseOverlay({ sim, timeScale, onTimeScale, onResume, onRestart }: Props) {
   const { theme, cycleTheme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -30,9 +32,24 @@ export function PauseOverlay({ timeScale, onTimeScale, onResume, onRestart }: Pr
     </Pressable>
   );
   return (
-    <View style={[StyleSheet.absoluteFill, styles.scrim, { backgroundColor: c.scrim }]} testID="pause-overlay">
+    <View style={[StyleSheet.absoluteFill, styles.scrim, { backgroundColor: c.scrim }]} testID="pause-overlay" accessibilityViewIsModal>
       <View style={[styles.panel, box, { backgroundColor: c.panel }]}>
         <Text style={[t.caps, { color: c.textDim }]}>PAUSED</Text>
+        {/* The stats that left the top bar; the full stat grid comes with the pause menu (#12). */}
+        <View style={styles.stats} testID="pause-stats">
+          {[
+            ['LANDED', sim.stats.landed],
+            ['SEP. LOST', sim.stats.separationViolations],
+            ['GO-AROUND', sim.stats.goArounds],
+            ['EXITS', sim.stats.exited],
+            ['AIRBORNE', sim.planes.length],
+          ].map(([label, n]) => (
+            <View key={label} style={styles.stat} accessible accessibilityLabel={`${label}: ${n}`}>
+              <Text style={[t.barTitle, { color: c.text }]}>{n}</Text>
+              <Text style={[t.capsSmall, { color: c.textDim }]}>{label}</Text>
+            </View>
+          ))}
+        </View>
         <Text style={[t.capsSmall, { color: c.textDim }]}>SIM SPEED</Text>
         <View style={[styles.segments, box]}>
           {TIME_SCALES.map((s) => (
@@ -64,6 +81,8 @@ const styles = StyleSheet.create({
   segments: { flexDirection: 'row', alignSelf: 'flex-start' },
   segment: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', gap: 8 },
+  stats: { flexDirection: 'row', justifyContent: 'space-between' },
+  stat: { alignItems: 'flex-start', gap: 2 },
   button: { height: 56, alignItems: 'center', justifyContent: 'center' },
   grow: { flex: 1 },
 });

@@ -26,10 +26,8 @@ export function toastFor(e: SimEvent, at: number): Toast | null {
       return { seq: e.seq, chip: e.runway ?? 'CLR', tone: 'good', text: `${who} cleared to land ${e.runway ?? ''}`.trim(), at };
     case 'landed':
       return { seq: e.seq, chip: e.runway ?? 'LND', tone: 'good', text: `${who} landed`, at };
-    case 'goAround': {
-      const reason = e.text.match(/\(([^)]+)\)/)?.[1];
-      return { seq: e.seq, chip: 'GA', tone: 'danger', text: reason ? `${who} going around, ${reason}` : `${who} going around`, at };
-    }
+    case 'goAround':
+      return { seq: e.seq, chip: 'GA', tone: 'danger', text: e.reason ? `${who} going around, ${e.reason}` : `${who} going around`, at };
     case 'conflict':
       return { seq: e.seq, chip: '!', tone: 'danger', text: `Separation lost: ${who}`, at };
     case 'exited':
@@ -51,6 +49,9 @@ export function updateToasts(current: readonly Toast[], events: readonly SimEven
   return { toasts, lastSeq: seq };
 }
 
+/** When the oldest of `toasts` expires (ms timestamp), or null if there are none. */
+export const nextToastExpiry = (toasts: readonly Toast[]) => (toasts.length ? Math.min(...toasts.map((t) => t.at)) + TOAST_MS : null);
+
 export interface Banner {
   title: string;
   /** e.g. "WZZ8638 · LOT537 — 2.7 nm, 400 ft" */
@@ -67,7 +68,8 @@ export function conflictBanner(sim: Sim): Banner | null {
     if (!a || !b) continue;
     // Rounded down like the radar's pair tag, so it never shows the limit itself.
     const nm = (Math.floor(cf.distNm * 10) / 10).toFixed(1);
-    const ft = (Math.floor(cf.altFt / 100) * 100).toLocaleString('en-GB');
+    // Always under 1,000 ft in a conflict, so no thousands separator is needed.
+    const ft = Math.floor(cf.altFt / 100) * 100;
     return { title: 'SEPARATION LOST', detail: `${a.callsign} · ${b.callsign} — ${nm} nm, ${ft} ft`, selectId: a.id };
   }
   return null;
@@ -76,4 +78,7 @@ export function conflictBanner(sim: Sim): Banner | null {
 export const pairKey = (cf: Conflict) => (cf.a < cf.b ? `${cf.a}|${cf.b}` : `${cf.b}|${cf.a}`);
 
 /** Whether any current conflict pair wasn't in `known` (design: a new conflict drops the sim to ×1). */
+/** A stable key for the current set of conflict pairs (changes only when the set changes). */
+export const conflictSetKey = (conflicts: readonly Conflict[]) => conflicts.map(pairKey).sort().join(',');
+
 export const hasNewConflict = (known: ReadonlySet<string>, conflicts: readonly Conflict[]) => conflicts.some((cf) => !known.has(pairKey(cf)));

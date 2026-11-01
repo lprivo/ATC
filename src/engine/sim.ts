@@ -341,7 +341,7 @@ export class Sim {
     p.target.speed = PERF.goAroundSpeed;
     p.goAroundAt = this.time;
     this.stats.goArounds++;
-    this.log('goAround', `${p.callsign} going around (${reason})`, [p.callsign], rwy?.id);
+    this.log('goAround', `${p.callsign} going around (${reason})`, [p.callsign], rwy?.id, reason);
   }
 
   private fly(p: Plane, dt: number) {
@@ -416,8 +416,8 @@ export class Sim {
     return best;
   }
 
-  private log(kind: SimEventKind, text: string, callsigns: string[], runway?: string) {
-    this.events.push({ seq: this.nextEventSeq++, time: this.time, kind, text, callsigns, runway });
+  private log(kind: SimEventKind, text: string, callsigns: string[], runway?: string, reason?: string) {
+    this.events.push({ seq: this.nextEventSeq++, time: this.time, kind, text, callsigns, runway, reason });
     if (this.events.length > MAX_EVENTS) this.events.shift();
   }
 

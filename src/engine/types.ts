@@ -117,4 +117,6 @@ export interface SimEvent {
   callsigns: string[];
   /** Runway end, for clearances, landings and go-arounds. */
   runway?: string;
+  /** Why it happened, for go-arounds (e.g. "too high"). */
+  reason?: string;
 }

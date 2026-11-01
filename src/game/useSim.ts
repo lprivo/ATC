@@ -64,10 +64,6 @@ export function useSim(airport: Airport) {
     setPaused(false);
   }, [airport]);
 
-  const cycleTimeScale = useCallback(
-    () => setTimeScale((s) => TIME_SCALES[(TIME_SCALES.indexOf(s) + 1) % TIME_SCALES.length]),
-    [],
-  );
 
-  return { sim, paused, setPaused, timeScale, setTimeScale, cycleTimeScale, restart, refresh };
+  return { sim, paused, setPaused, timeScale, setTimeScale, restart, refresh };
 }

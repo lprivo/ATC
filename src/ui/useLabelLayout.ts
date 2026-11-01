@@ -62,7 +62,9 @@ export function useLabelLayout(
   // pans and zooms and the 2 Hz pass tidies up. While paused there is no next
   // pass, so a camera change re-places at once (rounded, to skip sub-pixel moves).
   const camKey = opts.animate ? '' : `${vp.scale.toFixed(1)},${Math.round(vp.ox / 8)},${Math.round(vp.oy / 8)}`;
-  const key = [opts.selectedId, opts.mode, opts.labelScale, camKey, items.map((i) => `${i.p.id}:${i.size.w.toFixed(0)}x${i.size.h}`).join(',')].join('|');
+  // The HUD's safe area changes when the conflict banner comes and goes.
+  const insetKey = `${opts.insets?.top ?? 0},${opts.insets?.bottom ?? 0}`;
+  const key = [opts.selectedId, opts.mode, opts.labelScale, camKey, insetKey, items.map((i) => `${i.p.id}:${i.size.w.toFixed(0)}x${i.size.h}`).join(',')].join('|');
   if (needsPlacement(st.key, key, st.at, now)) {
     const obstacles = sim.conflicts.flatMap((cf) => {
       const a = sim.plane(cf.a);
