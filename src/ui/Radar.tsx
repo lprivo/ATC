@@ -20,6 +20,7 @@ import {
   runwayWidth,
   trailDots,
 } from './radarGeometry';
+import { haptic } from '../game/haptics';
 import { DrawOverlay } from './DrawOverlay';
 import { finalisePath, snapTarget } from './drawing';
 import { wheelDeltaPx, wheelZoomFactor } from './gestures';
@@ -135,7 +136,10 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
   const run = (step: Step) => {
     const wasDrawing = g.current.drawing;
     g.current = step.state;
-    if (step.state.drawing !== wasDrawing) onDrawing?.(step.state.drawing);
+    if (step.state.drawing !== wasDrawing) {
+      if (step.state.drawing) haptic('drawStart');
+      onDrawing?.(step.state.drawing);
+    }
     for (const e of step.effects) {
       if (e.kind === 'camera') updateCam(() => e.vp);
       else if (e.kind === 'select') onSelect(e.id);
@@ -217,6 +221,12 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
   const finger = drawing ? toWorld(vp, g.current.finger.x, g.current.finger.y) : null;
   const drawn = drawing && finger ? [...g.current.points, finger] : [];
   const snap = drawing ? snapTarget(sim.airport, vp, drawn) : null;
+  // A rigid tick each time the path snaps onto a runway (not when it lets go).
+  const lastSnap = useRef<string | null>(null);
+  useEffect(() => {
+    if (snap && snap !== lastSnap.current) haptic('snap');
+    lastSnap.current = snap;
+  }, [snap]);
 
   return (
     <View

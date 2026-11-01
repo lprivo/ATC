@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Sim } from '../engine/sim';
+import { haptic } from './haptics';
 import { conflictBanner, conflictSetKey, hasNewConflict, nextToastExpiry, pairKey, stepToastState, type ToastState } from './hud';
 
 /**
@@ -27,7 +28,10 @@ export function useHud(sim: Sim, opts: { paused: boolean; timeScale: number; set
   const setKey = conflictSetKey(sim.conflicts);
   useEffect(() => {
     if (known.current.sim !== sim) known.current = { sim, pairs: new Set() };
-    if (hasNewConflict(known.current.pairs, sim.conflicts) && timeScale !== 1) setTimeScale(1);
+    if (hasNewConflict(known.current.pairs, sim.conflicts)) {
+      haptic('conflict');
+      if (timeScale !== 1) setTimeScale(1);
+    }
     known.current.pairs = new Set(sim.conflicts.map(pairKey));
     // timeScale is read, not reacted to: changing speed must not re-run the check.
     // eslint-disable-next-line react-hooks/exhaustive-deps

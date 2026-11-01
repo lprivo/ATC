@@ -14,6 +14,7 @@ import { BottomSheet } from '../ui/BottomSheet';
 import { Radar } from '../ui/Radar';
 import { Toasts } from '../ui/Toasts';
 import { TopBar } from '../ui/TopBar';
+import { haptic } from './haptics';
 import { useHud } from './useHud';
 import { useSim } from './useSim';
 
@@ -41,6 +42,11 @@ export function GameScreen() {
     refresh();
   };
   const pendingPlane = pending ? sim.plane(pending.planeId) : undefined;
+  /** Selecting a plane (by tap, label or the banner's SELECT) gives a light tap. */
+  const select = (id: string | null) => {
+    if (id && id !== selectedId) haptic('select');
+    setSelectedId(id);
+  };
 
   const onRestart = () => {
     // Clear the selection with the restart: plane ids start again at "1" in the new sim.
@@ -61,7 +67,7 @@ export function GameScreen() {
         <Radar
           sim={sim}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={select}
           onCommand={refresh}
           paused={paused}
           insets={{ top: toastTop, bottom: sheetHeight }}
@@ -73,7 +79,7 @@ export function GameScreen() {
         </View>
         {banner && (
           <View style={[styles.hud, side, { top: hudBottom }]} pointerEvents="box-none">
-            <ConflictBanner banner={banner} onSelect={setSelectedId} onHeight={setBannerHeight} />
+            <ConflictBanner banner={banner} onSelect={select} onHeight={setBannerHeight} />
           </View>
         )}
         <View style={[styles.hud, side, { top: toastTop }]} pointerEvents="none">
@@ -88,7 +94,10 @@ export function GameScreen() {
               swapTo={parallelEnd(sim.airport, pending.runway)?.id ?? null}
               durationMs={DRAW.confirmMs}
               onSwap={swap}
-              onConfirm={() => setPending(null)}
+              onConfirm={() => {
+                haptic('landingConfirmed');
+                setPending(null);
+              }}
             />
           </View>
         )}

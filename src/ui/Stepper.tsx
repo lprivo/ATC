@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { nextRepeatDelay } from '../game/controls';
+import { haptic } from '../game/haptics';
 import { useTheme } from '../theme/ThemeContext';
 
 interface Props {
@@ -84,11 +85,19 @@ function StepButton({
     steppedOnPressIn.current = true;
     pressedInAt.current = Date.now();
     // At a limit the button only dims: no steps (the limit haptic comes with #11).
-    if (atLimitRef.current) return;
+    if (atLimitRef.current) {
+      haptic('limit');
+      return;
+    }
+    haptic('step');
     stepRef.current();
     const t0 = Date.now();
     const loop = () => {
-      if (atLimitRef.current) return; // reached the limit mid-hold
+      if (atLimitRef.current) {
+        haptic('limit'); // reached the limit mid-hold
+        return;
+      }
+      haptic('step');
       stepRef.current();
       timer.current = setTimeout(loop, nextRepeatDelay(Date.now() - t0));
     };
@@ -107,7 +116,10 @@ function StepButton({
         // more than a second old belongs to an earlier press that never got its onPress
         // (taken over by a swipe), so it doesn't count.
         const fresh = steppedOnPressIn.current && Date.now() - pressedInAt.current < 1000;
-        if (!fresh && !atLimitRef.current) stepRef.current();
+        if (!fresh) {
+          haptic(atLimitRef.current ? 'limit' : 'step');
+          if (!atLimitRef.current) stepRef.current();
+        }
         steppedOnPressIn.current = false;
       }}
       onPressOut={stop}
