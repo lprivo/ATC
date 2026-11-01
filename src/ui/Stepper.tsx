@@ -66,6 +66,8 @@ function StepButton({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepRef = useRef(onStep);
   stepRef.current = onStep;
+  const atLimitRef = useRef(atLimit);
+  atLimitRef.current = atLimit;
   // react-native-web delays onPressIn and skips it for very quick taps, so
   // onPress steps too unless press-in already did.
   const steppedOnPressIn = useRef(false);
@@ -77,10 +79,14 @@ function StepButton({
   useEffect(() => stop, []);
 
   const start = () => {
+    stop();
     steppedOnPressIn.current = true;
+    // At a limit the button only dims: no steps (the limit haptic comes with #11).
+    if (atLimitRef.current) return;
     stepRef.current();
     const t0 = Date.now();
     const loop = () => {
+      if (atLimitRef.current) return; // reached the limit mid-hold
       stepRef.current();
       timer.current = setTimeout(loop, nextRepeatDelay(Date.now() - t0));
     };
@@ -95,10 +101,14 @@ function StepButton({
       accessibilityState={{ disabled: !!atLimit }}
       onPressIn={start}
       onPress={() => {
-        if (!steppedOnPressIn.current) stepRef.current();
+        if (!steppedOnPressIn.current && !atLimitRef.current) stepRef.current();
         steppedOnPressIn.current = false;
       }}
-      onPressOut={stop}
+      onPressOut={() => {
+        stop();
+        // A press taken over by a swipe never gets onPress: don't let the flag swallow the next quick tap.
+        setTimeout(() => (steppedOnPressIn.current = false), 0);
+      }}
       style={({ pressed }) => [
         styles.button,
         divider && { borderRightColor: c.panelBorder, borderRightWidth: theme.hairline },

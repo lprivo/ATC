@@ -16,7 +16,7 @@ export function SpeedControl({ value, onChange }: { value: number; onChange: (s:
             testID={`speed-${s}`}
             accessibilityRole="radio"
             accessibilityLabel={`Sim speed times ${s}`}
-            accessibilityState={{ selected: active }}
+            accessibilityState={{ checked: active }}
             onPress={() => onChange(s)}
             style={[
               styles.segment,

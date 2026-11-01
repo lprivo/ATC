@@ -160,12 +160,11 @@ export class Sim {
   setAltitude(id: string, altitude: number) {
     const p = this.plane(id);
     if (!p) return;
-    const rwy = p.clearedRunway;
-    if (rwy) {
-      this.cancelApproach(p);
-      this.log('cancelled', `${p.callsign} clearance to ${rwy.id} cancelled`, [p.callsign], rwy.id);
-    }
-    p.target.altitude = clamp(altitude, PERF.minAltitude, PERF.maxAltitude);
+    const next = clamp(altitude, PERF.minAltitude, PERF.maxAltitude);
+    // Asking for the altitude it's already targeting changes nothing (and keeps a clearance).
+    if (next === p.target.altitude) return;
+    this.cancelApproach(p);
+    p.target.altitude = next;
   }
 
   setSpeed(id: string, speed: number) {
@@ -222,8 +221,10 @@ export class Sim {
     return headingTo(route[k], end);
   }
 
-  /** Drops a landing clearance and puts back the altitude/speed the approach overrode. */
+  /** Drops a landing clearance (announcing it) and puts back the altitude/speed the approach overrode. */
   private cancelApproach(p: Plane) {
+    const rwy = p.clearedRunway;
+    if (rwy) this.log('cancelled', `${p.callsign} clearance to ${rwy.id} cancelled`, [p.callsign], rwy.id);
     if (p.approachFrom) {
       p.target.altitude = p.approachFrom.altitude;
       p.target.speed = p.approachFrom.speed;

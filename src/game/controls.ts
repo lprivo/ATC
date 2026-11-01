@@ -23,13 +23,20 @@ export function nextHeading(p: Plane, dir: StepDirection): number {
 
 /** Next commanded altitude: snap to the step grid, move one step, keep within the stepper limits. */
 export const nextAltitude = (p: Plane, dir: StepDirection) =>
-  clampTo(snap(p.target.altitude, DIAL_STEP.altitude) + dir * DIAL_STEP.altitude, STEP_LIMITS.altitude);
+  towards(p.target.altitude, clampTo(snap(p.target.altitude, DIAL_STEP.altitude) + dir * DIAL_STEP.altitude, STEP_LIMITS.altitude), dir);
 
 /** Next commanded speed: snap to the step grid, move one step, keep within the stepper limits. */
 export const nextSpeed = (p: Plane, dir: StepDirection) =>
-  clampTo(snap(p.target.speed, DIAL_STEP.speed) + dir * DIAL_STEP.speed, STEP_LIMITS.speed);
+  towards(p.target.speed, clampTo(snap(p.target.speed, DIAL_STEP.speed) + dir * DIAL_STEP.speed, STEP_LIMITS.speed), dir);
 
-/** Whether a stepper button can't move further (it dims and buzzes at the limit). */
+/**
+ * A step never goes against its direction: when the current value is already
+ * beyond a limit (e.g. the glideslope target on final is below 2,000 ft), the
+ * clamp would move it the other way, so the value stays put instead.
+ */
+const towards = (current: number, next: number, dir: StepDirection) => (dir * (next - current) < 0 ? current : next);
+
+/** Whether a stepper button can't move further (it dims; #11 adds the limit haptic). */
 export function atLimit(kind: 'altitude' | 'speed', p: Plane, dir: StepDirection) {
   const v = kind === 'altitude' ? p.target.altitude : p.target.speed;
   const lim = STEP_LIMITS[kind];

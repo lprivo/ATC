@@ -316,6 +316,15 @@ describe('routes and landing', () => {
     expect(sim.events.at(-1)).toMatchObject({ kind: 'cancelled', runway: '31R', callsigns: [p.callsign] });
     sim.setAltitude(p.id, 5000);
 
+    // Asking for the altitude it's already targeting changes nothing and keeps the clearance.
+    sim.setRoute(p.id, [rwy31R.threshold]);
+    sim.step(0.25);
+    sim.setAltitude(p.id, p.target.altitude);
+    expect(p.clearedRunway?.id).toBe('31R');
+    // A heading command cancels it with an event too.
+    sim.setHeading(p.id, 90);
+    expect(sim.events.at(-1)).toMatchObject({ kind: 'cancelled', runway: '31R' });
+
     // A new path that doesn't end on a runway cancels it too.
     sim.setRoute(p.id, [rwy31R.threshold]);
     sim.step(0.25);

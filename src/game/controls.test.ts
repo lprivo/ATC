@@ -82,3 +82,39 @@ describe('sheet status', () => {
     expect(trend('altitude', at({}))).toBe('');
   });
 });
+
+describe('stepping never goes the wrong way', () => {
+  it('below the 2,000 ft floor (glideslope target on final), ▼ stays put and ▲ climbs to the floor', () => {
+    const onFinal = plane({ target: { heading: 0, altitude: 1200, speed: 150 } });
+    expect(atLimit('altitude', onFinal, -1)).toBe(true);
+    expect(nextAltitude(onFinal, -1)).toBe(1200);
+    expect(nextAltitude(onFinal, 1)).toBe(2000);
+  });
+
+  it('above a speed limit, ▲ stays put', () => {
+    expect(nextSpeed(plane({ target: { heading: 0, altitude: 5000, speed: 320 } }), 1)).toBe(320);
+  });
+});
+
+describe('sheet status priority and thresholds', () => {
+  const rwy = { id: '31R', heading: 312, threshold: { x: 0, y: 0 } };
+  const at = (over: Partial<Plane> = {}, target: Partial<Plane['target']> = {}) =>
+    plane({ target: { heading: 0, altitude: 5000, speed: 250, ...target }, ...over });
+
+  it('conflict beats go-around and cleared; go-around beats cleared', () => {
+    expect(statusChip(at({ conflict: true, goAroundAt: 0, clearedRunway: rwy }), 10)?.text).toBe('! CONFLICT');
+    expect(statusChip(at({ goAroundAt: 0, clearedRunway: rwy }), 10)?.text).toBe('GO-AROUND');
+  });
+
+  it('GO-AROUND shows for exactly a minute', () => {
+    expect(statusChip(at({ goAroundAt: 0 }), 59.9)?.text).toBe('GO-AROUND');
+    expect(statusChip(at({ goAroundAt: 0 }), 60)).toBeNull();
+  });
+
+  it('trend dead-bands: under 1° of turn, 50 ft or 2 kt shows no arrow', () => {
+    expect(trend('heading', at({ heading: 0.5 }))).toBe('');
+    expect(trend('altitude', at({ altitude: 5040 }))).toBe('');
+    expect(trend('speed', at({ speed: 251 }))).toBe('');
+    expect(trend('speed', at({ speed: 247 }))).toBe('↑');
+  });
+});

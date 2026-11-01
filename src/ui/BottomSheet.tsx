@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, PanResponder, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Animated, Easing, PanResponder, Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { airlineOf } from '../engine/data/airlines';
 import type { Sim } from '../engine/sim';
 import type { Plane } from '../engine/types';
@@ -41,10 +41,12 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
   const { theme } = useTheme();
   const c = theme.colors;
   const plane = selectedId ? sim.plane(selectedId) : undefined;
-  const [compact, setCompact] = useState(false);
-  // A new selection always opens expanded.
-  useEffect(() => setCompact(false), [selectedId]);
-  const state: SheetState = !plane ? 'peek' : compact ? 'compact' : 'expanded';
+  // Compact is remembered per selection, so a new selection always opens expanded.
+  const [compactFor, setCompactFor] = useState<string | null>(null);
+  const selectedRef = useRef(selectedId);
+  selectedRef.current = selectedId;
+  const setCompact = (on: boolean) => setCompactFor(on ? selectedRef.current : null);
+  const state: SheetState = !plane ? 'peek' : compactFor === selectedId ? 'compact' : 'expanded';
 
   // Slide the content up into place whenever the state changes (transform only).
   const slide = useRef(new Animated.Value(0)).current;
@@ -58,8 +60,10 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx),
       onPanResponderRelease: (_, g) => {
-        if (g.dy > SWIPE_PT) setCompact(true);
-        else if (g.dy < -SWIPE_PT) setCompact(false);
+        // Swipes only mean something with a plane selected.
+        if (!selectedRef.current) return;
+        if (g.dy > SWIPE_PT) setCompactFor(selectedRef.current);
+        else if (g.dy < -SWIPE_PT) setCompactFor(null);
       },
     }),
   ).current;
@@ -70,7 +74,7 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
     <View
       onLayout={onLayout}
       testID="sheet"
-      style={[styles.sheet, { backgroundColor: c.panel, borderTopColor: c.panelBorder, borderTopWidth: theme.hairline, paddingBottom: bottomInset + 8 }]}
+      style={[styles.sheet, { backgroundColor: c.panel, borderTopColor: c.panelBorder, borderTopWidth: theme.hairline, paddingBottom: Math.max(bottomInset, 8) }]}
     >
       <View {...swipe.panHandlers} style={styles.grabArea}>
         <View style={[styles.grabber, { backgroundColor: c.panelBorder }]} />
@@ -82,7 +86,11 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
             <Expanded sim={sim} plane={plane} onClose={onClose} onCommand={onCommand} />
           </View>
         )}
-        {state === 'compact' && plane && <Compact plane={plane} onExpand={() => setCompact(false)} swipe={swipe.panHandlers} />}
+        {state === 'compact' && plane && (
+          <View {...swipe.panHandlers}>
+            <Compact plane={plane} onExpand={() => setCompact(false)} />
+          </View>
+        )}
       </Animated.View>
     </View>
   );
@@ -111,7 +119,7 @@ function Expanded({ sim, plane: p, onClose, onCommand }: { sim: Sim; plane: Plan
   const c = theme.colors;
   const t = theme.type;
   const chip = statusChip(p, sim.time);
-  const chipColor = chip ? { danger: c.danger, good: c.good, info: c.snapHalo }[chip.tone] : c.text;
+  const chipColor = chip ? { danger: c.danger, good: c.good, info: c.route }[chip.tone] : c.text;
   const airline = airlineOf(p.callsign);
   const command = (fn: () => void) => {
     fn();
@@ -175,7 +183,7 @@ function Expanded({ sim, plane: p, onClose, onCommand }: { sim: Sim; plane: Plan
   );
 }
 
-function Compact({ plane: p, onExpand, swipe }: { plane: Plane; onExpand: () => void; swipe: object }) {
+function Compact({ plane: p, onExpand }: { plane: Plane; onExpand: () => void }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -185,11 +193,13 @@ function Compact({ plane: p, onExpand, swipe }: { plane: Plane; onExpand: () => 
       <Text style={[t.barTitle, { color: c.text }]}>{value}</Text>
     </View>
   );
+  const hdg = isFollowingRoute(p) ? '———' : pad3(p.target.heading);
+  const label = `${p.callsign}, heading ${isFollowingRoute(p) ? 'own navigation' : hdg}, ${feet(p.target.altitude)} feet, ${Math.round(p.target.speed)} knots. Show controls`;
   return (
-    <Pressable {...swipe} onPress={onExpand} testID="sheet-compact" accessibilityRole="button" accessibilityLabel={`${p.callsign}, show controls`} style={styles.compact}>
+    <Pressable onPress={onExpand} testID="sheet-compact" accessibilityRole="button" accessibilityLabel={label} style={styles.compact}>
       <Text style={[t.callsign, { color: c.planeSelected }]}>{p.callsign}</Text>
       <View style={styles.compactCells}>
-        {cell('HDG', pad3(p.target.heading))}
+        {cell('HDG', hdg)}
         {cell('ALT', feet(p.target.altitude))}
         {cell('SPD', String(Math.round(p.target.speed)))}
       </View>
@@ -198,8 +208,15 @@ function Compact({ plane: p, onExpand, swipe }: { plane: Plane; onExpand: () => 
 }
 
 const styles = StyleSheet.create({
-  // userSelect: a drag on the sheet is a swipe, not a text selection (web).
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 12, userSelect: 'none' },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    // A drag on the sheet is a swipe, not a text selection (web only).
+    ...Platform.select({ web: { userSelect: 'none' as const }, default: {} }),
+  },
   grabArea: { alignItems: 'center', paddingTop: 8, paddingBottom: 8 },
   grabber: { width: 36, height: 4 },
   peek: { gap: 8 },
