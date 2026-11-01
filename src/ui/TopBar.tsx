@@ -23,7 +23,7 @@ export function TopBar({ sim, paused, onTogglePause, timeScale, onCycleTimeScale
   const s = sim.stats;
 
   return (
-    <View style={[styles.bar, { backgroundColor: c.panel, borderColor: c.panelBorder }]}>
+    <View style={[styles.bar, { backgroundColor: c.panel, borderColor: c.panelBorder, borderBottomWidth: theme.hairline }]}>
       <View style={styles.row}>
         <Text style={[theme.type.barTitle, { color: c.text }]}>
           {sim.airport.icao} <Text style={[theme.type.barValue, { color: c.textDim }]}>{clock(sim.time)}</Text>
@@ -60,7 +60,7 @@ function Btn({ label, onPress, testID }: { label: string; onPress: () => void; t
 }
 
 const styles = StyleSheet.create({
-  bar: { borderBottomWidth: 1, paddingHorizontal: 10, paddingVertical: 6, gap: 4 },
+  bar: { paddingHorizontal: 10, paddingVertical: 6, gap: 4 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   buttons: { flexDirection: 'row', gap: 6 },
   btn: { paddingHorizontal: 10, height: 36, alignItems: 'center', justifyContent: 'center', minWidth: 36 },

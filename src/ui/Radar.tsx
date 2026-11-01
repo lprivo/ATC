@@ -24,8 +24,6 @@ import { hitTest, makeViewport, polylinePoints, tagLayout, toScreen, toWorld, ty
 
 const HOLD_MS = 220;
 const DRAG_START_PX = 10;
-/** Touch radius around a plane symbol (design: 44 pt target, 24 pt radius). */
-const HIT_RADIUS_PX = 24;
 const DRAFT_SPACING_PX = 6;
 
 interface Props {
@@ -85,7 +83,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
     st.moved = false;
     st.drawing = false;
     st.points = [];
-    st.planeId = hitTest(sim.planes, vp, tag, p.x, p.y, HIT_RADIUS_PX);
+    st.planeId = hitTest(sim.planes, vp, tag, p.x, p.y, theme.size.hitRadius);
     clearTimer();
     if (st.planeId) st.timer = setTimeout(beginDraw, HOLD_MS);
   };

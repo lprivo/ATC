@@ -42,7 +42,7 @@ Docs: https://docs.expo.dev/eas/index.md
 ## This project
 
 - `src/engine/` — the simulation: pure TypeScript, no React or React Native imports. Keep it that way so it stays testable (`npm test`) and reusable.
-- `src/ui/`, `src/game/` — React Native UI. Colours, fonts and the main radar glyph sizes (blip, tag/label fonts, leader length) come only from `src/theme/themes.ts`; don't hard-code colours. Layout sizes (panel, dials, buttons) are still in component StyleSheets until the real design lands.
+- `src/ui/`, `src/game/` — React Native UI. Colours, type (`theme.type`), radar fonts (`theme.radarFont`), radar glyph sizes (`theme.size`) and border widths (`theme.hairline`) come only from `src/theme/themes.ts`; don't hard-code colours. Layout sizes (panel, dials, buttons) live in component StyleSheets, following `docs/design/README.md`.
 - Pure logic used by the UI (`src/game/controls.ts`, `src/ui/viewport.ts`, `src/ui/format.ts`) has no React Native imports and is unit tested.
 - `legacy/` — the original 2019 HTML/JS sim, kept for reference. Not part of the app.
 - Run `npm test` and `npm run typecheck` before declaring a task done.

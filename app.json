@@ -28,7 +28,13 @@
     },
     "owner": "soosgyul",
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0f1b26"
+        }
+      ]
     ]
   }
 }

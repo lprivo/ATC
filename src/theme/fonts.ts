@@ -1,15 +1,14 @@
-import {
-  Barlow_400Regular,
-  Barlow_500Medium,
-  Barlow_600SemiBold,
-  Barlow_700Bold,
-} from '@expo-google-fonts/barlow';
-import {
-  BarlowCondensed_400Regular,
-  BarlowCondensed_500Medium,
-  BarlowCondensed_600SemiBold,
-} from '@expo-google-fonts/barlow-condensed';
+// Per-weight subpath imports: each pulls in only its own .ttf. Importing from
+// the package root would require (and bundle) every face of the family.
+import { Barlow_400Regular } from '@expo-google-fonts/barlow/400Regular';
+import { Barlow_500Medium } from '@expo-google-fonts/barlow/500Medium';
+import { Barlow_600SemiBold } from '@expo-google-fonts/barlow/600SemiBold';
+import { Barlow_700Bold } from '@expo-google-fonts/barlow/700Bold';
+import { BarlowCondensed_400Regular } from '@expo-google-fonts/barlow-condensed/400Regular';
+import { BarlowCondensed_500Medium } from '@expo-google-fonts/barlow-condensed/500Medium';
+import { BarlowCondensed_600SemiBold } from '@expo-google-fonts/barlow-condensed/600SemiBold';
 import { useFonts } from 'expo-font';
+import { useEffect } from 'react';
 import { FONT_FAMILY } from './themes';
 
 /** Every face the theme's FONT_FAMILY names, keyed by those names. */
@@ -26,9 +25,12 @@ const FACES: Record<(typeof FONT_FAMILY)[keyof typeof FONT_FAMILY], number> = {
 /**
  * Loads the bundled Barlow / Barlow Condensed faces (OFL, shipped with the app,
  * no network). Returns true once they are usable, or if loading failed, so the
- * app still starts with system fonts rather than hanging.
+ * app still starts with system fonts rather than hanging; a failure is logged in dev.
  */
 export function useAppFonts(): boolean {
   const [loaded, error] = useFonts(FACES);
+  useEffect(() => {
+    if (__DEV__ && error) console.warn('Font loading failed; falling back to system fonts.', error);
+  }, [error]);
   return loaded || error != null;
 }
