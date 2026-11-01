@@ -262,6 +262,10 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
             {sim.planes.map((p) => (
               <RouteLine key={`r-${p.id}`} plane={p} vp={vp} theme={theme} />
             ))}
+            {/* The path being drawn sits under the planes, as in the design. */}
+            {draft.length > 1 && (
+              <Polyline points={polylinePoints(vp, draft)} fill="none" stroke={c.routeDraft} strokeWidth={2.5} strokeDasharray="2 5" />
+            )}
             {sim.conflicts.map((cf) => (
               <PairLine key={`pl-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
             ))}
@@ -271,9 +275,6 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
             {sim.conflicts.map((cf) => (
               <PairTag key={`pt-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
             ))}
-            {draft.length > 1 && (
-              <Polyline points={polylinePoints(vp, draft)} fill="none" stroke={c.routeDraft} strokeWidth={2.5} strokeDasharray="2 5" />
-            )}
           </Svg>
         </View>
       )}
@@ -457,7 +458,7 @@ function PlaneGlyph({ plane: p, vp, tag, theme, selected }: { plane: Plane; vp: 
           cy={s.y}
           r={conflictRingRadius(vp, z.conflictRingNm, z.conflictRingMin)}
           stroke={color}
-          strokeWidth={1.5}
+          strokeWidth={z.planeStroke}
           strokeDasharray="5 4"
           fill="none"
         />
@@ -465,7 +466,7 @@ function PlaneGlyph({ plane: p, vp, tag, theme, selected }: { plane: Plane; vp: 
       {selected ? (
         <G>
           <Rect x={s.x - half} y={s.y - half} width={half * 2} height={half * 2} fill={color} />
-          <Path d={bracketPath(s.x, s.y, z.selectBracket, z.selectBracketArm)} stroke={color} strokeWidth={1.5} fill="none" />
+          <Path d={bracketPath(s.x, s.y, z.selectBracket, z.selectBracketArm)} stroke={color} strokeWidth={z.planeStroke} fill="none" />
         </G>
       ) : (
         <G>

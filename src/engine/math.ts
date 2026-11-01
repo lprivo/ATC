@@ -26,6 +26,17 @@ export const add = (a: Vec2, b: Vec2, scale = 1): Vec2 => ({
   y: a.y + b.y * scale,
 });
 
+/**
+ * Position of `pt` relative to a line through `origin` along `heading`:
+ * `along` > 0 is ahead of the origin, `cross` > 0 is to the right of the track.
+ */
+export function trackOffsets(pt: Vec2, origin: Vec2, heading: number) {
+  const d = dirOf(heading);
+  const vx = pt.x - origin.x;
+  const vy = pt.y - origin.y;
+  return { along: vx * d.x + vy * d.y, cross: vx * d.y - vy * d.x };
+}
+
 export const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** Move `current` toward `target` by at most `maxStep`. */

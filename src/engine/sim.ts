@@ -1,4 +1,4 @@
-import { add, angleDiff, approach, clamp, dirOf, dist, headingTo, normDeg } from './math';
+import { add, angleDiff, approach, clamp, dirOf, dist, headingTo, normDeg, trackOffsets } from './math';
 import type { Airport, Conflict, Plane, RunwayEnd, SimEvent, SimStats, TrafficEntry, Vec2 } from './types';
 
 // Aircraft performance — deliberately simple and identical for every type for now.
@@ -62,9 +62,8 @@ export function remainingPathNm(p: Plane): number {
 
 /** Signed distances of `pt` relative to a runway end: `along` > 0 is past the threshold. */
 function runwayFrame(pt: Vec2, end: RunwayEnd) {
-  const d = dirOf(end.heading);
-  const v = { x: pt.x - end.threshold.x, y: pt.y - end.threshold.y };
-  return { along: v.x * d.x + v.y * d.y, cross: Math.abs(v.x * d.y - v.y * d.x) };
+  const { along, cross } = trackOffsets(pt, end.threshold, end.heading);
+  return { along, cross: Math.abs(cross) };
 }
 
 /**
@@ -96,8 +95,13 @@ function onParallelFinals(a: Plane, b: Plane): boolean {
   if (Math.abs(angleDiff(ra.heading, rb.heading)) > 1) return false;
   return establishedOnFinal(a) && establishedOnFinal(b);
 }
-const TRAIL_EVERY_SEC = 4;
-const TRAIL_LENGTH = 8;
+/**
+ * Position history for radar trails: one sample every 2 s, kept for 2 minutes.
+ * At sector zoom on a phone (~6.5 pt/nm) five trail dots need ~3.9 nm of path,
+ * which a plane at approach speed (140 kt) covers in ~100 s.
+ */
+const TRAIL_EVERY_SEC = 2;
+export const TRAIL_LENGTH = 60;
 const MAX_EVENTS = 20;
 
 export class Sim {
@@ -386,7 +390,8 @@ export class Sim {
 
   /**
    * Which runway end (if any) a path ending at `pt` is aiming for. Parallel
-   * runways have thresholds ~1 nm apart, so rather than "nearest threshold" we
+   * runways' thresholds can be under 1 nm apart (LHBP: 13L to 31L is
+   * 0.94 nm), so rather than "nearest threshold" we
    * pick the end whose extended centreline the path is closest to, ignoring
    * ends whose landing direction disagrees with the path's final leg.
    */
