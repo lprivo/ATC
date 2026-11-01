@@ -89,6 +89,7 @@ function StepButton({
   const start = () => {
     stop();
     pressIns.current += 1;
+    lastStepHaptic.current = 0; // the first step of every press always gets its haptic
     // At a limit the button only dims and gives the rigid limit haptic: no steps.
     if (atLimitRef.current) {
       haptic('limit');

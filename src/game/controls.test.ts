@@ -134,8 +134,8 @@ describe('stepper press handling', () => {
     expect(pressStepsOnPress(2, 0)).toEqual({ step: false, consumed: 2 });
   });
 
-  it('step haptics are throttled to one per 120 ms during the fast repeat', () => {
+  it('step haptics are throttled during the 60 ms fast repeat but not the 120 ms one', () => {
     expect(stepHapticDue(1000, 1060)).toBe(false);
-    expect(stepHapticDue(1000, 1120)).toBe(true);
+    expect(stepHapticDue(1000, 1115)).toBe(true);
   });
 });

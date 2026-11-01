@@ -35,7 +35,12 @@ describe('haptic()', () => {
 
   it('ignores failures (no hardware, web without vibration)', async () => {
     const mod = await import('expo-haptics');
-    vi.spyOn(mod, 'selectionAsync').mockRejectedValueOnce(new Error('unavailable'));
-    expect(() => haptic('step')).not.toThrow();
+    const spy = vi.spyOn(mod, 'selectionAsync').mockRejectedValueOnce(new Error('unavailable'));
+    // The rejection is caught (an unhandled one would fail the run).
+    haptic('step');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(spy).toHaveBeenCalled();
+    vi.restoreAllMocks();
   });
 });

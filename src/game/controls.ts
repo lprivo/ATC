@@ -63,8 +63,12 @@ export function pressStepsOnPress(pressIns: number, consumed: number) {
   return { step: pressIns === consumed, consumed: pressIns };
 }
 
-/** At most one step haptic per this many ms, so the fast hold-repeat (60 ms) doesn't turn into a buzz. */
-export const STEP_HAPTIC_MIN_MS = REPEAT.everyMs;
+/**
+ * At most one step haptic per this many ms, so the fast hold-repeat (60 ms)
+ * doesn't turn into a buzz. A little under the 120 ms repeat, so an early timer
+ * doesn't drop every other haptic in the normal-speed phase.
+ */
+export const STEP_HAPTIC_MIN_MS = 100;
 export const stepHapticDue = (lastAt: number, now: number) => now - lastAt >= STEP_HAPTIC_MIN_MS;
 
 /** Sheet status chip, most important first: conflict, go-around, cleared, then climbing/descending. */
