@@ -29,7 +29,7 @@ export function GameScreen() {
         }}
       />
       <View style={{ flex: 1 }}>
-        <Radar sim={sim} selectedId={selectedId} onSelect={setSelectedId} onCommand={refresh} />
+        <Radar sim={sim} selectedId={selectedId} onSelect={setSelectedId} onCommand={refresh} paused={paused} />
       </View>
       <PlanePanel sim={sim} selectedId={selectedId} onClose={() => setSelectedId(null)} onCommand={refresh} />
     </SafeAreaView>

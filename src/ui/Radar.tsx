@@ -1,12 +1,12 @@
 import { memo, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
-import Svg, { Circle, G, Line, Path, Polygon, Polyline, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Polygon, Polyline, Rect, Text as SvgText, TSpan } from 'react-native-svg';
 import type { Sim } from '../engine/sim';
 import type { Airport, Conflict, Plane, Vec2 } from '../engine/types';
 import { useTheme } from '../theme/ThemeContext';
-import type { Theme } from '../theme/themes';
-import { LABEL_METRICS, textWidth, type LabelMode, type Rect as LabelRect } from './labels';
 import { useLabelLayout, type DrawnLabel } from './useLabelLayout';
+import type { Theme } from '../theme/themes';
+import { altHundreds } from './format';
 import {
   bracketPath,
   centreline,
@@ -21,230 +21,173 @@ import {
   runwayWidth,
   trailDots,
 } from './radarGeometry';
-import { isDoubleTap, isTap, pinchOf, TAP, wheelZoomFactor, type TouchPt } from './gestures';
+import { wheelDeltaPx, wheelZoomFactor } from './gestures';
+import { LABEL_METRICS, labelBaseline, textWidth, type LabelMode, type LabelSpec } from './labels';
+import {
+  beginDraw,
+  HOLD_MS,
+  initialGesture,
+  onCancel,
+  onDown,
+  onMove,
+  onUp,
+  type GestureState,
+  type Step,
+  type Touch,
+} from './radarGestures';
 import {
   defaultViewport,
   ensureVisible,
   hitTest,
-  panBy,
   polylinePoints,
   resizeViewport,
-  toggleRunwayZoom,
   toScreen,
-  toWorld,
   zoomAt,
   type Viewport,
 } from './viewport';
 
-const HOLD_MS = 220;
-const DRAG_START_PX = 10;
-const DRAFT_SPACING_PX = 6;
-/** Keep a newly selected plane at least this far below the radar's top edge. */
+/**
+ * Band a newly selected plane is kept inside, in radar coordinates. The design's
+ * "below y = 120" is measured from the top of the full-bleed screen; here the
+ * top bar sits above the radar, so a small margin is the equivalent.
+ */
 const SELECT_TOP_PT = 24;
 const EDGE = 12;
 const RECENTRE_SIZE = 44;
+/** Keep the selected plane above the re-centre button. */
+const SELECT_BOTTOM_INSET = RECENTRE_SIZE + 2 * EDGE;
 
 interface Props {
   sim: Sim;
   selectedId: string | null;
-  /** Plane labels setting (Auto | Full | Min); default Auto. */
-  labelMode?: LabelMode;
-  /** Label size setting (theme LABEL_SCALE); default 1. */
-  labelScale?: number;
   onSelect: (id: string | null) => void;
   /** Called after the radar changes the sim (a new route), so the screen can redraw while paused. */
   onCommand: () => void;
+  /** While paused nothing re-renders on its own, so labels snap instead of easing. */
+  paused?: boolean;
+  /** Plane labels setting (Auto | Full | Min); default Auto. Wired to Settings in #15. */
+  labelMode?: LabelMode;
+  /** Label size setting (theme LABEL_SCALE); default 1. Wired to Settings in #15. */
+  labelScale?: number;
 }
 
-type Mode = 'none' | 'plane' | 'pan' | 'pinch';
-
-export function Radar({ sim, selectedId, onSelect, onCommand, labelMode = 'auto', labelScale = 1 }: Props) {
+export function Radar({ sim, selectedId, onSelect, onCommand, paused = false, labelMode = 'auto', labelScale = 1 }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [vp, setVp] = useState<Viewport>(() => defaultViewport(0, 0));
-  // Gesture handlers read the camera through a ref: touch events can arrive faster than React renders.
-  const vpRef = useRef(vp);
-  vpRef.current = vp;
 
   // Data blocks: content every frame, placement at 2 Hz. Touch handlers read the
   // last drawn rectangles so a tap on a label selects its plane.
-  const labels = useLabelLayout(sim, vp, theme, selectedId, labelMode, labelScale);
-  const labelRects = useRef(new Map<string, LabelRect>());
-  labelRects.current = new Map([...labels].map(([id, l]) => [id, l.rect]));
+  const labels = useLabelLayout(sim, vp, theme, { selectedId, mode: labelMode, labelScale, animate: !paused });
+  const labelsRef = useRef(labels);
+  labelsRef.current = labels;
 
-  // ---- gestures --------------------------------------------------------
-  // Gesture state lives in a ref: reading anything from state on release could be stale.
-  const g = useRef({
-    mode: 'none' as Mode,
-    start: { x: 0, y: 0 },
-    startT: 0,
-    planeId: null as string | null,
-    drawing: false,
-    moved: false,
-    timer: null as ReturnType<typeof setTimeout> | null,
-    lastPx: { x: 0, y: 0 },
-    points: [] as Vec2[],
-    /** Camera and finger positions when a pan or pinch began. */
-    camStart: vp,
-    pinch: { dist: 1, mid: { x: 0, y: 0 } },
-    lastTap: null as { t: number; at: TouchPt } | null,
-  });
+  // ---- camera ------------------------------------------------------------
+  // `cam` always holds the newest camera, including updates not rendered yet,
+  // so rapid events (trackpad wheel, touch moves) build on each other. React
+  // state is committed at most once per animation frame.
+  const cam = useRef(vp);
+  const frame = useRef<number | null>(null);
+  const updateCam = (next: (v: Viewport) => Viewport) => {
+    cam.current = next(cam.current);
+    if (frame.current == null) {
+      frame.current = requestAnimationFrame(() => {
+        frame.current = null;
+        setVp(cam.current);
+      });
+    }
+  };
+  useEffect(
+    () => () => {
+      if (frame.current != null) cancelAnimationFrame(frame.current);
+      frame.current = null;
+    },
+    [],
+  );
+
+  // ---- gestures ----------------------------------------------------------
+  // The state machine is pure (radarGestures.ts); this only feeds it events and runs its effects.
+  const g = useRef<GestureState>(initialGesture(vp));
   // Bumped to redraw the path being drawn (needed while the game is paused).
   const [, setDraftVersion] = useState(0);
-  const redrawDraft = () => setDraftVersion((v) => v + 1);
-
-  const clearTimer = () => {
-    if (g.current.timer) clearTimeout(g.current.timer);
-    g.current.timer = null;
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelHold = () => {
+    if (hold.current) clearTimeout(hold.current);
+    hold.current = null;
   };
-  useEffect(() => clearTimer, []);
+  useEffect(() => cancelHold, []);
 
-  const beginDraw = () => {
-    const st = g.current;
-    if (!st.planeId || st.drawing) return;
-    const plane = sim.plane(st.planeId);
-    if (!plane) return;
-    st.drawing = true;
-    st.points = [{ ...plane.pos }];
-    onSelect(st.planeId);
-    redrawDraft();
+  const run = (step: Step) => {
+    g.current = step.state;
+    for (const e of step.effects) {
+      if (e.kind === 'camera') updateCam(() => e.vp);
+      else if (e.kind === 'select') onSelect(e.id);
+      else if (e.kind === 'route') {
+        sim.setRoute(e.id, e.points);
+        onCommand();
+      } else if (e.kind === 'armHold') {
+        cancelHold();
+        // Through a ref, so the timer uses the latest render's sim (a restart may swap it).
+        hold.current = setTimeout(() => runRef.current(beginDraw(g.current, planePosRef.current(g.current.planeId))), HOLD_MS);
+      } else if (e.kind === 'cancelHold') cancelHold();
+      else setDraftVersion((v) => v + 1);
+    }
   };
+  const planePos = (id: string | null) => (id ? sim.plane(id)?.pos : undefined);
+  const runRef = useRef(run);
+  runRef.current = run;
+  const planePosRef = useRef(planePos);
+  planePosRef.current = planePos;
 
-  const touchesOf = (e: GestureResponderEvent): TouchPt[] =>
-    e.nativeEvent.touches.map((t) => ({ x: t.locationX, y: t.locationY }));
-  const xy = (e: GestureResponderEvent) => ({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-
-  const beginPinch = (a: TouchPt, b: TouchPt) => {
-    const st = g.current;
-    clearTimer();
-    // A second finger turns any gesture into a pinch; a half-drawn path is dropped.
-    st.drawing = false;
-    st.points = [];
-    st.mode = 'pinch';
-    st.moved = true;
-    st.camStart = vpRef.current;
-    st.pinch = pinchOf(a, b);
-    redrawDraft();
-  };
+  // Touch positions in radar coordinates. Each touch's locationX is relative to
+  // the view it landed on, so use page coordinates minus the radar's origin,
+  // taken at grant (the granting touch always lands on the radar itself).
+  const origin = useRef({ x: 0, y: 0 });
+  const touchesOf = (e: GestureResponderEvent): Touch[] =>
+    e.nativeEvent.touches.map((t) => ({ id: Number(t.identifier), x: t.pageX - origin.current.x, y: t.pageY - origin.current.y }));
+  const pointOf = (e: GestureResponderEvent) => ({ x: e.nativeEvent.pageX - origin.current.x, y: e.nativeEvent.pageY - origin.current.y });
 
   const onGrant = (e: GestureResponderEvent) => {
-    const p = xy(e);
-    const st = g.current;
-    st.start = p;
-    st.startT = Date.now();
-    st.lastPx = p;
-    st.moved = false;
-    st.drawing = false;
-    st.points = [];
-    st.camStart = vpRef.current;
-    clearTimer();
+    const ne = e.nativeEvent;
+    origin.current = { x: ne.pageX - ne.locationX, y: ne.pageY - ne.locationY };
     const touches = touchesOf(e);
-    if (touches.length >= 2) return beginPinch(touches[0], touches[1]);
-    st.planeId = hitTest(sim.planes, vpRef.current, labelRects.current, p.x, p.y, theme.size.hitRadius);
-    st.mode = st.planeId ? 'plane' : 'pan';
-    if (st.planeId) st.timer = setTimeout(beginDraw, HOLD_MS);
+    const first = touches[0] ?? pointOf(e);
+    const hit = hitTest(sim.planes, cam.current, labelsRef.current, first.x, first.y, theme.size.hitRadius);
+    run(onDown(g.current, touches.length ? touches : [{ ...first, id: 0 }], Date.now(), hit, cam.current));
   };
-
-  const onMove = (e: GestureResponderEvent) => {
-    const st = g.current;
-    const touches = touchesOf(e);
-    if (touches.length >= 2) {
-      if (st.mode !== 'pinch') beginPinch(touches[0], touches[1]);
-      const now = pinchOf(touches[0], touches[1]);
-      const k = st.camStart.scale * (now.dist / Math.max(1, st.pinch.dist));
-      // Zoom around where the fingers started, then follow the midpoint.
-      const z = zoomAt(st.camStart, k, st.pinch.mid.x, st.pinch.mid.y);
-      setVp(panBy(z, now.mid.x - st.pinch.mid.x, now.mid.y - st.pinch.mid.y));
-      return;
-    }
-    if (st.mode === 'pinch') return; // one finger lifted mid-pinch: wait for the release
-    const p = xy(e);
-    if (!st.moved && Math.hypot(p.x - st.start.x, p.y - st.start.y) > (st.mode === 'pan' ? TAP.maxMovePt : DRAG_START_PX)) {
-      st.moved = true;
-      // Dragging straight off a plane also starts a path: no need to wait for the hold.
-      if (st.mode === 'plane' && !st.drawing) {
-        clearTimer();
-        beginDraw();
-      }
-    }
-    if (st.mode === 'pan' && st.moved) {
-      setVp(panBy(st.camStart, p.x - st.start.x, p.y - st.start.y));
-      return;
-    }
-    if (st.drawing && Math.hypot(p.x - st.lastPx.x, p.y - st.lastPx.y) >= DRAFT_SPACING_PX) {
-      st.lastPx = p;
-      st.points.push(toWorld(vpRef.current, p.x, p.y));
-      redrawDraft();
-    }
-  };
-
-  const onRelease = (e: GestureResponderEvent) => {
-    clearTimer();
-    const st = g.current;
-    const p = xy(e);
-    if (st.mode === 'plane') {
-      if (st.drawing && st.moved && st.planeId) {
-        // Always end exactly where the finger lifted, even if it moved < DRAFT_SPACING_PX since the last sample.
-        sim.setRoute(st.planeId, [...st.points.slice(1), toWorld(vpRef.current, p.x, p.y)]);
-        onCommand();
-      } else if (!st.moved) {
-        // A tap, or a long press that never moved, only selects. It must not
-        // turn into a tiny route that would cancel the plane's clearance.
-        onSelect(st.planeId);
-      }
-    } else if (st.mode === 'pan' && isTap(Math.hypot(p.x - st.start.x, p.y - st.start.y), Date.now() - st.startT)) {
-      const now = Date.now();
-      if (isDoubleTap(st.lastTap, now, p)) {
-        st.lastTap = null;
-        setVp(toggleRunwayZoom(vpRef.current));
-      } else {
-        st.lastTap = { t: now, at: p };
-        onSelect(null);
-      }
-    }
-    st.mode = 'none';
-    st.drawing = false;
-    st.points = [];
-    redrawDraft();
-  };
-
-  const onTerminate = () => {
-    clearTimer();
-    g.current.mode = 'none';
-    g.current.drawing = false;
-    g.current.points = [];
-    redrawDraft();
-  };
+  const onMoveEvent = (e: GestureResponderEvent) => run(onMove(g.current, touchesOf(e), cam.current, planePos(g.current.planeId)));
+  const onRelease = (e: GestureResponderEvent) => run(onUp(g.current, pointOf(e), Date.now(), cam.current));
+  const onTerminate = () => run(onCancel(g.current));
 
   // Scroll wheel / trackpad zoom on the web, around the pointer.
   const hostRef = useRef<ComponentRef<typeof View>>(null);
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const el = hostRef.current as unknown as HTMLElement | null;
-    if (!el?.addEventListener) return;
+    const el = webElement(hostRef.current);
+    if (!el) return;
     const onWheel = (ev: WheelEvent) => {
       ev.preventDefault();
       const r = el.getBoundingClientRect();
-      const v = vpRef.current;
-      setVp(zoomAt(v, v.scale * wheelZoomFactor(ev.deltaY), ev.clientX - r.left, ev.clientY - r.top));
+      updateCam((v) => zoomAt(v, v.scale * wheelZoomFactor(wheelDeltaPx(ev)), ev.clientX - r.left, ev.clientY - r.top));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
+    // updateCam only touches refs and a stable setter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When a plane is selected, pan just enough to keep it on screen.
+  // When a plane is selected (or the radar is resized), pan just enough to keep
+  // it on screen. Never while a path is being drawn: the map must not move under the finger.
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || g.current.drawing) return;
     const p = sim.plane(selectedId);
-    const v = vpRef.current;
-    if (!p || v.w === 0) return;
-    const next = ensureVisible(v, p.pos, SELECT_TOP_PT, v.h - RECENTRE_SIZE - 2 * EDGE);
-    if (next !== v) setVp(next);
-  }, [selectedId, sim]);
+    if (!p || vp.w === 0) return;
+    updateCam((v) => ensureVisible(v, p.pos, SELECT_TOP_PT, v.h - SELECT_BOTTOM_INSET));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, sim, vp.w, vp.h]);
 
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
-    setVp((v) => resizeViewport(v, width, height));
+    updateCam((v) => resizeViewport(v, width, height));
   };
 
   const draft = g.current.drawing ? g.current.points : [];
@@ -255,10 +198,9 @@ export function Radar({ sim, selectedId, onSelect, onCommand, labelMode = 'auto'
       style={{ flex: 1, backgroundColor: c.background, overflow: 'hidden' }}
       onLayout={onLayout}
       onStartShouldSetResponder={() => true}
-      onMoveShouldSetResponder={() => true}
       onResponderTerminationRequest={() => false}
       onResponderGrant={onGrant}
-      onResponderMove={onMove}
+      onResponderMove={onMoveEvent}
       onResponderRelease={onRelease}
       onResponderTerminate={onTerminate}
       testID="radar"
@@ -292,8 +234,10 @@ export function Radar({ sim, selectedId, onSelect, onCommand, labelMode = 'auto'
       )}
       <Pressable
         testID="btn-recentre"
+        accessibilityRole="button"
         accessibilityLabel="Re-centre radar"
-        onPress={() => setVp(defaultViewport(vp.w, vp.h))}
+        accessibilityHint="Resets the zoom and position"
+        onPress={() => updateCam((v) => defaultViewport(v.w, v.h))}
         style={({ pressed }) => [
           styles.recentre,
           { backgroundColor: pressed ? c.buttonPressed : c.panel, borderColor: c.panelBorder, borderWidth: theme.hairline },
@@ -429,12 +373,10 @@ function PairTag({ sim, conflict, vp, theme }: { sim: Sim; conflict: Conflict; v
   const pair = pairPlanes(sim, conflict);
   if (!pair) return null;
   const f = theme.radarFont.chip;
-  const t = pairTag(vp, pair[0].pos, pair[1].pos, conflict.distNm, conflict.altFt);
-  // Condensed digits average about half the font size wide.
-  const w = t.text.length * f.fontSize * 0.5 + 8;
+  const t = pairTag(vp, pair[0].pos, pair[1].pos, conflict.distNm, conflict.altFt, f.fontSize);
   return (
     <G>
-      <Rect x={t.x - w / 2} y={t.y - 7} width={w} height={14} fill={theme.colors.danger} />
+      <Rect x={t.rect.x} y={t.rect.y} width={t.rect.w} height={t.rect.h} fill={theme.colors.danger} />
       <SvgText x={t.x} y={t.y + 3.5} fill={theme.colors.onDanger} fontFamily={f.fontFamily} fontSize={f.fontSize} textAnchor="middle">
         {t.text}
       </SvgText>
@@ -482,9 +424,17 @@ function PlaneGlyph({ plane: p, vp, theme, selected }: { plane: Plane; vp: Viewp
   );
 }
 
+/** The DOM element behind a View on react-native-web (null on native), for listeners RN doesn't expose. */
+function webElement(view: unknown): HTMLElement | null {
+  if (Platform.OS !== 'web' || view == null) return null;
+  return typeof (view as HTMLElement).addEventListener === 'function' ? (view as HTMLElement) : null;
+}
+
 /**
  * A plane's data block: solid backing, callsign line with chips, and the
  * altitude/speed line. Selected labels get a frame; conflict labels invert.
+ * Each line is one text element so the real text flow spaces its words; the
+ * width estimate only sizes the box and places the chips.
  */
 function DataBlock({ label: l, conflict, selected, theme }: { label: DrawnLabel; conflict: boolean; selected: boolean; theme: Theme }) {
   const c = theme.colors;
@@ -495,46 +445,53 @@ function DataBlock({ label: l, conflict, selected, theme }: { label: DrawnLabel;
   const family = { label: f.label.fontFamily, label2: f.label2.fontFamily };
   return (
     <G>
-      {l.leader && (
-        <Line {...l.leader} stroke={conflict ? c.danger : c.textDim} strokeWidth={1} opacity={0.7} />
-      )}
+      {l.leader && <Line {...l.leader} stroke={conflict ? c.danger : c.textDim} strokeWidth={1} opacity={0.7} />}
       <Rect x={x} y={y} width={w} height={h} fill={conflict ? c.danger : c.labelBg} />
       {selected && !conflict && <Rect x={x + 0.5} y={y + 0.5} width={w - 1} height={h - 1} fill="none" stroke={c.planeSelected} strokeWidth={1} />}
       {l.spec.lines.map((line, li) => {
-        const by = y + 2 + l.fonts.label + li * l.fonts.lineHeight - 1;
-        let cx = x + m.pad;
-        const parts = line.map((seg, si) => {
-          const el = (
-            <SvgText
-              key={si}
-              x={cx}
-              y={by}
-              fill={seg.dim ? (conflict ? c.onDanger : c.fixLabel) : base}
-              fontFamily={family[seg.font]}
-              fontSize={l.fonts[seg.font]}
-            >
-              {seg.text}
+        const by = labelBaseline(y, li, l.fonts);
+        const textEnd = x + m.pad + line.reduce((acc, seg) => acc + textWidth(seg.text, l.fonts[seg.font]) + m.segGap, 0);
+        return (
+          <G key={li}>
+            <SvgText x={x + m.pad} y={by}>
+              {line.map((seg, si) => (
+                <TSpan
+                  key={si}
+                  dx={si === 0 ? 0 : m.segGap}
+                  fill={seg.dim ? (conflict ? c.onDanger : c.fixLabel) : base}
+                  fontFamily={family[seg.font]}
+                  fontSize={l.fonts[seg.font]}
+                >
+                  {seg.text}
+                </TSpan>
+              ))}
             </SvgText>
-          );
-          cx += textWidth(seg.text, l.fonts[seg.font]) + m.segGap;
-          return el;
-        });
-        if (li === 0) {
-          for (const [ci, chip] of l.spec.chips.entries()) {
-            const cw = textWidth(chip.text, l.fonts.chip) + m.chipPad;
-            const col = conflict ? c.onDanger : c[chip.kind];
-            parts.push(
-              <G key={`c${ci}`}>
-                <Rect x={cx + 0.5} y={by - l.fonts.chip - 0.5} width={cw} height={l.fonts.chip + 2} fill="none" stroke={col} strokeWidth={1} />
-                <SvgText x={cx + m.chipPad / 2 + 0.5} y={by - 1} fill={col} fontFamily={f.chip.fontFamily} fontSize={l.fonts.chip}>
-                  {chip.text}
-                </SvgText>
-              </G>,
-            );
-            cx += cw + m.chipGap;
-          }
-        }
-        return <G key={li}>{parts}</G>;
+            {li === 0 && <Chips chips={l.spec.chips} x={textEnd} baseline={by} size={l.fonts.chip} conflict={conflict} theme={theme} />}
+          </G>
+        );
+      })}
+    </G>
+  );
+}
+
+function Chips({ chips, x, baseline, size, conflict, theme }: { chips: LabelSpec['chips']; x: number; baseline: number; size: number; conflict: boolean; theme: Theme }) {
+  const m = LABEL_METRICS;
+  let cx = x;
+  return (
+    <G>
+      {chips.map((chip, i) => {
+        const cw = textWidth(chip.text, size) + m.chipPad;
+        const col = conflict ? theme.colors.onDanger : theme.colors[chip.kind];
+        const at = cx;
+        cx += cw + m.chipGap;
+        return (
+          <G key={i}>
+            <Rect x={at + 0.5} y={baseline - size - 0.5} width={cw} height={size + 2} fill="none" stroke={col} strokeWidth={1} />
+            <SvgText x={at + m.chipPad / 2 + 0.5} y={baseline - 1} fill={col} fontFamily={theme.radarFont.chip.fontFamily} fontSize={size}>
+              {chip.text}
+            </SvgText>
+          </G>
+        );
       })}
     </G>
   );

@@ -60,7 +60,8 @@ export function labelSpec(p: Plane, ctx: LabelContext): LabelSpec {
     if (trend) l1.push({ text: trend, font: 'label' });
     return { lines: [l1], chips };
   }
-  const alt = altHundreds(p.altitude) + trend + (trend ? altHundreds(p.target.altitude) : '');
+  // Like the design, the target is shown only when there is one: not the 0 ft glide target on final.
+  const alt = altHundreds(p.altitude) + trend + (trend && p.target.altitude > 0 ? altHundreds(p.target.altitude) : '');
   return {
     lines: [l1, [{ text: alt, font: 'label2' }, { text: String(Math.round(p.speed)), font: 'label2' }]],
     chips,
@@ -94,6 +95,9 @@ export interface LabelFonts {
 }
 /** Gap after each segment, chip padding and the box padding, in pt (from radar.js). */
 export const LABEL_METRICS = { segGap: 4, chipPad: 6, chipGap: 4, pad: 3 };
+
+/** Baseline of line `li` in a box whose top is `top` (2 pt top padding, as in the design). */
+export const labelBaseline = (top: number, li: number, f: { label: number; lineHeight: number }) => top + 2 + f.label + li * f.lineHeight - 1;
 
 /** Width and height of a label's box. */
 export function labelSize(spec: LabelSpec, f: LabelFonts) {
@@ -190,6 +194,43 @@ export function leaderFor(o: { x: number; y: number }, r: Rect) {
   if (d <= LEADER_MIN) return null;
   return { x1: o.x + ((nx - o.x) / d) * LEADER_START, y1: o.y + ((ny - o.y) / d) * LEADER_START, x2: nx, y2: ny };
 }
+
+/** Design: re-run placement at 2 Hz and ease labels 150 ms to their new slot. */
+export const PLACE_EVERY_MS = 500;
+export const EASE_MS = 150;
+
+/** A label's offset from its plane symbol, easing from `from` to `to` since `t0`. */
+export interface Slot {
+  from: Rect;
+  to: Rect;
+  t0: number;
+}
+
+/** Offset to draw now for a slot. */
+export const slotOffset = (s: Slot, now: number) => easeRect(s.from, s.to, (now - s.t0) / EASE_MS);
+
+/**
+ * New slots after a placement run. `placed` are offsets from each symbol. A
+ * plane seen before eases from wherever its label is drawn now; a new plane, or
+ * any plane when `animate` is false (e.g. paused, where nothing re-renders to
+ * finish an ease), snaps. Planes no longer present are dropped.
+ */
+export function nextSlots(prev: ReadonlyMap<string, Slot>, placed: ReadonlyMap<string, Rect>, now: number, animate: boolean) {
+  const out = new Map<string, Slot>();
+  for (const [id, to] of placed) {
+    const old = prev.get(id);
+    out.set(id, { from: old && animate ? slotOffset(old, now) : to, to, t0: now });
+  }
+  return out;
+}
+
+/** Whether placement must re-run: content changed, or it's been PLACE_EVERY_MS since the last run. */
+export const needsPlacement = (lastKey: string, key: string, lastAt: number, now: number) => key !== lastKey || now - lastAt >= PLACE_EVERY_MS;
+
+/** Planes within this margin of the screen get labels (as in the design); others don't. */
+export const LABEL_SCREEN_MARGIN = 30;
+export const onScreen = (x: number, y: number, w: number, h: number) =>
+  x > -LABEL_SCREEN_MARGIN && x < w + LABEL_SCREEN_MARGIN && y > -LABEL_SCREEN_MARGIN && y < h + LABEL_SCREEN_MARGIN;
 
 /**
  * Eases a label from where it was drawn towards its newly chosen slot.

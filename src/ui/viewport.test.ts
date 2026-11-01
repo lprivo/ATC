@@ -84,6 +84,11 @@ describe('viewport', () => {
     expect(v.scale).toBe(d.scale);
     const high = { x: 0, y: 40 };
     expect(toScreen(ensureVisible(d, high, 120, 560), high).y).toBeCloseTo(120);
+    const east = { x: 30, y: 0 }; // 240 pt right of the airport → off the right edge
+    const ve = ensureVisible(d, east, 120, 560);
+    expect(toScreen(ve, east).x).toBeCloseTo(390 - 24);
+    const west = { x: -30, y: 0 };
+    expect(toScreen(ensureVisible(d, west, 120, 560), west).x).toBeCloseTo(24);
     const inside = { x: 0, y: 0 };
     expect(ensureVisible(d, inside, 120, 560)).toBe(d);
   });
@@ -119,7 +124,7 @@ describe('hitTest', () => {
     const a = toScreen(vp, { x: 0, y: 0 });
     const b = toScreen(vp, { x: 6, y: 4 });
     expect(Math.hypot(b.x - x, b.y - y)).toBeLessThan(Math.hypot(a.x - x, a.y - y)); // b's symbol is closer
-    expect(hitTest(planes, vp, new Map([['a', label]]), x, y, 24)).toBe('a');
+    expect(hitTest(planes, vp, new Map([['a', { rect: label }]]), x, y, 24)).toBe('a');
     expect(hitTest(planes, vp, none, x, y, 24)).not.toBe('a');
   });
 });

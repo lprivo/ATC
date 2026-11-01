@@ -3,22 +3,22 @@ import type { Sim } from '../engine/sim';
 import type { Theme } from '../theme/themes';
 import {
   compactLabels,
-  easeRect,
   labelSize,
   labelSpec,
   leaderFor,
+  needsPlacement,
+  nextSlots,
+  onScreen,
   placeLabels,
+  slotOffset,
   type LabelMode,
   type LabelSpec,
   type PlacedLabel,
   type Rect,
+  type Slot,
 } from './labels';
 import { pairTag } from './radarGeometry';
 import { toScreen, type Viewport } from './viewport';
-
-/** Design: re-run placement at 2 Hz and ease labels 150 ms to their new slot. */
-const PLACE_EVERY_MS = 500;
-const EASE_MS = 150;
 
 export interface DrawnLabel extends PlacedLabel {
   spec: LabelSpec;
@@ -26,65 +26,60 @@ export interface DrawnLabel extends PlacedLabel {
   fonts: { label: number; label2: number; chip: number; lineHeight: number };
 }
 
-interface Slot {
-  /** Box offset from the symbol, eased from `from` to `to` starting at `t0`. */
-  from: Rect;
-  to: Rect;
-  t0: number;
-}
-
 /**
- * Data blocks for every plane: content each frame, placement at 2 Hz (and
- * immediately when the selection, plane set or camera changes), eased 150 ms
- * between slots. Offsets are kept relative to the symbol so labels travel with
- * their plane between placements.
+ * Data blocks for on-screen planes: content every frame, placement at 2 Hz
+ * (and immediately when the selection, the plane set or label content changes),
+ * eased 150 ms between slots. Slots are offsets from the symbol, so labels
+ * travel with their plane and with the camera between placements.
  */
-export function useLabelLayout(sim: Sim, vp: Viewport, theme: Theme, selectedId: string | null, mode: LabelMode, labelScale: number) {
-  const state = useRef({ at: 0, key: '', slots: new Map<string, Slot>() });
+export function useLabelLayout(
+  sim: Sim,
+  vp: Viewport,
+  theme: Theme,
+  opts: { selectedId: string | null; mode: LabelMode; labelScale: number; animate: boolean },
+) {
+  const state = useRef({ at: 0, key: '', slots: new Map<string, Slot>() as ReadonlyMap<string, Slot> });
   const now = Date.now();
   const f = theme.radarFont;
   const fonts = {
-    label: f.label.fontSize * labelScale,
-    label2: f.label2.fontSize * labelScale,
-    chip: f.chip.fontSize * labelScale,
-    lineHeight: f.labelLineHeight * labelScale,
+    label: f.label.fontSize * opts.labelScale,
+    label2: f.label2.fontSize * opts.labelScale,
+    chip: f.chip.fontSize * opts.labelScale,
+    lineHeight: f.labelLineHeight * opts.labelScale,
   };
-  const compact = compactLabels(mode, sim.planes.length);
-  const items = sim.planes.map((p) => {
-    const selected = p.id === selectedId;
-    const spec = labelSpec(p, { selected, compact, time: sim.time });
-    const size = labelSize(spec, fonts);
+  const compact = compactLabels(opts.mode, sim.planes.length);
+  const items = sim.planes.flatMap((p) => {
     const s = toScreen(vp, p.pos);
-    return { p, spec, s, size, rank: (selected ? 4 : 0) + (p.conflict ? 2 : 0) };
+    if (!onScreen(s.x, s.y, vp.w, vp.h)) return [];
+    const selected = p.id === opts.selectedId;
+    const spec = labelSpec(p, { selected, compact, time: sim.time });
+    return [{ p, spec, s, size: labelSize(spec, fonts), rank: (selected ? 4 : 0) + (p.conflict ? 2 : 0) }];
   });
 
   const st = state.current;
-  const key = [selectedId, mode, labelScale, vp.w, vp.h, vp.ox.toFixed(0), vp.oy.toFixed(0), vp.scale, items.map((i) => `${i.p.id}:${i.spec.lines.length}:${i.p.conflict ? 1 : 0}`).join(',')].join('|');
-  if (key !== st.key || now - st.at >= PLACE_EVERY_MS) {
-    // Fields 3-7 of the key are the camera.
-    const instant = st.key.split('|').slice(3, 8).join('|') !== key.split('|').slice(3, 8).join('|');
+  // Content that should re-place labels at once. The camera is deliberately not
+  // part of it: offsets are in screen points, so labels follow pans and zooms.
+  const key = [opts.selectedId, opts.mode, opts.labelScale, items.map((i) => `${i.p.id}:${i.size.w.toFixed(0)}x${i.size.h}`).join(',')].join('|');
+  if (needsPlacement(st.key, key, st.at, now)) {
     const obstacles = sim.conflicts.flatMap((cf) => {
       const a = sim.plane(cf.a);
       const b = sim.plane(cf.b);
       if (!a || !b) return [];
-      const t = pairTag(vp, a.pos, b.pos, cf.distNm, cf.altFt);
-      const w = t.text.length * f.chip.fontSize * 0.5 + 12;
-      return [{ x: t.x - w / 2, y: t.y - 9, w, h: 18 }];
+      const r = pairTag(vp, a.pos, b.pos, cf.distNm, cf.altFt, f.chip.fontSize).rect;
+      // A little clearance around the chip.
+      return [{ x: r.x - 2, y: r.y - 2, w: r.w + 4, h: r.h + 4 }];
     });
     const placed = placeLabels(
       items.map((i) => ({ id: i.p.id, x: i.s.x, y: i.s.y, heading: i.p.heading, w: i.size.w, h: i.size.h, rank: i.rank })),
       { near: theme.size.labelOffsetNear, far: theme.size.labelOffsetFar, safe: { x: 0, y: 0, w: vp.w, h: vp.h }, obstacles },
     );
-    const next = new Map<string, Slot>();
+    const byId = new Map(items.map((i) => [i.p.id, i.s]));
+    const offsets = new Map<string, Rect>();
     for (const pl of placed) {
-      const it = items.find((i) => i.p.id === pl.id)!;
-      const to = { x: pl.rect.x - it.s.x, y: pl.rect.y - it.s.y, w: pl.rect.w, h: pl.rect.h };
-      const prev = st.slots.get(pl.id);
-      // New planes, and camera moves (which shift every symbol at once), snap; ordinary re-slots ease.
-      const from = prev && !instant ? easeRect(prev.from, prev.to, (now - prev.t0) / EASE_MS) : to;
-      next.set(pl.id, { from, to, t0: now });
+      const s = byId.get(pl.id)!;
+      offsets.set(pl.id, { x: pl.rect.x - s.x, y: pl.rect.y - s.y, w: pl.rect.w, h: pl.rect.h });
     }
-    st.slots = next;
+    st.slots = nextSlots(st.slots, offsets, now, opts.animate);
     st.at = now;
     st.key = key;
   }
@@ -93,8 +88,7 @@ export function useLabelLayout(sim: Sim, vp: Viewport, theme: Theme, selectedId:
   for (const it of items) {
     const slot = st.slots.get(it.p.id);
     if (!slot) continue;
-    const off = easeRect(slot.from, slot.to, (now - slot.t0) / EASE_MS);
-    // Content can change width between placements (e.g. a new chip): size the box to the content now.
+    const off = slotOffset(slot, now);
     const rect = { x: it.s.x + off.x, y: it.s.y + off.y, w: it.size.w, h: it.size.h };
     out.set(it.p.id, { id: it.p.id, rect, leader: leaderFor(it.s, rect), spec: it.spec, fonts });
   }

@@ -90,7 +90,7 @@ export const polylinePoints = (v: Viewport, list: Vec2[]) =>
 export function hitTest(
   planes: readonly Plane[],
   v: Viewport,
-  labels: ReadonlyMap<string, Rect>,
+  labels: ReadonlyMap<string, { rect: Rect }>,
   x: number,
   y: number,
   radiusPx: number,
@@ -98,7 +98,7 @@ export function hitTest(
   let best: string | null = null;
   let bestScore = radiusPx;
   for (const p of planes) {
-    const r = labels.get(p.id);
+    const r = labels.get(p.id)?.rect;
     const onLabel = r != null && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
     const s = toScreen(v, p.pos);
     const score = onLabel ? 0 : Math.hypot(s.x - x, s.y - y);

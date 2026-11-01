@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import type { Plane, RunwayEnd } from '../engine/types';
-import { compactLabels, easeRect, labelSize, labelSpec, overlap, placeLabels, textWidth, type LabelItem } from './labels';
+import {
+  compactLabels,
+  EASE_MS,
+  easeRect,
+  labelSize,
+  labelSpec,
+  needsPlacement,
+  nextSlots,
+  onScreen,
+  overlap,
+  PLACE_EVERY_MS,
+  placeLabels,
+  slotOffset,
+  textWidth,
+  type LabelItem,
+} from './labels';
 
 const plane = (over: Partial<Plane> = {}): Plane =>
   ({
@@ -30,6 +45,11 @@ describe('label content', () => {
   it('descending shows the trend arrow and the target', () => {
     const s = labelSpec(plane({ target: { heading: 0, altitude: 4000, speed: 250 } }), ctx);
     expect(texts(s.lines[1])).toEqual(['070↓040', '250']);
+  });
+
+  it('no target is shown for the 0 ft glide target on final', () => {
+    const s = labelSpec(plane({ altitude: 1000, target: { heading: 0, altitude: 0, speed: 150 } }), ctx);
+    expect(texts(s.lines[1])).toEqual(['010↓', '250']);
   });
 
   it('selected and conflict labels add the dim aircraft type; chips for conflict, runway and GA', () => {
@@ -128,6 +148,9 @@ describe('label placement', () => {
     const b = item('b', 236, 400, { rank: 4 });
     const out = placeLabels([a, b], { near: 12, far: 30, safe });
     expect(out[0].id).toBe('b');
+    // ...and b takes the preferred north-east near slot.
+    expect(out[0].rect.x).toBeGreaterThan(236);
+    expect(out[0].rect.y + out[0].rect.h).toBeLessThan(400);
     const obstacle = { x: 210, y: 340, w: 80, h: 50 }; // covers the NE slot
     const [p] = placeLabels([item('c', 200, 400)], { near: 12, far: 30, safe, obstacles: [obstacle] });
     expect(overlap(p.rect, obstacle)).toBe(0);
@@ -140,7 +163,12 @@ describe('label placement', () => {
     );
     const out = placeLabels([item('a', 200, 400, { rank: 9 }), ...ring], { near: 12, far: 30, safe });
     const a = out.find((o) => o.id === 'a')!;
-    if (a.leader) expect(Math.hypot(a.leader.x1 - 200, a.leader.y1 - 400)).toBeCloseTo(8);
+    expect(a.leader).not.toBeNull();
+    expect(Math.hypot(a.leader!.x1 - 200, a.leader!.y1 - 400)).toBeCloseTo(8);
+    // The box sits on the far ring: its nearest point is ~30 pt from the symbol.
+    const nx = Math.max(a.rect.x, Math.min(200, a.rect.x + a.rect.w));
+    const ny = Math.max(a.rect.y, Math.min(400, a.rect.y + a.rect.h));
+    expect(Math.hypot(nx - 200, ny - 400)).toBeGreaterThan(20);
   });
 
   it('easeRect moves from the old slot to the new one', () => {
@@ -149,5 +177,38 @@ describe('label placement', () => {
     expect(easeRect(from, to, 0)).toMatchObject({ x: 0, y: 0, w: 12 });
     expect(easeRect(from, to, 1)).toMatchObject({ x: 100, y: 50 });
     expect(easeRect(from, to, 0.5).x).toBeGreaterThan(50); // ease-out
+  });
+});
+
+describe('label timing', () => {
+  const r = (x: number) => ({ x, y: 0, w: 10, h: 10 });
+
+  it('re-places at 2 Hz, or at once when the content changes', () => {
+    expect(needsPlacement('k', 'k', 1000, 1000 + PLACE_EVERY_MS - 1)).toBe(false);
+    expect(needsPlacement('k', 'k', 1000, 1000 + PLACE_EVERY_MS)).toBe(true);
+    expect(needsPlacement('k', 'k2', 1000, 1001)).toBe(true);
+  });
+
+  it('a moved label eases from where it is drawn; new planes snap; gone planes are dropped', () => {
+    const prev = nextSlots(new Map(), new Map([['a', r(0)], ['gone', r(5)]]), 0, true);
+    expect(slotOffset(prev.get('a')!, 0).x).toBe(0); // new: snaps
+    const next = nextSlots(prev, new Map([['a', r(100)], ['b', r(50)]]), 1000, true);
+    expect(next.has('gone')).toBe(false);
+    expect(slotOffset(next.get('b')!, 1000).x).toBe(50);
+    expect(slotOffset(next.get('a')!, 1000).x).toBe(0);
+    expect(slotOffset(next.get('a')!, 1000 + EASE_MS / 2).x).toBeGreaterThan(50);
+    expect(slotOffset(next.get('a')!, 1000 + EASE_MS).x).toBe(100);
+  });
+
+  it('when not animating (paused), moves snap so no label is left mid-ease', () => {
+    const prev = nextSlots(new Map(), new Map([['a', r(0)]]), 0, true);
+    const next = nextSlots(prev, new Map([['a', r(100)]]), 1000, false);
+    expect(slotOffset(next.get('a')!, 1000).x).toBe(100);
+  });
+
+  it('only planes on or near the screen get labels', () => {
+    expect(onScreen(-29, 10, 390, 700)).toBe(true);
+    expect(onScreen(-31, 10, 390, 700)).toBe(false);
+    expect(onScreen(200, 731, 390, 700)).toBe(false);
   });
 });

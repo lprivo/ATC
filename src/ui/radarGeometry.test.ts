@@ -145,5 +145,11 @@ describe('radar geometry', () => {
     expect(pairTag(vp(8), { x: 0, y: 0 }, { x: 2.7, y: 0 }, 2.7, 420).text).toBe('2.7 NM · 400 FT');
     // Rounds down: a conflict never reads as the 3.0 nm / 1,000 ft minimum.
     expect(pairTag(vp(8), { x: 0, y: 0 }, { x: 1, y: 0 }, 2.97, 960).text).toBe('2.9 NM · 900 FT');
+    // Its chip is centred under the pair's midpoint, 26 pt down, and sized to the text.
+    const t = pairTag(vp(8), { x: 0, y: 0 }, { x: 2, y: 0 }, 2, 0, 10);
+    expect(t.rect.x + t.rect.w / 2).toBeCloseTo(208);
+    expect(t.rect.y).toBeCloseTo(200 + 26 - 7);
+    expect(t.rect.h).toBe(14);
+    expect(t.rect.w).toBeGreaterThan(40);
   });
 });

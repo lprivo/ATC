@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDoubleTap, isTap, pinchOf, wheelZoomFactor } from './gestures';
+import { isDoubleTap, isTap, pinchOf, wheelDeltaPx, wheelZoomFactor } from './gestures';
 
 describe('radar gestures', () => {
   it('a tap is under 6 pt of movement and under 300 ms', () => {
@@ -14,6 +14,9 @@ describe('radar gestures', () => {
     expect(isDoubleTap(prev, 1250, { x: 110, y: 105 })).toBe(true);
     expect(isDoubleTap(prev, 1400, { x: 100, y: 100 })).toBe(false);
     expect(isDoubleTap(prev, 1100, { x: 200, y: 100 })).toBe(false);
+    // Boundaries are inclusive: 300 ms and 30 pt still count.
+    expect(isDoubleTap(prev, 1300, { x: 130, y: 100 })).toBe(true);
+    expect(isDoubleTap(prev, 1301, { x: 100, y: 100 })).toBe(false);
   });
 
   it('pinch distance and midpoint', () => {
@@ -24,5 +27,11 @@ describe('radar gestures', () => {
     expect(wheelZoomFactor(100)).toBeLessThan(1);
     expect(wheelZoomFactor(-100)).toBeGreaterThan(1);
     expect(wheelZoomFactor(0)).toBe(1);
+  });
+
+  it('wheel deltas in lines or pages are converted to pixels', () => {
+    expect(wheelDeltaPx({ deltaY: 3, deltaMode: 1 })).toBe(48);
+    expect(wheelDeltaPx({ deltaY: 1, deltaMode: 2 })).toBe(800);
+    expect(wheelDeltaPx({ deltaY: 53, deltaMode: 0 })).toBe(53);
   });
 });

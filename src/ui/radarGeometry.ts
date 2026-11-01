@@ -3,6 +3,7 @@
 // can be unit tested. All results are in screen points; `scale` is pt per nm.
 import { add, dirOf } from '../engine/math';
 import type { Airport, Plane, RunwayEnd, Vec2 } from '../engine/types';
+import { textWidth } from './labels';
 import { toScreen, type Viewport } from './viewport';
 
 export interface ScreenPt {
@@ -143,14 +144,16 @@ export function chevron(a: ScreenPt, b: ScreenPt, size = 6) {
  * "2.7 NM · 400 FT". Values round down, so a conflict never reads as the
  * 3.0 NM / 1000 FT minimum it is breaking.
  */
-export function pairTag(vp: Viewport, a: Vec2, b: Vec2, distNm: number, altFt: number) {
+export function pairTag(vp: Viewport, a: Vec2, b: Vec2, distNm: number, altFt: number, fontSize = 10) {
   const sa = toScreen(vp, a);
   const sb = toScreen(vp, b);
-  return {
-    x: (sa.x + sb.x) / 2,
-    y: (sa.y + sb.y) / 2 + 26,
-    text: `${(Math.floor(distNm * 10) / 10).toFixed(1)} NM · ${Math.floor(altFt / 100) * 100} FT`,
-  };
+  const x = (sa.x + sb.x) / 2;
+  const y = (sa.y + sb.y) / 2 + 26;
+  const text = `${(Math.floor(distNm * 10) / 10).toFixed(1)} NM · ${Math.floor(altFt / 100) * 100} FT`;
+  const w = textWidth(text, fontSize) + 8;
+  /** The filled chip behind the text (14 pt tall, centred on x, y). */
+  const rect = { x: x - w / 2, y: y - 7, w, h: 14 };
+  return { x, y, text, rect };
 }
 
 /** Fix glyph: 9 pt outline triangle centred on the fix. */
