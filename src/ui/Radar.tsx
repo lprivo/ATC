@@ -5,7 +5,8 @@ import type { Sim } from '../engine/sim';
 import type { Airport, Conflict, Plane, Vec2 } from '../engine/types';
 import { useTheme } from '../theme/ThemeContext';
 import type { Theme } from '../theme/themes';
-import { altHundreds } from './format';
+import { LABEL_METRICS, textWidth, type LabelMode, type Rect as LabelRect } from './labels';
+import { useLabelLayout, type DrawnLabel } from './useLabelLayout';
 import {
   bracketPath,
   centreline,
@@ -28,12 +29,10 @@ import {
   panBy,
   polylinePoints,
   resizeViewport,
-  tagLayout,
   toggleRunwayZoom,
   toScreen,
   toWorld,
   zoomAt,
-  type TagLayout,
   type Viewport,
 } from './viewport';
 
@@ -48,6 +47,10 @@ const RECENTRE_SIZE = 44;
 interface Props {
   sim: Sim;
   selectedId: string | null;
+  /** Plane labels setting (Auto | Full | Min); default Auto. */
+  labelMode?: LabelMode;
+  /** Label size setting (theme LABEL_SCALE); default 1. */
+  labelScale?: number;
   onSelect: (id: string | null) => void;
   /** Called after the radar changes the sim (a new route), so the screen can redraw while paused. */
   onCommand: () => void;
@@ -55,14 +58,19 @@ interface Props {
 
 type Mode = 'none' | 'plane' | 'pan' | 'pinch';
 
-export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
+export function Radar({ sim, selectedId, onSelect, onCommand, labelMode = 'auto', labelScale = 1 }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [vp, setVp] = useState<Viewport>(() => defaultViewport(0, 0));
   // Gesture handlers read the camera through a ref: touch events can arrive faster than React renders.
   const vpRef = useRef(vp);
   vpRef.current = vp;
-  const tag = useMemo(() => tagLayout(theme.radarFont.label.fontSize), [theme.radarFont.label.fontSize]);
+
+  // Data blocks: content every frame, placement at 2 Hz. Touch handlers read the
+  // last drawn rectangles so a tap on a label selects its plane.
+  const labels = useLabelLayout(sim, vp, theme, selectedId, labelMode, labelScale);
+  const labelRects = useRef(new Map<string, LabelRect>());
+  labelRects.current = new Map([...labels].map(([id, l]) => [id, l.rect]));
 
   // ---- gestures --------------------------------------------------------
   // Gesture state lives in a ref: reading anything from state on release could be stale.
@@ -132,7 +140,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
     clearTimer();
     const touches = touchesOf(e);
     if (touches.length >= 2) return beginPinch(touches[0], touches[1]);
-    st.planeId = hitTest(sim.planes, vpRef.current, tag, p.x, p.y, theme.size.hitRadius);
+    st.planeId = hitTest(sim.planes, vpRef.current, labelRects.current, p.x, p.y, theme.size.hitRadius);
     st.mode = st.planeId ? 'plane' : 'pan';
     if (st.planeId) st.timer = setTimeout(beginDraw, HOLD_MS);
   };
@@ -270,8 +278,12 @@ export function Radar({ sim, selectedId, onSelect, onCommand }: Props) {
               <PairLine key={`pl-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
             ))}
             {sim.planes.map((p) => (
-              <PlaneGlyph key={p.id} plane={p} vp={vp} tag={tag} theme={theme} selected={p.id === selectedId} />
+              <PlaneGlyph key={p.id} plane={p} vp={vp} theme={theme} selected={p.id === selectedId} />
             ))}
+            {sim.planes.map((p) => {
+              const l = labels.get(p.id);
+              return l ? <DataBlock key={`l-${p.id}`} label={l} conflict={p.conflict} selected={p.id === selectedId} theme={theme} /> : null;
+            })}
             {sim.conflicts.map((cf) => (
               <PairTag key={`pt-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
             ))}
@@ -430,21 +442,13 @@ function PairTag({ sim, conflict, vp, theme }: { sim: Sim; conflict: Conflict; v
   );
 }
 
-function PlaneGlyph({ plane: p, vp, tag, theme, selected }: { plane: Plane; vp: Viewport; tag: TagLayout; theme: Theme; selected: boolean }) {
+function PlaneGlyph({ plane: p, vp, theme, selected }: { plane: Plane; vp: Viewport; theme: Theme; selected: boolean }) {
   const c = theme.colors;
   const z = theme.size;
   const s = toScreen(vp, p.pos);
   const color = p.conflict ? c.planeConflict : selected ? c.planeSelected : c.plane;
   const hv = headingVector(p, vp, z.headingVectorMinutes, z.headingVectorMin);
   const half = z.planeSymbol / 2;
-
-  const altDiff = p.target.altitude - p.altitude;
-  const arrow = altDiff > 50 ? '↑' : altDiff < -50 ? '↓' : ' ';
-  const line2 = `${altHundreds(p.altitude)}${arrow} ${Math.round(p.speed)}${p.clearedRunway ? ` ${p.clearedRunway.id}` : ''}`;
-  const tx = s.x + tag.offsetX;
-  const ty = s.y + tag.offsetY;
-  const f1 = theme.radarFont.label;
-  const f2 = theme.radarFont.label2;
 
   return (
     <G>
@@ -474,14 +478,64 @@ function PlaneGlyph({ plane: p, vp, tag, theme, selected }: { plane: Plane; vp: 
           {p.clearedRunway && <Rect x={s.x - 1.75} y={s.y - 1.75} width={3.5} height={3.5} fill={c.routeCleared} />}
         </G>
       )}
-      {/* Interim data block; issue #7 replaces it with the auto-placed label. */}
-      <Rect x={tx - 3} y={ty - 2} width={tag.width} height={tag.height} fill={p.conflict ? c.danger : c.labelBg} stroke={selected && !p.conflict ? c.planeSelected : 'none'} strokeWidth={1} />
-      <SvgText x={tx} y={ty + tag.line1} fill={p.conflict ? c.onDanger : color} fontFamily={f1.fontFamily} fontSize={f1.fontSize}>
-        {p.callsign}
-      </SvgText>
-      <SvgText x={tx} y={ty + tag.line2} fill={p.conflict ? c.onDanger : color} fontFamily={f2.fontFamily} fontSize={f2.fontSize}>
-        {line2}
-      </SvgText>
+    </G>
+  );
+}
+
+/**
+ * A plane's data block: solid backing, callsign line with chips, and the
+ * altitude/speed line. Selected labels get a frame; conflict labels invert.
+ */
+function DataBlock({ label: l, conflict, selected, theme }: { label: DrawnLabel; conflict: boolean; selected: boolean; theme: Theme }) {
+  const c = theme.colors;
+  const f = theme.radarFont;
+  const m = LABEL_METRICS;
+  const { x, y, w, h } = l.rect;
+  const base = conflict ? c.onDanger : selected ? c.planeSelected : c.plane;
+  const family = { label: f.label.fontFamily, label2: f.label2.fontFamily };
+  return (
+    <G>
+      {l.leader && (
+        <Line {...l.leader} stroke={conflict ? c.danger : c.textDim} strokeWidth={1} opacity={0.7} />
+      )}
+      <Rect x={x} y={y} width={w} height={h} fill={conflict ? c.danger : c.labelBg} />
+      {selected && !conflict && <Rect x={x + 0.5} y={y + 0.5} width={w - 1} height={h - 1} fill="none" stroke={c.planeSelected} strokeWidth={1} />}
+      {l.spec.lines.map((line, li) => {
+        const by = y + 2 + l.fonts.label + li * l.fonts.lineHeight - 1;
+        let cx = x + m.pad;
+        const parts = line.map((seg, si) => {
+          const el = (
+            <SvgText
+              key={si}
+              x={cx}
+              y={by}
+              fill={seg.dim ? (conflict ? c.onDanger : c.fixLabel) : base}
+              fontFamily={family[seg.font]}
+              fontSize={l.fonts[seg.font]}
+            >
+              {seg.text}
+            </SvgText>
+          );
+          cx += textWidth(seg.text, l.fonts[seg.font]) + m.segGap;
+          return el;
+        });
+        if (li === 0) {
+          for (const [ci, chip] of l.spec.chips.entries()) {
+            const cw = textWidth(chip.text, l.fonts.chip) + m.chipPad;
+            const col = conflict ? c.onDanger : c[chip.kind];
+            parts.push(
+              <G key={`c${ci}`}>
+                <Rect x={cx + 0.5} y={by - l.fonts.chip - 0.5} width={cw} height={l.fonts.chip + 2} fill="none" stroke={col} strokeWidth={1} />
+                <SvgText x={cx + m.chipPad / 2 + 0.5} y={by - 1} fill={col} fontFamily={f.chip.fontFamily} fontSize={l.fonts.chip}>
+                  {chip.text}
+                </SvgText>
+              </G>,
+            );
+            cx += cw + m.chipGap;
+          }
+        }
+        return <G key={li}>{parts}</G>;
+      })}
     </G>
   );
 }

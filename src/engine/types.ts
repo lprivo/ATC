@@ -80,6 +80,8 @@ export interface Plane {
   clearedRunway: RunwayEnd | null;
   /** Altitude/speed targets from before the approach, restored if the clearance is cancelled. */
   approachFrom: { altitude: number; speed: number } | null;
+  /** Sim time of the plane's last go-around, or null if it never went around. */
+  goAroundAt: number | null;
   status: PlaneStatus;
   conflict: boolean;
   trail: Vec2[];

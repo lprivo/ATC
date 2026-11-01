@@ -272,6 +272,7 @@ export class Sim {
         route: [],
         clearedRunway: null,
         approachFrom: null,
+        goAroundAt: null,
         status: 'active',
         conflict: false,
         trail: [],
@@ -337,6 +338,7 @@ export class Sim {
     p.target.heading = rwy ? rwy.heading : p.heading;
     p.target.altitude = RULES.goAroundAltitude;
     p.target.speed = PERF.goAroundSpeed;
+    p.goAroundAt = this.time;
     this.stats.goArounds++;
     this.log(`${p.callsign} going around (${reason})`);
   }

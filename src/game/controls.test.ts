@@ -7,7 +7,7 @@ function plane(over: Partial<Plane> = {}): Plane {
     id: '1', callsign: 'T1', aircraftType: 'A320', kind: 'arrival',
     pos: { x: 0, y: 0 }, heading: 0, altitude: 5000, speed: 250,
     target: { heading: 0, altitude: 5000, speed: 250 },
-    route: [], clearedRunway: null, approachFrom: null, status: 'active', conflict: false, trail: [],
+    route: [], clearedRunway: null, approachFrom: null, goAroundAt: null, status: 'active', conflict: false, trail: [],
     ...over,
   };
 }
