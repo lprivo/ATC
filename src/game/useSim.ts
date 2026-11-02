@@ -11,8 +11,14 @@ declare global {
   var __sim: Sim | undefined;
 }
 
-function newSim(airport: Airport, seed = Math.floor(Math.random() * 1e9)) {
-  const traffic = generateRandomTraffic(airport, { seed, durationSec: 3600, meanIntervalSec: 75 });
+/** Traffic for a session: its traffic level over its length (two hours for endless). */
+export interface SimOptions {
+  meanIntervalSec: number;
+  durationSec: number;
+}
+
+function newSim(airport: Airport, opts: SimOptions, seed = Math.floor(Math.random() * 1e9)) {
+  const traffic = generateRandomTraffic(airport, { seed, durationSec: opts.durationSec, meanIntervalSec: opts.meanIntervalSec });
   return new Sim(airport, traffic);
 }
 
@@ -22,8 +28,8 @@ function newSim(airport: Airport, seed = Math.floor(Math.random() * 1e9)) {
  * While paused nothing re-renders on its own, so callers that change the sim
  * (dials, drawn routes) call `refresh()` afterwards.
  */
-export function useSim(airport: Airport) {
-  const [sim, setSim] = useState(() => newSim(airport));
+export function useSim(airport: Airport, opts: SimOptions) {
+  const [sim, setSim] = useState(() => newSim(airport, opts));
   const [, setFrame] = useState(0);
   const [paused, setPaused] = useState(false);
   const [timeScale, setTimeScale] = useState(1);
@@ -62,8 +68,10 @@ export function useSim(airport: Airport) {
   }, [sim]);
 
   const restart = useCallback(() => {
-    setSim(newSim(airport));
+    setSim(newSim(airport, opts));
     setPaused(false);
+    // opts is read when restarting; its fields don't change during a session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [airport]);
 
   return { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh };

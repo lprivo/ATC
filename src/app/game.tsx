@@ -1,7 +1,11 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { GameScreen } from '../game/GameScreen';
+import { parseSession } from '../game/session';
 
+/** A session: /game?icao=LHBP&traffic=steady&length=30 (missing or unknown values fall back to the free session). */
 export default function Game() {
   const router = useRouter();
-  return <GameScreen onQuit={() => (router.canGoBack() ? router.back() : router.replace('/menu'))} />;
+  const params = useLocalSearchParams<{ icao?: string; traffic?: string; length?: string }>();
+  const session = parseSession(params);
+  return <GameScreen session={session} onQuit={() => router.dismissTo('/menu')} />;
 }

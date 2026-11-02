@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { EntitlementProvider } from '../game/EntitlementContext';
 import { useAppFonts } from '../theme/fonts';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { themes } from '../theme/themes';
@@ -24,7 +25,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ThemedStack />
+        <EntitlementProvider>
+          <ThemedStack />
+        </EntitlementProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

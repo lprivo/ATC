@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { airportByIcao } from '../engine/airports';
 import { LHBP } from '../engine/airports/lhbp';
+import { FREE_SESSION, lengthSec, meanIntervalSec, trafficHorizonSec, type Session } from './session';
 import { useTheme } from '../theme/ThemeContext';
 import { ConfirmCard } from '../ui/ConfirmCard';
 import { ConflictBanner } from '../ui/ConflictBanner';
@@ -17,10 +19,11 @@ import { useHud } from './useHud';
 import { usePendingLanding } from './usePendingLanding';
 import { useSim } from './useSim';
 
-export function GameScreen({ onQuit }: { onQuit?: () => void } = {}) {
+export function GameScreen({ session = FREE_SESSION, onQuit }: { session?: Session; onQuit?: () => void } = {}) {
+  const airport = airportByIcao(session.icao) ?? LHBP;
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh } = useSim(LHBP);
+  const { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh } = useSim(airport, { meanIntervalSec: meanIntervalSec(session.traffic), durationSec: trafficHorizonSec(session.length) });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh });
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
@@ -115,7 +118,7 @@ export function GameScreen({ onQuit }: { onQuit?: () => void } = {}) {
         />
       </View>
       {paused && (
-        <PauseMenu sim={sim} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} onQuit={onQuit} />
+        <PauseMenu sim={sim} sessionSec={lengthSec(session.length) ?? undefined} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} onQuit={onQuit} />
       )}
     </View>
   );

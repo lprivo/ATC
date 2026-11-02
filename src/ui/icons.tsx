@@ -66,3 +66,23 @@ export const ChevronLeft = chevron('m15 18-6-6 6-6');
 export const ChevronRight = chevron('m9 18 6-6-6-6');
 export const ChevronDown = chevron('m6 9 6 6 6-6');
 export const ChevronUp = chevron('m18 15-6-6-6 6');
+
+export const LockIcon = ({ color, size = 16, strokeWidth = 1.5 }: IconProps) => (
+  <Svg {...frame(size)}>
+    <Rect x={4} y={11} width={16} height={10} stroke={color} strokeWidth={strokeWidth} fill="none" />
+    <Path d="M8 11V7a4 4 0 0 1 8 0v4" stroke={color} strokeWidth={strokeWidth} fill="none" />
+  </Svg>
+);
+
+export const SearchIcon = ({ color, size = 18, strokeWidth = 1.5 }: IconProps) => (
+  <Svg {...frame(size)}>
+    <Circle cx={11} cy={11} r={7} stroke={color} strokeWidth={strokeWidth} fill="none" />
+    <Path d="m20 20-3.5-3.5" stroke={color} strokeWidth={strokeWidth} />
+  </Svg>
+);
+
+export const BackIcon = ({ color, size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <Svg {...frame(size)}>
+    <Path d="m15 18-6-6 6-6" stroke={color} strokeWidth={strokeWidth} fill="none" />
+  </Svg>
+);
