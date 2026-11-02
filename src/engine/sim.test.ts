@@ -372,6 +372,20 @@ describe('separation and sector', () => {
     expect(sim.stats.separationViolations).toBe(1);
   });
 
+  it('can run without separation checks (scenery, e.g. the menu demo)', () => {
+    const entries = [
+      { name: 'A', pos: { x: -5, y: 0 }, heading: 90 },
+      { name: 'B', pos: { x: 5, y: 0 }, heading: 270 },
+    ];
+    const sim = new Sim(airportWith(entries), [flight('A'), flight('B')], { separation: false });
+    sim.step(0.01);
+    sim.step(60);
+    sim.step(5);
+    expect(sim.planes.some((p) => p.conflict)).toBe(false);
+    expect(sim.conflicts).toEqual([]);
+    expect(sim.stats.separationViolations).toBe(0);
+  });
+
   it('lists each pair in conflict with its lateral and vertical separation', () => {
     const sim = simWith(
       [

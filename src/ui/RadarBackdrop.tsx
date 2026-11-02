@@ -1,10 +1,11 @@
 import { useIsFocused } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Image, Platform, StyleSheet, View, type ImageSourcePropType, type LayoutChangeEvent } from 'react-native';
+import { Animated, Easing, Image, Platform, StyleSheet, View, type ImageSourcePropType, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { splitAlpha } from '../theme/color';
 import { useTheme } from '../theme/ThemeContext';
 import { RANGE_RINGS_NM } from './radarGeometry';
+import { useReduceMotion } from './useReduceMotion';
 
 /** The fade, baked by scripts/make-sweep.mjs (white, alpha ramp, leading edge north); tinted with the theme's `sweep` colour. */
 const SWEEP_IMAGE: ImageSourcePropType = require('../../assets/sweep.png');
@@ -20,21 +21,6 @@ const NATIVE_DRIVER = Platform.OS !== 'web';
 /** With Reduce Motion on, the sweep stands still at this angle (an eighth of a turn, 45°). */
 const STILL_PHASE = 0.125;
 
-/** Whether the system's Reduce Motion setting is on, kept up to date. */
-function useReduceMotion() {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    let live = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((v) => live && setReduce(v), () => {});
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
-    return () => {
-      live = false;
-      sub.remove();
-    };
-  }, []);
-  return reduce;
-}
-
 /**
  * Radar backdrop for the splash and menu: range rings and a rotating sweep
  * only, no airport (design S1: "Do not show an airport here"). The sweep is
@@ -43,9 +29,10 @@ function useReduceMotion() {
  * the radar, so it reaches every corner at every angle.
  *
  * It only turns while its screen is focused (the menu stays mounted under the
- * game), and stands still when Reduce Motion is on.
+ * game), and stands still when Reduce Motion is on. `rings={false}` when
+ * something else under it already draws them (the menu's demo radar).
  */
-export function RadarBackdrop({ centreY = 0.5, scale = 8, opacity = 0.85 }: { centreY?: number; scale?: number; opacity?: number }) {
+export function RadarBackdrop({ centreY = 0.5, scale = 8, opacity = 0.85, rings = true }: { centreY?: number; scale?: number; opacity?: number; rings?: boolean }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -74,11 +61,13 @@ export function RadarBackdrop({ centreY = 0.5, scale = 8, opacity = 0.85 }: { ce
     <View style={[StyleSheet.absoluteFill, styles.clip, { opacity }]} onLayout={onLayout} pointerEvents="none">
       {size.w > 0 && (
         <>
-          <Svg width={size.w} height={size.h} style={StyleSheet.absoluteFill}>
-            {RANGE_RINGS_NM.map((r) => (
-              <Circle key={r} cx={cx} cy={cy} r={r * scale} stroke={c.rangeRing} strokeWidth={1} fill="none" />
-            ))}
-          </Svg>
+          {rings && (
+            <Svg width={size.w} height={size.h} style={StyleSheet.absoluteFill}>
+              {RANGE_RINGS_NM.map((r) => (
+                <Circle key={r} cx={cx} cy={cy} r={r * scale} stroke={c.rangeRing} strokeWidth={1} fill="none" />
+              ))}
+            </Svg>
+          )}
           {/* A 2R square centred on the radar rotates about its own centre. */}
           <Animated.View style={{ position: 'absolute', left: cx - R, top: cy - R, width: 2 * R, height: 2 * R, transform: [{ rotate }] }}>
             <Image source={SWEEP_IMAGE} style={{ position: 'absolute', width: 2 * R, height: 2 * R, tintColor: sweep.rgb, opacity: sweep.alpha }} />

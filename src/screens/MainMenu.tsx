@@ -4,8 +4,13 @@ import type { BestLine as BestLineParts } from '../game/bestScores';
 import { useTheme } from '../theme/ThemeContext';
 import { ComingSoonTag } from '../ui/ComingSoonTag';
 import { ChevronRight } from '../ui/icons';
+import { MenuDemo } from '../ui/MenuDemo';
 import { RadarBackdrop } from '../ui/RadarBackdrop';
 import { shellColumn } from '../ui/shellLayout';
+
+/** Design S2: the radar is centred 300 pt down an 844 pt screen, at 9 pt/nm. */
+const MENU_RADAR_Y = 300 / 844;
+const MENU_RADAR_SCALE = 9;
 
 interface Props {
   onPlay: () => void;
@@ -32,8 +37,9 @@ export function MainMenu({ onPlay, onChooseAirport, onHowToPlay, onBestScores, o
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]} testID="main-menu">
-      {/* Design: rings centred 300 pt down an 844 pt screen, 9 pt/nm, at 70% opacity. */}
-      <RadarBackdrop centreY={300 / 844} scale={9} opacity={0.7} />
+      {/* A dimmed, self-running demo of the game (#40) under the design's sweep: rings centred 300 pt down an 844 pt screen, 9 pt/nm. */}
+      <MenuDemo centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} />
+      <RadarBackdrop centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} opacity={0.7} rings={false} />
       <View style={[styles.column, { paddingTop: insets.top + 49, paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.head}>
           <Text style={[t.menuWordmark, { color: c.text }]} accessibilityRole="header">

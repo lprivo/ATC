@@ -126,9 +126,13 @@ export class Sim {
   private nextId = 1;
   private nextEventSeq = 1;
 
-  constructor(airport: Airport, traffic: TrafficEntry[]) {
+  /** Whether separation is checked (conflicts flagged and scored). Off only for scenery, e.g. the menu's demo radar. */
+  private readonly separation: boolean;
+
+  constructor(airport: Airport, traffic: TrafficEntry[], opts: { separation?: boolean } = {}) {
     this.airport = airport;
     this.pending = [...traffic].sort((a, b) => a.time - b.time);
+    this.separation = opts.separation ?? true;
   }
 
   /** Adds more scheduled arrivals (e.g. to keep an endless session going). */
@@ -293,7 +297,7 @@ export class Sim {
     if (this.planes.some((p) => p.status !== 'active')) {
       this.planes = this.planes.filter((p) => p.status === 'active');
     }
-    this.checkSeparation();
+    if (this.separation) this.checkSeparation();
   }
 
   private spawnDue() {

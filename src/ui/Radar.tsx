@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
  * they're memoised and only re-render when the viewport or theme changes, not
  * on every sim frame.
  */
-const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airport: Airport; vp: Viewport; theme: Theme }) {
+export const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airport: Airport; vp: Viewport; theme: Theme }) {
   const c = theme.colors;
   const fixFont = theme.radarFont.fix;
   const rwyFont = theme.radarFont.runway;
@@ -395,7 +395,7 @@ const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airport: Air
 });
 
 /** A plane's assigned path: dashed `route`, or solid `routeCleared` once cleared to land; chevron at the end. */
-function RouteLine({ plane: p, vp, theme }: { plane: Plane; vp: Viewport; theme: Theme }) {
+export function RouteLine({ plane: p, vp, theme }: { plane: Plane; vp: Viewport; theme: Theme }) {
   if (p.route.length === 0) return null;
   const pts = [p.pos, ...p.route];
   const cleared = p.clearedRunway != null;
@@ -441,7 +441,7 @@ function PairTag({ sim, conflict, vp, theme, units }: { sim: Sim; conflict: Conf
   );
 }
 
-function PlaneGlyph({ plane: p, vp, theme, selected }: { plane: Plane; vp: Viewport; theme: Theme; selected: boolean }) {
+export function PlaneGlyph({ plane: p, vp, theme, selected }: { plane: Plane; vp: Viewport; theme: Theme; selected: boolean }) {
   const c = theme.colors;
   const z = theme.size;
   const s = toScreen(vp, p.pos);
@@ -495,7 +495,7 @@ function PlaneGlyph({ plane: p, vp, theme, selected }: { plane: Plane; vp: Viewp
  * Each line is one text element so the real text flow spaces its words; the
  * width estimate only sizes the box and places the chips.
  */
-function DataBlock({ label: l, conflict, selected, theme }: { label: DrawnLabel; conflict: boolean; selected: boolean; theme: Theme }) {
+export function DataBlock({ label: l, conflict, selected, theme }: { label: DrawnLabel; conflict: boolean; selected: boolean; theme: Theme }) {
   const c = theme.colors;
   const f = theme.radarFont;
   const m = LABEL_METRICS;
