@@ -12,6 +12,8 @@ export interface RandomTrafficOptions {
   meanIntervalSec: number;
   /** Delay before the first plane. */
   firstAtSec?: number;
+  /** Callsigns already in use (e.g. flying or scheduled), which new flights must not repeat. */
+  exclude?: Iterable<string>;
 }
 
 /**
@@ -21,7 +23,7 @@ export interface RandomTrafficOptions {
 export function generateRandomTraffic(airport: Airport, opts: RandomTrafficOptions): TrafficEntry[] {
   const rng = createRng(opts.seed);
   const out: TrafficEntry[] = [];
-  const used = new Set<string>();
+  const used = new Set<string>(opts.exclude ?? []);
   let t = opts.firstAtSec ?? 2;
   while (t < opts.durationSec) {
     let callsign: string;

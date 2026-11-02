@@ -542,6 +542,13 @@ describe('limits and housekeeping', () => {
     expect(sim.incidents.every((e) => ['landed', 'conflict', 'goAround', 'exited'].includes(e.kind))).toBe(true);
   });
 
+  it('generated traffic never repeats callsigns it is told to avoid', () => {
+    const first = generateRandomTraffic(LHBP, { seed: 3, durationSec: 7200, meanIntervalSec: 60 });
+    const more = generateRandomTraffic(LHBP, { seed: 3, durationSec: 7200, meanIntervalSec: 60, exclude: first.map((t) => t.callsign) });
+    const taken = new Set(first.map((t) => t.callsign));
+    expect(more.some((t) => taken.has(t.callsign))).toBe(false);
+  });
+
   it('keeps trails and the event log bounded', () => {
     const traffic = generateRandomTraffic(LHBP, { seed: 1, durationSec: 3000, meanIntervalSec: 30 });
     const sim = new Sim(LHBP, traffic);

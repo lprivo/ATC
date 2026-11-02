@@ -27,8 +27,14 @@ export function topUpTraffic(sim: Sim, opts: SimOptions, seed: number) {
   if (!opts.endless) return false;
   const last = sim.lastScheduledTime ?? sim.time;
   if (last - sim.time > TOP_UP_AHEAD_SEC) return false;
-  const more = generateRandomTraffic(sim.airport, { seed, durationSec: opts.durationSec, meanIntervalSec: opts.meanIntervalSec, firstAtSec: 0 });
-  sim.appendTraffic(more.map((t) => ({ ...t, time: t.time + last + opts.meanIntervalSec, callsign: t.callsign })));
+  const more = generateRandomTraffic(sim.airport, {
+    seed,
+    durationSec: opts.durationSec,
+    meanIntervalSec: opts.meanIntervalSec,
+    firstAtSec: 0,
+    exclude: sim.callsignsInUse,
+  });
+  sim.appendTraffic(more.map((t) => ({ ...t, time: t.time + last + opts.meanIntervalSec })));
   return true;
 }
 

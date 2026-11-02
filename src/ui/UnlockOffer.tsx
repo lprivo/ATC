@@ -16,7 +16,7 @@ export function UnlockOffer({ reason, onClose, bottomInset }: { reason?: string;
     // A real Modal: Android back closes it (onRequestClose), and it is modal for screen readers on both platforms.
     <Modal transparent visible animationType="fade" onRequestClose={onClose}>
     <View style={[styles.fill, styles.scrim, { backgroundColor: c.scrim }]} testID="unlock-offer">
-      <Pressable style={styles.fill} onPress={onClose} accessibilityLabel="Close offer" />
+      <Pressable style={styles.fill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close offer" />
       <View style={[styles.sheet, { backgroundColor: c.panel, borderTopColor: c.panelBorder, borderTopWidth: theme.hairline, paddingBottom: bottomInset + 20 }]}>
         <View style={styles.head}>
           <Text style={[t.caps, { color: c.textDim }]}>FULL VERSION</Text>

@@ -135,6 +135,11 @@ export class Sim {
     this.pending = [...this.pending, ...traffic].sort((a, b) => a.time - b.time);
   }
 
+  /** Callsigns flying now or still scheduled. */
+  get callsignsInUse(): string[] {
+    return [...this.planes.map((p) => p.callsign), ...this.pending.map((t) => t.callsign)];
+  }
+
   /** Sim time of the last scheduled arrival still to come, or null when none are left. */
   get lastScheduledTime(): number | null {
     return this.pending.length ? this.pending[this.pending.length - 1].time : null;
