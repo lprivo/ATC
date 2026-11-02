@@ -45,8 +45,31 @@ describe('sessions', () => {
   });
 
   it('route params parse safely, falling back to the free session', () => {
-    expect(parseSession({ icao: 'LHBP', traffic: 'busy', length: '60' })).toEqual({ icao: 'LHBP', traffic: 'busy', length: 60 });
-    expect(parseSession({ length: 'endless' }).length).toBe('endless');
+    expect(parseSession({ icao: 'LHBP', traffic: 'busy', length: '60' }, 'full')).toEqual({ icao: 'LHBP', traffic: 'busy', length: 60 });
+    expect(parseSession({ length: 'endless' }, 'full').length).toBe('endless');
     expect(parseSession({ icao: 'LOWW', traffic: 'x', length: '7' })).toEqual({ icao: 'LHBP', traffic: 'steady', length: 30 });
+  });
+});
+
+describe('session details', () => {
+  it('locked params fall back to the free session for a free player, but not for a full one', () => {
+    expect(parseSession({ traffic: 'busy', length: 'endless' }, 'free')).toEqual({ icao: 'LHBP', traffic: 'steady', length: 30 });
+    expect(parseSession({ traffic: 'busy', length: 'endless' }, 'full')).toEqual({ icao: 'LHBP', traffic: 'busy', length: 'endless' });
+    // An existing airport without a layout falls back even with valid options.
+    expect(parseSession({ icao: 'EGLL', traffic: 'light', length: '15' }, 'full')).toEqual({ icao: 'LHBP', traffic: 'light', length: 15 });
+  });
+
+  it('full allows the free airport too; sort after the free one is by difficulty, then ICAO', () => {
+    const lhbp = CATALOGUE.find((a) => a.icao === 'LHBP')!;
+    expect(allows.airport('full', lhbp)).toBe(true);
+    const rest = findAirports('', 'All').slice(1);
+    for (let i = 1; i < rest.length; i++) {
+      const [a, b] = [rest[i - 1], rest[i]];
+      expect(a.difficulty < b.difficulty || (a.difficulty === b.difficulty && a.icao < b.icao)).toBe(true);
+    }
+  });
+
+  it('search ignores surrounding whitespace', () => {
+    expect(findAirports('  heathrow ', 'All').map((a) => a.icao)).toEqual(['EGLL']);
   });
 });

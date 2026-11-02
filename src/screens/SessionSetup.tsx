@@ -23,29 +23,15 @@ export function SessionSetup({ icao, onStart, onBack }: { icao: string; onStart:
   const t = theme.type;
   const insets = useSafeAreaInsets();
   const { entitlement } = useEntitlement();
-  const ap = CATALOGUE.find((a) => a.icao === icao) ?? CATALOGUE[0];
+  // A locked or unknown airport (e.g. from a deep link) falls back to the free one.
+  const asked = CATALOGUE.find((a) => a.icao === icao);
+  const ap = asked && allows.airport(entitlement, asked) ? asked : (CATALOGUE.find((a) => a.icao === FREE_SESSION.icao) ?? CATALOGUE[0]);
   const [traffic, setTraffic] = useState<Traffic>(FREE_SESSION.traffic);
   const [length, setLength] = useState<SessionLength>(FREE_SESSION.length);
   const [offer, setOffer] = useState<string | null>(null);
   const session: Session = { icao: ap.icao, traffic, length };
   const box = { borderColor: c.panelBorder, borderWidth: theme.hairline };
   const free = entitlement === 'free';
-
-  const option = <T,>(label: string, value: T, selected: boolean, allowed: boolean, pick: (v: T) => void, lockedReason: string, testID: string) => (
-    <Pressable
-      key={label}
-      testID={testID}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected, disabled: !allowed }}
-      accessibilityLabel={allowed ? label : `${label}, full version`}
-      onPress={() => (allowed ? pick(value) : setOffer(lockedReason))}
-      style={[styles.option, box, selected && { backgroundColor: c.accent, borderColor: c.accent }, !allowed && styles.locked]}
-    >
-      <Text style={[t.barCount, { color: selected ? c.background : c.text }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  );
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top + 8 }]} testID="session-setup">
@@ -67,12 +53,30 @@ export function SessionSetup({ icao, onStart, onBack }: { icao: string; onStart:
           </View>
         </View>
         <Section label="TRAFFIC" locked={free}>
-          {TRAFFIC.map((tr) =>
-            option(`${TRAFFIC_LABEL[tr]} ~${TRAFFIC_PER_HOUR[tr]}/hr`, tr, tr === traffic, allows.traffic(entitlement, tr), setTraffic, `${TRAFFIC_LABEL[tr]} traffic is in the full version.`, `traffic-${tr}`),
-          )}
+          {TRAFFIC.map((tr) => (
+            <Option
+              key={tr}
+              testID={`traffic-${tr}`}
+              label={`${TRAFFIC_LABEL[tr]} ~${TRAFFIC_PER_HOUR[tr]}/hr`}
+              selected={tr === traffic}
+              allowed={allows.traffic(entitlement, tr)}
+              onPick={() => setTraffic(tr)}
+              onLocked={() => setOffer(`${TRAFFIC_LABEL[tr]} traffic is in the full version.`)}
+            />
+          ))}
         </Section>
         <Section label="LENGTH" locked={free}>
-          {LENGTHS.map((l) => option(lengthLabel(l), l, l === length, allows.length(entitlement, l), setLength, `${lengthLabel(l)} sessions are in the full version.`, `length-${l}`))}
+          {LENGTHS.map((l) => (
+            <Option
+              key={String(l)}
+              testID={`length-${l}`}
+              label={lengthLabel(l)}
+              selected={l === length}
+              allowed={allows.length(entitlement, l)}
+              onPick={() => setLength(l)}
+              onLocked={() => setOffer(`${lengthLabel(l)} sessions are in the full version.`)}
+            />
+          ))}
         </Section>
         {free && (
           <View style={[styles.upsell, { borderColor: c.panelBorder }]}>
@@ -91,20 +95,6 @@ export function SessionSetup({ icao, onStart, onBack }: { icao: string; onStart:
       {offer !== null && <UnlockOffer reason={offer || undefined} onClose={() => setOffer(null)} bottomInset={insets.bottom} />}
     </View>
   );
-
-  function Section({ label, locked, children }: { label: string; locked: boolean; children: ReactNode }) {
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHead}>
-          <Text style={[t.caps, { color: c.textDim }]}>{label}</Text>
-          {locked && <LockIcon color={c.textDim} size={13} />}
-        </View>
-        <View style={styles.options} accessibilityRole="radiogroup">
-          {children}
-        </View>
-      </View>
-    );
-  }
 }
 
 const styles = StyleSheet.create({
@@ -124,3 +114,57 @@ const styles = StyleSheet.create({
   sticky: { position: 'absolute', left: 16, right: 16, bottom: 0, paddingTop: 12 },
   start: { height: 64, alignItems: 'center', justifyContent: 'center' },
 });
+
+function Section({ label, locked, children }: { label: string; locked: boolean; children: ReactNode }) {
+  const { theme } = useTheme();
+  const c = theme.colors;
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHead}>
+        <Text style={[theme.type.caps, { color: c.textDim }]}>{label}</Text>
+        {locked && <LockIcon color={c.textDim} size={13} />}
+      </View>
+      <View style={styles.options} accessibilityRole="radiogroup">
+        {children}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * One session option. Locked options stay pressable (they open the offer), so
+ * they aren't announced as disabled: the label and hint say what happens.
+ */
+function Option({
+  label,
+  selected,
+  allowed,
+  onPick,
+  onLocked,
+  testID,
+}: {
+  label: string;
+  selected: boolean;
+  allowed: boolean;
+  onPick: () => void;
+  onLocked: () => void;
+  testID: string;
+}) {
+  const { theme } = useTheme();
+  const c = theme.colors;
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={allowed ? label : `${label}, full version`}
+      accessibilityHint={allowed ? undefined : 'Opens the full-version offer'}
+      onPress={allowed ? onPick : onLocked}
+      style={[styles.option, { borderColor: c.panelBorder, borderWidth: theme.hairline }, selected && { backgroundColor: c.accent, borderColor: c.accent }, !allowed && styles.locked]}
+    >
+      <Text style={[theme.type.barCount, { color: selected ? c.background : c.text }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}

@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { CATALOGUE } from '../engine/data/airports';
 import { useTheme } from '../theme/ThemeContext';
 import { CloseIcon } from './icons';
 
@@ -12,7 +13,10 @@ export function UnlockOffer({ reason, onClose, bottomInset }: { reason?: string;
   const c = theme.colors;
   const t = theme.type;
   return (
-    <View style={[StyleSheet.absoluteFill, styles.scrim, { backgroundColor: c.scrim }]} accessibilityViewIsModal testID="unlock-offer">
+    // A real Modal: Android back closes it (onRequestClose), and it is modal for screen readers on both platforms.
+    <Modal transparent visible animationType="fade" onRequestClose={onClose}>
+    <View style={[styles.fill, styles.scrim, { backgroundColor: c.scrim }]} testID="unlock-offer">
+      <Pressable style={styles.fill} onPress={onClose} accessibilityLabel="Close offer" />
       <View style={[styles.sheet, { backgroundColor: c.panel, borderTopColor: c.panelBorder, borderTopWidth: theme.hairline, paddingBottom: bottomInset + 20 }]}>
         <View style={styles.head}>
           <Text style={[t.caps, { color: c.textDim }]}>FULL VERSION</Text>
@@ -22,7 +26,7 @@ export function UnlockOffer({ reason, onClose, bottomInset }: { reason?: string;
         </View>
         <Text style={[t.title, { color: c.text }]}>All airports, your own sessions</Text>
         {reason && <Text style={[t.small, { color: c.textDim }]}>{reason}</Text>}
-        {['30 airports in Europe, the Americas and Asia', 'Light, Steady or Busy traffic', '15, 30 or 60 minute sessions, or endless', 'One purchase, no subscription'].map((line) => (
+        {[`${CATALOGUE.length} airports in Europe, the Americas and Asia (more arriving in updates)`, 'Light, Steady or Busy traffic', '15, 30 or 60 minute sessions, or endless', 'One purchase, no subscription'].map((line) => (
           <Text key={line} style={[t.body, { color: c.text }]}>
             <Text style={{ color: c.good }}>✓ </Text>
             {line}
@@ -34,10 +38,12 @@ export function UnlockOffer({ reason, onClose, bottomInset }: { reason?: string;
         <Text style={[t.small, styles.centre, { color: c.textDim }]}>The store isn’t open yet.</Text>
       </View>
     </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   scrim: { justifyContent: 'flex-end' },
   sheet: { padding: 16, gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center' },

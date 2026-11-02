@@ -130,6 +130,16 @@ export class Sim {
     this.pending = [...traffic].sort((a, b) => a.time - b.time);
   }
 
+  /** Adds more scheduled arrivals (e.g. to keep an endless session going). */
+  appendTraffic(traffic: TrafficEntry[]) {
+    this.pending = [...this.pending, ...traffic].sort((a, b) => a.time - b.time);
+  }
+
+  /** Sim time of the last scheduled arrival still to come, or null when none are left. */
+  get lastScheduledTime(): number | null {
+    return this.pending.length ? this.pending[this.pending.length - 1].time : null;
+  }
+
   get remainingTraffic() {
     return this.pending.length;
   }

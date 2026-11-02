@@ -25,7 +25,7 @@ export const meanIntervalSec = (t: Traffic) => 3600 / TRAFFIC_PER_HOUR[t];
 /** Session length in sim seconds, or null for endless. */
 export const lengthSec = (l: SessionLength) => (l === 'endless' ? null : l * 60);
 
-/** How much traffic to generate: the session length, or two hours for endless (regenerated later if needed). */
+/** How much traffic to generate up front: the session length, or for endless two hours at a time (useSim tops it up). */
 export const trafficHorizonSec = (l: SessionLength) => lengthSec(l) ?? 2 * 3600;
 
 export const lengthLabel = (l: SessionLength) => (l === 'endless' ? 'Endless' : `${l} min`);
@@ -55,11 +55,17 @@ export const regionCounts = (list: readonly CatalogueAirport[] = CATALOGUE) => {
   return [{ region: 'All' as const, count: list.length }, ...regions.map((r) => ({ region: r, count: list.filter((ap) => ap.region === r).length }))];
 };
 
-/** Parse route params into a session, falling back to the free defaults for anything missing or unknown. */
-export function parseSession(p: { icao?: string; traffic?: string; length?: string }): Session {
-  const traffic = (['light', 'steady', 'busy'] as const).find((t) => t === p.traffic) ?? FREE_SESSION.traffic;
+/**
+ * Parse route params into a session the entitlement allows, falling back to
+ * the free defaults for anything missing, unknown or locked.
+ */
+export function parseSession(p: { icao?: string; traffic?: string; length?: string }, entitlement: Entitlement = 'free'): Session {
+  const tr = (['light', 'steady', 'busy'] as const).find((t) => t === p.traffic);
+  const traffic = tr && allows.traffic(entitlement, tr) ? tr : FREE_SESSION.traffic;
   const n = p.length === 'endless' ? 'endless' : Number(p.length);
-  const length = LENGTHS.find((l) => l === n) ?? FREE_SESSION.length;
-  const icao = CATALOGUE.some((ap) => ap.icao === p.icao && ap.playable) ? p.icao! : FREE_SESSION.icao;
+  const len = LENGTHS.find((l) => l === n);
+  const length = len !== undefined && allows.length(entitlement, len) ? len : FREE_SESSION.length;
+  const ap = CATALOGUE.find((a) => a.icao === p.icao);
+  const icao = ap && allows.airport(entitlement, ap) ? ap.icao : FREE_SESSION.icao;
   return { icao, traffic, length };
 }

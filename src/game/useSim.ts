@@ -11,10 +11,25 @@ declare global {
   var __sim: Sim | undefined;
 }
 
-/** Traffic for a session: its traffic level over its length (two hours for endless). */
+/** Traffic for a session: its traffic level over its length (or, for endless, topped up as it runs). */
 export interface SimOptions {
   meanIntervalSec: number;
   durationSec: number;
+  /** Keep generating traffic so the session never runs dry. */
+  endless?: boolean;
+}
+
+/** An endless session tops up when less than this much scheduled traffic is left (sim seconds). */
+const TOP_UP_AHEAD_SEC = 600;
+
+/** Tops up an endless session's traffic, one more horizon at a time, before it runs out. */
+export function topUpTraffic(sim: Sim, opts: SimOptions, seed: number) {
+  if (!opts.endless) return false;
+  const last = sim.lastScheduledTime ?? sim.time;
+  if (last - sim.time > TOP_UP_AHEAD_SEC) return false;
+  const more = generateRandomTraffic(sim.airport, { seed, durationSec: opts.durationSec, meanIntervalSec: opts.meanIntervalSec, firstAtSec: 0 });
+  sim.appendTraffic(more.map((t) => ({ ...t, time: t.time + last + opts.meanIntervalSec, callsign: t.callsign })));
+  return true;
 }
 
 function newSim(airport: Airport, opts: SimOptions, seed = Math.floor(Math.random() * 1e9)) {
@@ -37,8 +52,8 @@ export function useSim(airport: Airport, opts: SimOptions) {
   const [drawing, setDrawing] = useState(false);
 
   // The rAF loop reads these through a ref so it never needs restarting.
-  const live = useRef({ sim, paused, timeScale, drawing });
-  live.current = { sim, paused, timeScale, drawing };
+  const live = useRef({ sim, paused, timeScale, drawing, opts });
+  live.current = { sim, paused, timeScale, drawing, opts };
 
   const refresh = useCallback(() => setFrame((f) => f + 1), []);
 
@@ -49,9 +64,10 @@ export function useSim(airport: Airport, opts: SimOptions) {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000); // cap so a background tab doesn't jump
       last = now;
-      const { sim, paused, timeScale, drawing } = live.current;
+      const { sim, paused, timeScale, drawing, opts } = live.current;
       if (!paused) {
         sim.step(dt * timeScale * (drawing ? 0.5 : 1));
+        topUpTraffic(sim, opts, Math.floor(Math.random() * 1e9));
         if (now - lastRender >= RENDER_INTERVAL_MS) {
           lastRender = now;
           refresh();
@@ -67,11 +83,10 @@ export function useSim(airport: Airport, opts: SimOptions) {
     if (__DEV__) globalThis.__sim = sim;
   }, [sim]);
 
+  // Reads the latest options through the ref, so a restart always uses the current session.
   const restart = useCallback(() => {
-    setSim(newSim(airport, opts));
+    setSim(newSim(airport, live.current.opts));
     setPaused(false);
-    // opts is read when restarting; its fields don't change during a session.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [airport]);
 
   return { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh };

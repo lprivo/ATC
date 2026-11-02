@@ -23,7 +23,11 @@ export function GameScreen({ session = FREE_SESSION, onQuit }: { session?: Sessi
   const airport = airportByIcao(session.icao) ?? LHBP;
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh } = useSim(airport, { meanIntervalSec: meanIntervalSec(session.traffic), durationSec: trafficHorizonSec(session.length) });
+  const { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh } = useSim(airport, {
+    meanIntervalSec: meanIntervalSec(session.traffic),
+    durationSec: trafficHorizonSec(session.length),
+    endless: session.length === 'endless',
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh });
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.

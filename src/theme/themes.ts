@@ -40,6 +40,8 @@ export interface ThemeColors {
   snapHalo: string;
   /** Text and icons drawn on a `danger` fill. */
   onDanger: string;
+  /** Text drawn on a `good` fill (e.g. the FREE tag). */
+  onGood: string;
   /** Dims the radar behind menus and coach marks. */
   scrim: string;
   /** Radar sweep on the splash and menu. */
@@ -267,6 +269,7 @@ export const radarTheme: Theme = {
     labelBg: 'rgba(15,27,38,0.84)',
     snapHalo: '#b5d9fd',
     onDanger: '#1a1206',
+    onGood: '#0f1b26',
     scrim: 'rgba(6,12,18,0.72)',
     sweep: 'rgba(148,188,227,0.30)',
   },
@@ -305,6 +308,7 @@ export const paperTheme: Theme = {
     labelBg: 'rgba(242,242,243,0.88)',
     snapHalo: '#416180',
     onDanger: '#ffffff',
+    onGood: '#ffffff',
     scrim: 'rgba(29,31,32,0.45)',
     sweep: 'rgba(89,128,166,0.22)',
   },

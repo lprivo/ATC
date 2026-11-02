@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CATALOGUE, type CatalogueAirport, type Region } from '../engine/data/airports';
+import { type CatalogueAirport, type Region } from '../engine/data/airports';
 import { useEntitlement } from '../game/EntitlementContext';
 import { allows, findAirports, regionCounts } from '../game/session';
 import { useTheme } from '../theme/ThemeContext';
@@ -28,9 +28,11 @@ export function ChooseAirport({ onPick, onBack }: { onPick: (icao: string) => vo
   const rest = found.filter((ap) => !ap.free);
   const box = { borderColor: c.panelBorder, borderWidth: theme.hairline };
 
+  // Full-version airports without a layout yet are "coming soon": no purchase prompt for players who own it.
+  const comingSoon = (ap: CatalogueAirport) => entitlement === 'full' && !ap.playable;
   const open = (ap: CatalogueAirport) => {
     if (allows.airport(entitlement, ap)) onPick(ap.icao);
-    else setOffer(ap.playable ? `${ap.name} is in the full version.` : `${ap.name} is coming to the full version.`);
+    else if (!comingSoon(ap)) setOffer(ap.playable ? `${ap.name} is in the full version.` : `${ap.name} is coming to the full version.`);
   };
 
   return (
@@ -79,6 +81,8 @@ export function ChooseAirport({ onPick, onBack }: { onPick: (icao: string) => vo
       </View>
       <FlatList
         data={rest}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         keyExtractor={(ap) => ap.icao}
         contentContainerStyle={{ paddingBottom: 96 + insets.bottom }}
         ListHeaderComponent={
@@ -89,7 +93,7 @@ export function ChooseAirport({ onPick, onBack }: { onPick: (icao: string) => vo
                 <View style={styles.cardText}>
                   <View style={styles.cardRow}>
                     <Text style={[t.barTitle, { color: c.text }]}>{ap.icao}</Text>
-                    <Text style={[t.chip, styles.tag, { color: c.onDanger, backgroundColor: c.good }]}>FREE</Text>
+                    <Text style={[t.chip, styles.tag, { color: c.onGood, backgroundColor: c.good }]}>FREE</Text>
                   </View>
                   <Text style={[t.small, { color: c.text }]} numberOfLines={1}>
                     {ap.name}
@@ -99,7 +103,7 @@ export function ChooseAirport({ onPick, onBack }: { onPick: (icao: string) => vo
               </Pressable>
             ))}
             <View style={styles.sectionHead}>
-              <Text style={[t.caps, { color: c.textDim }]}>FULL VERSION · {CATALOGUE.filter((ap) => !ap.free).length}</Text>
+              <Text style={[t.caps, { color: c.textDim }]}>FULL VERSION · {rest.length}</Text>
               <Text style={[t.caps, { color: c.textDim }]}>SORT: DIFFICULTY ↑</Text>
             </View>
           </View>
@@ -108,7 +112,7 @@ export function ChooseAirport({ onPick, onBack }: { onPick: (icao: string) => vo
           <Pressable
             onPress={() => open(ap)}
             accessibilityRole="button"
-            accessibilityLabel={`${ap.icao}, ${ap.name}, ${ap.country}. ${allows.airport(entitlement, ap) ? 'Play' : 'Locked'}`}
+            accessibilityLabel={`${ap.icao}, ${ap.name}, ${ap.country}. ${allows.airport(entitlement, ap) ? 'Play' : comingSoon(ap) ? 'Coming soon' : 'Locked, full version'}`}
             style={({ pressed }) => [styles.row, { borderBottomColor: c.panelBorder, borderBottomWidth: theme.hairline }, pressed && { backgroundColor: c.buttonPressed }]}
             testID={`airport-${ap.icao}`}
           >
@@ -120,10 +124,16 @@ export function ChooseAirport({ onPick, onBack }: { onPick: (icao: string) => vo
               <Text style={[t.smallTight, { color: c.textDim }]}>{ap.country}</Text>
             </View>
             <DifficultyBars level={ap.difficulty} />
-            {!allows.airport(entitlement, ap) && <LockIcon color={c.textDim} />}
+            {comingSoon(ap) ? (
+              <Text style={[t.chip, { color: c.textDim }]}>SOON</Text>
+            ) : (
+              !allows.airport(entitlement, ap) && <LockIcon color={c.textDim} />
+            )}
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={[t.small, { color: c.textDim, paddingVertical: 12 }]}>No airport matches “{query}”.</Text>}
+        ListEmptyComponent={
+          found.length === 0 ? <Text style={[t.small, { color: c.textDim, paddingVertical: 12 }]}>No airport matches “{query}”.</Text> : undefined
+        }
       />
       {entitlement === 'free' && (
         <View style={[styles.sticky, { backgroundColor: c.panel, borderTopColor: c.panelBorder, borderTopWidth: theme.hairline, paddingBottom: insets.bottom + 12 }]}>
