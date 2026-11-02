@@ -15,8 +15,8 @@ export default function Game() {
     <GameScreen
       session={session}
       onQuit={() => router.dismissTo('/menu')}
-      onSessionEnd={(stats) => {
-        finish(session, stats);
+      onSessionEnd={(stats, endedEarly) => {
+        finish(session, stats, endedEarly);
         router.replace('/summary');
       }}
     />

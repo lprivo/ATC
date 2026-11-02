@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOGUE } from '../engine/data/airports';
-import { allows, findAirports, lengthSec, meanIntervalSec, parseSession, regionCounts, sessionLabel, trafficHorizonSec } from './session';
+import { allows, countsForBest, findAirports, lengthSec, meanIntervalSec, parseSession, regionCounts, sessionLabel, sessionOver, trafficHorizonSec } from './session';
 
 describe('sessions', () => {
   it('traffic levels are ~6, ~14 and ~24 arrivals an hour', () => {
@@ -71,5 +71,19 @@ describe('session details', () => {
 
   it('search ignores surrounding whitespace', () => {
     expect(findAirports('  heathrow ', 'All').map((a) => a.icao)).toEqual(['EGLL']);
+  });
+});
+
+describe('session end', () => {
+  it('a timed session is over at its length; an endless one never is', () => {
+    expect(sessionOver(30, 30 * 60 - 0.1)).toBe(false);
+    expect(sessionOver(30, 30 * 60)).toBe(true);
+    expect(sessionOver('endless', 1e9)).toBe(false);
+  });
+
+  it('a timed session quit early does not count for bests; endless quit and full sessions do', () => {
+    expect(countsForBest(30, true)).toBe(false);
+    expect(countsForBest(30, false)).toBe(true);
+    expect(countsForBest('endless', true)).toBe(true);
   });
 });

@@ -24,16 +24,22 @@ export function SummaryScreen({ result, onMenu, onPlayAgain }: { result: Session
     <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16 }]} testID="summary">
       <ScrollView contentContainerStyle={styles.body}>
         <Text style={[t.caps, { color: c.textDim }]} accessibilityRole="header">
-          SESSION COMPLETE · {session.icao} · {sessionLabel(session)}
+          {result.endedEarly ? 'SESSION ENDED' : 'SESSION COMPLETE'} · {session.icao} · {sessionLabel(session)}
         </Text>
-        <View style={styles.scoreRow}>
+        <View style={styles.scoreRow} accessible accessibilityLabel={`Score ${result.score.toLocaleString('en-GB')}${result.isNewBest ? ', new best' : ''}`}>
           <Text style={[t.display, { color: c.text }]} testID="summary-score">
             {result.score.toLocaleString('en-GB')}
           </Text>
           {result.isNewBest && <Text style={[t.chip, styles.newBest, { color: c.onGood, backgroundColor: c.good }]}>NEW BEST</Text>}
         </View>
         <Text style={[t.small, { color: c.textDim }]}>
-          {result.previousBest ? `Previous best ${result.previousBest.score.toLocaleString('en-GB')}` : 'First score for this session'}
+          {!result.counted
+            ? 'Ended early: doesn’t count towards best scores'
+            : result.previousBest
+              ? `Previous best ${result.previousBest.score.toLocaleString('en-GB')}`
+              : result.isNewBest
+                ? 'First score for this session'
+                : 'Score above zero to set a best'}
         </Text>
         <View style={styles.lines}>
           {scoreLines(result.stats).map((l) => {

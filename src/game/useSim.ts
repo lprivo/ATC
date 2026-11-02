@@ -56,10 +56,12 @@ export function useSim(airport: Airport, opts: SimOptions) {
   const [timeScale, setTimeScale] = useState(1);
   /** Design: while a path is being drawn the sim runs at half speed. */
   const [drawing, setDrawing] = useState(false);
+  /** The session is over: the sim stays frozen (without the pause menu) until a restart. */
+  const [over, setOver] = useState(false);
 
   // The rAF loop reads these through a ref so it never needs restarting.
-  const live = useRef({ sim, paused, timeScale, drawing, opts });
-  live.current = { sim, paused, timeScale, drawing, opts };
+  const live = useRef({ sim, paused, over, timeScale, drawing, opts });
+  live.current = { sim, paused, over, timeScale, drawing, opts };
 
   const refresh = useCallback(() => setFrame((f) => f + 1), []);
 
@@ -70,8 +72,8 @@ export function useSim(airport: Airport, opts: SimOptions) {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000); // cap so a background tab doesn't jump
       last = now;
-      const { sim, paused, timeScale, drawing, opts } = live.current;
-      if (!paused) {
+      const { sim, paused, over, timeScale, drawing, opts } = live.current;
+      if (!paused && !over) {
         sim.step(dt * timeScale * (drawing ? 0.5 : 1));
         topUpTraffic(sim, opts, Math.floor(Math.random() * 1e9));
         if (now - lastRender >= RENDER_INTERVAL_MS) {
@@ -93,7 +95,12 @@ export function useSim(airport: Airport, opts: SimOptions) {
   const restart = useCallback(() => {
     setSim(newSim(airport, live.current.opts));
     setPaused(false);
+    setOver(false);
   }, [airport]);
+  const end = useCallback(() => {
+    live.current.over = true; // stop stepping now, not at the next render
+    setOver(true);
+  }, []);
 
-  return { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh };
+  return { sim, paused, setPaused, end, timeScale, setTimeScale, setDrawing, restart, refresh };
 }

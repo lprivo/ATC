@@ -20,8 +20,10 @@ interface Props {
   bottomInset: number;
   onResume: () => void;
   onRestart: () => void;
-  /** Quit to the main menu; hidden until there is one (#13). */
+  /** Quit: ends the session (and shows its summary) or, without one, goes back to the menu. Hidden when absent. */
   onQuit?: () => void;
+  /** The Quit button's label (default "Quit to menu"). */
+  quitLabel?: string;
 }
 
 /**
@@ -29,7 +31,7 @@ interface Props {
  * a stat grid (tap a stat for the S5b explainer), theme, Restart / Quit (each
  * asks to confirm) and RESUME in the bottom panel.
  */
-export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, onRestart, onQuit }: Props) {
+export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, onRestart, onQuit, quitLabel = 'Quit to menu' }: Props) {
   const { theme, themes, setTheme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -111,7 +113,7 @@ export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, on
         />
         <View style={styles.row}>
           {action('restart', 'Restart', onRestart)}
-          {onQuit && action('quit', 'Quit to menu', onQuit)}
+          {onQuit && action('quit', quitLabel, onQuit)}
         </View>
         <Pressable
           testID="btn-resume"

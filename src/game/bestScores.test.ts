@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestKey, bestLine, bestList, parseBests, recordScore } from './bestScores';
+import { bestKey, bestLine, bestList, parseBests, recordScore, resolveResult, sessionFromKey } from './bestScores';
 
 const steady = { icao: 'LHBP', traffic: 'steady' as const, length: 30 as const };
 
@@ -20,6 +20,29 @@ describe('best scores', () => {
     expect(worse.isNew).toBe(false);
     expect(worse.bests).toBe(better.bests);
     expect(recordScore(better.bests, steady, 900, 4).isNew).toBe(false);
+  });
+
+  it('a first score has to be above zero to be a best', () => {
+    expect(recordScore({}, steady, -300, 1)).toMatchObject({ isNew: false, bests: {} });
+    expect(recordScore({}, steady, 0, 1).isNew).toBe(false);
+  });
+
+  it('keys turn back into sessions; unknown keys are skipped', () => {
+    expect(sessionFromKey(bestKey(steady))).toEqual(steady);
+    expect(sessionFromKey('EGLL|busy|endless')).toEqual({ icao: 'EGLL', traffic: 'busy', length: 'endless' });
+    expect(sessionFromKey('LHBP|rush|30')).toBeNull();
+    expect(sessionFromKey('LHBP|steady|45')).toBeNull();
+    expect(bestList({ 'LHBP|steady|30': { score: 5, at: 1 }, junk: { score: 9, at: 1 } }).map((b) => b.key)).toEqual(['LHBP|steady|30']);
+  });
+
+  it('a timed session quit early is never saved, even above the best; an endless quit is', () => {
+    const one = recordScore({}, steady, 640, 1).bests;
+    const early = resolveResult(one, steady, 900, true, 2);
+    expect(early).toMatchObject({ isNewBest: false, counted: false, previousBest: { score: 640, at: 1 } });
+    expect(early.bests).toBe(one);
+    expect(resolveResult(one, steady, 900, false, 2)).toMatchObject({ isNewBest: true, counted: true });
+    const endless = { ...steady, length: 'endless' as const };
+    expect(resolveResult({}, endless, 300, true, 2)).toMatchObject({ isNewBest: true, counted: true, bests: { [bestKey(endless)]: { score: 300, at: 2 } } });
   });
 
   it('bests are kept per airport, traffic and length', () => {

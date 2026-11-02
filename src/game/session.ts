@@ -25,6 +25,15 @@ export const meanIntervalSec = (t: Traffic) => 3600 / TRAFFIC_PER_HOUR[t];
 /** Session length in sim seconds, or null for endless. */
 export const lengthSec = (l: SessionLength) => (l === 'endless' ? null : l * 60);
 
+/** Whether a session has reached its length (an endless one never does). */
+export const sessionOver = (l: SessionLength, simTime: number) => {
+  const end = lengthSec(l);
+  return end != null && simTime >= end;
+};
+
+/** Whether a finished session counts towards best scores: one that ran its length, or an endless one ended by Quit. */
+export const countsForBest = (l: SessionLength, endedEarly: boolean) => !endedEarly || l === 'endless';
+
 /** How much traffic to generate up front: the session length, or for endless two hours at a time (useSim tops it up). */
 export const trafficHorizonSec = (l: SessionLength) => lengthSec(l) ?? 2 * 3600;
 

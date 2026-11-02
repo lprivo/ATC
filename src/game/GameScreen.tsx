@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { airportByIcao } from '../engine/airports';
 import type { SimStats } from '../engine/types';
 import { LHBP } from '../engine/airports/lhbp';
-import { FREE_SESSION, lengthSec, meanIntervalSec, trafficHorizonSec, type Session } from './session';
+import { FREE_SESSION, lengthSec, meanIntervalSec, sessionOver, trafficHorizonSec, type Session } from './session';
 import { useTheme } from '../theme/ThemeContext';
 import { ConfirmCard } from '../ui/ConfirmCard';
 import { ConflictBanner } from '../ui/ConflictBanner';
@@ -29,13 +29,16 @@ export function GameScreen({
 }: {
   session?: Session;
   onQuit?: () => void;
-  /** A timed session reached its length (endless sessions never end on their own). */
-  onSessionEnd?: (stats: SimStats) => void;
+  /**
+   * The session is over: it reached its length, or the player quit
+   * (`endedEarly`). Without it, Quit just calls `onQuit`.
+   */
+  onSessionEnd?: (stats: SimStats, endedEarly: boolean) => void;
 } = {}) {
   const airport = airportByIcao(session.icao) ?? LHBP;
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { sim, paused, setPaused, timeScale, setTimeScale, setDrawing, restart, refresh } = useSim(airport, {
+  const { sim, paused, setPaused, end, timeScale, setTimeScale, setDrawing, restart, refresh } = useSim(airport, {
     meanIntervalSec: meanIntervalSec(session.traffic),
     durationSec: trafficHorizonSec(session.length),
     endless: session.length === 'endless',
@@ -53,14 +56,16 @@ export function GameScreen({
     setSelectedId(id);
   };
 
-  // A timed session ends at its length: stop the sim and hand over the final stats (once).
-  const endAt = lengthSec(session.length);
+  // A session ends at its length or on Quit: freeze the sim and hand over the final stats (once).
   const ended = useRef(false);
-  useEffect(() => {
-    if (ended.current || endAt == null || sim.time < endAt) return;
+  const endSession = (endedEarly: boolean) => {
+    if (ended.current || !onSessionEnd) return;
     ended.current = true;
-    setPaused(true);
-    onSessionEnd?.({ ...sim.stats });
+    end();
+    onSessionEnd({ ...sim.stats }, endedEarly);
+  };
+  useEffect(() => {
+    if (sessionOver(session.length, sim.time)) endSession(false);
   });
   useEffect(() => {
     ended.current = false;
@@ -154,7 +159,9 @@ export function GameScreen({
         />
       </View>
       {paused && (
-        <PauseMenu sim={sim} sessionSec={lengthSec(session.length) ?? undefined} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} onQuit={onQuit} />
+        <PauseMenu sim={sim} sessionSec={lengthSec(session.length) ?? undefined} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} onQuit={onSessionEnd ? () => endSession(true) : onQuit}
+          quitLabel={onSessionEnd ? 'End session' : undefined}
+        />
       )}
     </View>
   );
