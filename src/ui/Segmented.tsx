@@ -18,17 +18,20 @@ export function Segmented<T extends string | number>({
   value,
   onChange,
   segmentWidth,
+  label,
 }: {
   options: readonly SegmentOption<T>[];
   value: T;
   onChange: (v: T) => void;
   /** Fixed segment width (e.g. 46 for the sim speed); otherwise sized to the label. */
   segmentWidth?: number;
+  /** What the group is, for screen readers (e.g. "Altitude unit"). */
+  label?: string;
 }) {
   const { theme } = useTheme();
   const c = theme.colors;
   return (
-    <View style={[styles.row, { borderColor: c.panelBorder, borderWidth: theme.hairline }]} accessibilityRole="radiogroup">
+    <View style={[styles.row, { borderColor: c.panelBorder, borderWidth: theme.hairline }]} accessibilityRole="radiogroup" accessibilityLabel={label}>
       {options.map((o, i) => {
         const active = o.value === value;
         return (

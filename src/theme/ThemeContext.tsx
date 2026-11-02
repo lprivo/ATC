@@ -23,7 +23,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     () => ({
       theme: themes.find((t) => t.id === id) ?? themes[0],
       themes,
-      setTheme: (next: string) => update({ theme: next, followSystem: false }),
+      // Picking the theme already shown changes nothing (and keeps follow-system on).
+      setTheme: (next: string) => {
+        if (next !== id) update({ theme: next, followSystem: false });
+      },
     }),
     [id, update],
   );

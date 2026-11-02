@@ -17,6 +17,7 @@ import {
   type Rect,
   type Slot,
 } from './labels';
+import type { AltUnit, DistUnit } from '../game/settings';
 import { pairTag } from './radarGeometry';
 import { toScreen, type Viewport } from './viewport';
 
@@ -36,7 +37,14 @@ export function useLabelLayout(
   sim: Sim,
   vp: Viewport,
   theme: Theme,
-  opts: { selectedId: string | null; mode: LabelMode; labelScale: number; animate: boolean; insets?: { top: number; bottom: number } },
+  opts: {
+    selectedId: string | null;
+    mode: LabelMode;
+    labelScale: number;
+    animate: boolean;
+    insets?: { top: number; bottom: number };
+    units?: { dist: DistUnit; alt: AltUnit };
+  },
 ) {
   const state = useRef({ at: 0, key: '', slots: new Map<string, Slot>() as ReadonlyMap<string, Slot> });
   const now = Date.now();
@@ -70,7 +78,7 @@ export function useLabelLayout(
       const a = sim.plane(cf.a);
       const b = sim.plane(cf.b);
       if (!a || !b) return [];
-      const r = pairTag(vp, a.pos, b.pos, cf.distNm, cf.altFt, f.chip.fontSize).rect;
+      const r = pairTag(vp, a.pos, b.pos, cf.distNm, cf.altFt, f.chip.fontSize, opts.units).rect;
       // A little clearance around the chip.
       return [{ x: r.x - 2, y: r.y - 2, w: r.w + 4, h: r.h + 4 }];
     });

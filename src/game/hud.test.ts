@@ -67,6 +67,11 @@ describe('conflict banner and slow-down', () => {
     expect(conflictBanner(sim, (cf) => cf.a === sim.planes[0].id)?.selectId).toBe(sim.planes[0].id);
   });
 
+  it('the banner follows the unit settings (km floored, metres)', () => {
+    const b = conflictBanner(pairSim(), undefined, { dist: 'km', alt: 'm' })!;
+    expect(b.detail).toMatch(/^WZZ8638 · LOT537 — 5\.\d km, 1[12]0 m$/);
+  });
+
   it('no banner without a conflict', () => {
     const sim = new Sim(LHBP, []);
     expect(conflictBanner(sim)).toBeNull();

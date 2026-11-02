@@ -1,11 +1,11 @@
 // Player settings (design S4) and their defaults. Pure: no React or storage,
 // so it can be tested and later overlaid by remote config.
+import type { LabelSize } from '../theme/themes';
 import type { LabelMode } from '../ui/labels';
 
 export type Handedness = 'right' | 'left';
 export type AltUnit = 'ft' | 'm';
 export type DistUnit = 'nm' | 'km';
-export type LabelSize = 'S' | 'M' | 'L';
 
 export interface Settings {
   /** Theme id ('radar' | 'paper'); ignored while followSystem is on. */

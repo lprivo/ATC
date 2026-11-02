@@ -191,8 +191,8 @@ function Expanded({
           label={altLabel(altUnit)}
           value={formatAltitude(p.target.altitude, altUnit)}
           now={`now ${formatAltitude(p.altitude, altUnit)} ${trend('altitude', p)}`.trim()}
-          dec={{ icon: <ChevronDown color={iconColor} />, a11y: 'Descend 1,000 feet', atLimit: atLimit('altitude', p, -1) }}
-          inc={{ icon: <ChevronUp color={iconColor} />, a11y: 'Climb 1,000 feet', atLimit: atLimit('altitude', p, 1) }}
+          dec={{ icon: <ChevronDown color={iconColor} />, a11y: altUnit === 'm' ? 'Descend about 300 metres' : 'Descend 1,000 feet', atLimit: atLimit('altitude', p, -1) }}
+          inc={{ icon: <ChevronUp color={iconColor} />, a11y: altUnit === 'm' ? 'Climb about 300 metres' : 'Climb 1,000 feet', atLimit: atLimit('altitude', p, 1) }}
           onStep={(d) => command(() => sim.setAltitude(p.id, nextAltitude(p, d)))}
         />
         <Stepper

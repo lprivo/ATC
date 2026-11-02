@@ -3,6 +3,7 @@
 // can be unit tested. All results are in screen points; `scale` is pt per nm.
 import { add, dirOf } from '../engine/math';
 import type { Airport, Plane, RunwayEnd, Vec2 } from '../engine/types';
+import { formatDistance, type AltUnit, type DistUnit } from '../game/settings';
 import { textWidth } from './labels';
 import { toScreen, type Viewport } from './viewport';
 
@@ -144,12 +145,23 @@ export function chevron(a: ScreenPt, b: ScreenPt, size = 6) {
  * "2.7 NM · 400 FT". Values round down, so a conflict never reads as the
  * 3.0 NM / 1000 FT minimum it is breaking.
  */
-export function pairTag(vp: Viewport, a: Vec2, b: Vec2, distNm: number, altFt: number, fontSize = 10) {
+export function pairTag(
+  vp: Viewport,
+  a: Vec2,
+  b: Vec2,
+  distNm: number,
+  altFt: number,
+  fontSize = 10,
+  units: { dist: DistUnit; alt: AltUnit } = { dist: 'nm', alt: 'ft' },
+) {
   const sa = toScreen(vp, a);
   const sb = toScreen(vp, b);
   const x = (sa.x + sb.x) / 2;
   const y = (sa.y + sb.y) / 2 + 26;
-  const text = `${(Math.floor(distNm * 10) / 10).toFixed(1)} NM · ${Math.floor(altFt / 100) * 100} FT`;
+  const dist = formatDistance(distNm, units.dist).toUpperCase();
+  // Metres floored to 10 so a conflict never reads as the (≈305 m) limit; feet floored to 100.
+  const alt = units.alt === 'm' ? `${Math.floor((altFt * 0.3048) / 10) * 10} M` : `${Math.floor(altFt / 100) * 100} FT`;
+  const text = `${dist} · ${alt}`;
   const w = textWidth(text, fontSize) + 8;
   /** The filled chip behind the text (14 pt tall, centred on x, y). */
   const rect = { x: x - w / 2, y: y - 7, w, h: 14 };

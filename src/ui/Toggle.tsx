@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
-/** Design S4 toggle: square, 52×30; the knob slides right and fills with `accent` when on. */
+/** Design S4 toggle: square, 52×30; when on, the track fills with `accent` and the knob slides right. */
 export function Toggle({ value, onChange, label, disabled, testID }: { value: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean; testID?: string }) {
   const { theme } = useTheme();
   const c = theme.colors;

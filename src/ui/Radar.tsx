@@ -21,6 +21,7 @@ import {
   trailDots,
 } from './radarGeometry';
 import { haptic } from '../game/haptics';
+import type { AltUnit, DistUnit } from '../game/settings';
 import { DrawOverlay } from './DrawOverlay';
 import { snapTarget } from './drawing';
 import { wheelDeltaPx, wheelZoomFactor } from './gestures';
@@ -56,6 +57,7 @@ const RECENTRE_SIZE = 44;
 /** Keep the selected plane above the re-centre button. */
 const SELECT_BOTTOM_INSET = RECENTRE_SIZE + 2 * HUD_EDGE;
 const NO_INSETS = { top: 0, bottom: 0 };
+const DEFAULT_UNITS = { dist: 'nm', alt: 'ft' } as const;
 
 interface Props {
   sim: Sim;
@@ -84,16 +86,18 @@ interface Props {
   labelScale?: number;
   /** Controls on the left (settings): the re-centre button moves to the left edge. */
   handedness?: 'left' | 'right';
+  /** Distance and altitude units (settings) for the conflict pair tag. */
+  units?: { dist: DistUnit; alt: AltUnit };
 }
 
-export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawing, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS, handedness = 'right' }: Props) {
+export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawing, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS, handedness = 'right', units = DEFAULT_UNITS }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [vp, setVp] = useState<Viewport>(() => defaultViewport(0, 0));
 
   // Data blocks: content every frame, placement at 2 Hz. Touch handlers read the
   // last drawn rectangles so a tap on a label selects its plane.
-  const labels = useLabelLayout(sim, vp, theme, { selectedId, mode: labelMode, labelScale, animate: !paused, insets });
+  const labels = useLabelLayout(sim, vp, theme, { selectedId, mode: labelMode, labelScale, animate: !paused, insets, units });
   const labelsRef = useRef(labels);
   labelsRef.current = labels;
   // Hit-test against what is on screen: label boxes and symbols from the same (rendered) camera.
@@ -285,7 +289,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
               return l ? <DataBlock key={`l-${p.id}`} label={l} conflict={p.conflict} selected={p.id === selectedId} theme={theme} /> : null;
             })}
             {sim.conflicts.map((cf) => (
-              <PairTag key={`pt-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} />
+              <PairTag key={`pt-${cf.a}-${cf.b}`} sim={sim} conflict={cf} vp={vp} theme={theme} units={units} />
             ))}
             {drawing && finger && (
               <DrawOverlay layer="over" airport={sim.airport} vp={vp} theme={theme} points={g.current.points} finger={finger} snap={snap} insets={insets} />
@@ -302,7 +306,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
         style={({ pressed }) => [
           styles.recentre,
           { bottom: insets.bottom + HUD_EDGE },
-          handedness === 'left' && { right: undefined, left: HUD_EDGE },
+          handedness === 'left' && { right: 'auto', left: HUD_EDGE },
           { backgroundColor: pressed ? c.buttonPressed : c.panel, borderColor: c.panelBorder, borderWidth: theme.hairline },
         ]}
       >
@@ -434,11 +438,11 @@ function PairLine({ sim, conflict, vp, theme }: { sim: Sim; conflict: Conflict; 
 }
 
 /** "2.7 NM · 400 FT" tag below the middle of a conflict pair. */
-function PairTag({ sim, conflict, vp, theme }: { sim: Sim; conflict: Conflict; vp: Viewport; theme: Theme }) {
+function PairTag({ sim, conflict, vp, theme, units }: { sim: Sim; conflict: Conflict; vp: Viewport; theme: Theme; units: { dist: DistUnit; alt: AltUnit } }) {
   const pair = pairPlanes(sim, conflict);
   if (!pair) return null;
   const f = theme.radarFont.chip;
-  const t = pairTag(vp, pair[0].pos, pair[1].pos, conflict.distNm, conflict.altFt, f.fontSize);
+  const t = pairTag(vp, pair[0].pos, pair[1].pos, conflict.distNm, conflict.altFt, f.fontSize, units);
   return (
     <G>
       <Rect x={t.rect.x} y={t.rect.y} width={t.rect.w} height={t.rect.h} fill={theme.colors.danger} />

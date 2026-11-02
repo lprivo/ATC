@@ -34,7 +34,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
       </View>
       <ScrollView contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 24 }]}>
         <Group title="THEME">
-          <View style={styles.cards}>
+          <View style={styles.cards} accessibilityRole="radiogroup" accessibilityLabel="Theme">
             {themes.map((th) => (
               <ThemeCard
                 key={th.id}
@@ -65,6 +65,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
                 { value: 'left', label: 'Left', testID: 'hand-left' },
                 { value: 'right', label: 'Right', testID: 'hand-right' },
               ]}
+              label="Controls on"
               value={settings.handedness}
               onChange={set('handedness')}
             />
@@ -73,10 +74,10 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
 
         <Group title="DISPLAY">
           <Row label="Altitude">
-            <Segmented options={[{ value: 'ft', label: 'ft' }, { value: 'm', label: 'm' }]} value={settings.altUnit} onChange={set('altUnit')} segmentWidth={56} />
+            <Segmented label="Altitude unit" options={[{ value: 'ft', label: 'ft', a11y: 'Feet' }, { value: 'm', label: 'm', a11y: 'Metres' }]} value={settings.altUnit} onChange={set('altUnit')} segmentWidth={56} />
           </Row>
           <Row label="Distance">
-            <Segmented options={[{ value: 'nm', label: 'nm' }, { value: 'km', label: 'km' }]} value={settings.distUnit} onChange={set('distUnit')} segmentWidth={56} />
+            <Segmented label="Distance unit" options={[{ value: 'nm', label: 'nm', a11y: 'Nautical miles' }, { value: 'km', label: 'km', a11y: 'Kilometres' }]} value={settings.distUnit} onChange={set('distUnit')} segmentWidth={56} />
           </Row>
           <Row label="Plane labels">
             <Segmented
@@ -85,6 +86,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
                 { value: 'full', label: 'Full' },
                 { value: 'min', label: 'Min' },
               ]}
+              label="Plane labels"
               value={settings.labelMode}
               onChange={set('labelMode')}
               segmentWidth={56}
@@ -93,10 +95,11 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
           <Row label="Label size">
             <Segmented
               options={[
-                { value: 'S', label: 'S' },
-                { value: 'M', label: 'M' },
-                { value: 'L', label: 'L' },
+                { value: 'S', label: 'S', a11y: 'Small' },
+                { value: 'M', label: 'M', a11y: 'Medium' },
+                { value: 'L', label: 'L', a11y: 'Large' },
               ]}
+              label="Label size"
               value={settings.labelSize}
               onChange={set('labelSize')}
               segmentWidth={44}

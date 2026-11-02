@@ -77,6 +77,7 @@ export function GameScreen({ session = FREE_SESSION, onQuit }: { session?: Sessi
           labelMode={settings.labelMode}
           labelScale={LABEL_SCALE[settings.labelSize]}
           handedness={settings.handedness}
+          units={{ dist: settings.distUnit, alt: settings.altUnit }}
           onLanding={landing.land}
           onDrawing={setDrawing}
         />
