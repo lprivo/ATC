@@ -1,5 +1,5 @@
 import { useIsFocused } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg from 'react-native-svg';
 import { AIRPORTS } from '../engine/airports';
@@ -52,7 +52,8 @@ export function MenuDemo({ centreY, scale }: { centreY: number; scale: number })
     return () => cancelAnimationFrame(raf);
   }, [running, demo]);
 
-  const vp: Viewport = { w: size.w, h: size.h, ox: size.w / 2, oy: size.h * centreY, scale };
+  // Stable between frames, so the memoised map isn't redrawn 15 times a second.
+  const vp: Viewport = useMemo(() => ({ w: size.w, h: size.h, ox: size.w / 2, oy: size.h * centreY, scale }), [size.w, size.h, centreY, scale]);
   const labels = useLabelLayout(demo.sim, vp, theme, { selectedId: null, mode: 'min', labelScale: 1, animate: running });
   const onLayout = (e: LayoutChangeEvent) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
 

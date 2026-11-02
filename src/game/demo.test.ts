@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { LHBP } from '../engine/airports/lhbp';
 import type { Airport } from '../engine/types';
-import { createDemo, DEMO, landingEnds, pickDemoAirport, stepDemo } from './demo';
+import { circuit, createDemo, DEMO, landingEnds, pickDemoAirport, runwayForSide, stepDemo } from './demo';
+
+/** The two planes' closest approach on screen (the worst over 100 seeds measured 12.5 nm). */
+const CLOSEST_NM = 8;
 
 describe('menu demo', () => {
   it('picks a random airport from the playable layouts', () => {
@@ -19,6 +22,30 @@ describe('menu demo', () => {
     expect(Math.abs(((other[0].heading - ends[0].heading + 540) % 360) - 180)).toBeGreaterThan(160);
   });
 
+  it('lands each plane on the runway on its own side of the approach', () => {
+    const ends = landingEnds(LHBP, () => 0); // 13L/13R, landing towards 130°
+    // North-east of the approach (right of 130° is south-west, so this is the left side): the left runway, 13L.
+    expect(runwayForSide(ends, { x: 10, y: 10 })).toMatchObject({ side: -1, end: { id: '13L' } });
+    expect(runwayForSide(ends, { x: -10, y: -10 })).toMatchObject({ side: 1, end: { id: '13R' } });
+  });
+
+  it('flies a circuit that stays on its own side until it turns onto final', () => {
+    const ends = landingEnds(LHBP, () => 0);
+    for (const pos of [{ x: -25, y: 15 }, { x: 25, y: -5 }, { x: 0, y: 28 }, { x: 5, y: -28 }]) {
+      const { end, side } = runwayForSide(ends, pos);
+      const route = circuit(pos, end, side);
+      const u = { x: Math.sin((end.heading * Math.PI) / 180), y: Math.cos((end.heading * Math.PI) / 180) };
+      const across = (q: { x: number; y: number }) => ((q.x - end.threshold.x) * u.y - (q.y - end.threshold.y) * u.x) * side;
+      // Everything before the joining point is out to the plane's side; then the joining point and threshold on the centreline.
+      for (const q of route.slice(0, -2)) expect(across(q)).toBeCloseTo(DEMO.circuitNm, 6);
+      expect(route[route.length - 1]).toEqual(end.threshold);
+      expect(across(route[route.length - 2])).toBeCloseTo(0, 6);
+      // From beyond the airport it flies downwind past it first (one more leg).
+      const beyond = (pos.x - end.threshold.x) * u.x + (pos.y - end.threshold.y) * u.y > -DEMO.finalNm / 2;
+      expect(route).toHaveLength(beyond ? 4 : 3);
+    }
+  });
+
   it('starts with planes already in the air', () => {
     expect(createDemo(LHBP, 1).sim.planes.length).toBeGreaterThan(0);
   });
@@ -31,7 +58,7 @@ describe('menu demo', () => {
   });
 
   it('keeps landing planes for as long as the menu is open: no go-arounds, no near-misses, no pile-up', () => {
-    for (const seed of [1, 2, 3]) {
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
       const demo = createDemo(LHBP, seed);
       let closest = Infinity;
       let most = 0;
@@ -41,18 +68,24 @@ describe('menu demo', () => {
         most = Math.max(most, ps.length);
         for (let i = 0; i < ps.length; i++)
           for (let j = i + 1; j < ps.length; j++)
-            if (Math.abs(ps[i].altitude - ps[j].altitude) < 500) closest = Math.min(closest, Math.hypot(ps[i].pos.x - ps[j].pos.x, ps[i].pos.y - ps[j].pos.y));
+            closest = Math.min(closest, Math.hypot(ps[i].pos.x - ps[j].pos.x, ps[i].pos.y - ps[j].pos.y));
       }
       const s = demo.sim.stats;
-      expect(s.landed, `seed ${seed}`).toBeGreaterThanOrEqual(20);
+      expect(s.landed, `seed ${seed}`).toBeGreaterThanOrEqual(2);
       expect(s.goArounds, `seed ${seed}`).toBe(0);
       expect(s.exited, `seed ${seed}`).toBe(0);
-      // Sequenced: planes at about the same height stay well apart (in trail on final they close to ~2 nm as they slow).
-      expect(closest, `seed ${seed}`).toBeGreaterThan(1.5);
-      // The arrival rate and the slots keep up: the sky doesn't fill up.
-      expect(most, `seed ${seed}`).toBeLessThanOrEqual(18);
-      expect(demo.sim.remainingTraffic).toBeGreaterThan(0);
+      // On a flat radar height doesn't help: the two planes never overlap on screen, at any altitude.
+      expect(closest, `seed ${seed}`).toBeGreaterThan(CLOSEST_NM);
+      // A background, not a busy sector: never more than two planes at once.
+      expect(most, `seed ${seed}`).toBeLessThanOrEqual(DEMO.maxPlanes);
     }
+  });
+
+  it('never runs out of planes, however long the menu stays open', () => {
+    const demo = createDemo(LHBP, 9);
+    for (let t = 0; t < 6 * 3600; t++) stepDemo(demo, 1);
+    expect(demo.sim.planes.length).toBeGreaterThan(0);
+    expect(demo.sim.stats.landed).toBeGreaterThan(20);
   });
 
   it('warms up for the configured time', () => {

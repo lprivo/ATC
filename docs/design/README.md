@@ -63,7 +63,7 @@ Book-style inner screen of about 7.8" at 4:3, rotated so the hinge is horizontal
 - **Do not show an airport here.** Loading an airport happens behind Start on the session screen.
 
 ### Main menu (S2)
-- *Changed after playtesting (#40):* the background is a live demo rather than empty rings. A random playable airport is shown, its arrivals sequenced onto the runways in use and landing by themselves at ×4. It's drawn with the game's map, planes, tails and short labels (no route lines), at 40% opacity under the design's sweep (`.7`, centred 300/844, 9 pt/nm). It isn't interactive, runs only while the menu is focused, and shows a still frame with Reduce Motion.
+- *Changed after playtesting (#40):* the background is a live demo rather than empty rings. A random playable airport is shown with at most two planes. Each flies a circuit on its own side of the approach and lands by itself at ×4, and the next appears only once the last has turned onto final. It's drawn with the game's map, planes, tails and short labels (no route lines), at 40% opacity under the design's sweep (`.7`, centred 300/844, 9 pt/nm). It isn't interactive, runs only while the menu is focused, and shows a still frame with Reduce Motion.
 - Wordmark at top-left, plus a `Best · 1,240 at LHBP, Steady, 30 min` line.
 - Actions in the bottom half: **PLAY** (primary, 72 high, blueprint corner marks) `Random session · LHBP · Steady`; `Choose airport`, 56 high; `Replay a real day` (dashed border, inert, `COMING SOON` tag); a 3-column row How to play / Best scores / Settings.
 
