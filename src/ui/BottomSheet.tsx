@@ -5,6 +5,7 @@ import type { Sim } from '../engine/sim';
 import type { Plane } from '../engine/types';
 import { atLimit, isFollowingRoute, nextAltitude, nextHeading, nextSpeed, statusChip, trend } from '../game/controls';
 import { useTheme } from '../theme/ThemeContext';
+import { trafficLine } from '../game/hud';
 import { altLabel, formatAltitude, type AltUnit, type Handedness } from '../game/settings';
 import { pad3 } from './format';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CloseIcon } from './icons';
@@ -34,6 +35,8 @@ interface Props {
   altUnit?: AltUnit;
   /** Controls on the left (settings): the close button moves to the left edge. */
   handedness?: Handedness;
+  /** Endless session: there's no count of planes still to come. */
+  endless?: boolean;
 }
 
 /**
@@ -42,7 +45,7 @@ interface Props {
  * - Expanded (a plane selected): header and three steppers.
  * - Compact (swipe down while selected): callsign and three read-only values; tap to expand.
  */
-export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, onTimeScale, bottomInset, onHeight, altUnit = 'ft', handedness = 'right' }: Props) {
+export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, onTimeScale, bottomInset, onHeight, altUnit = 'ft', handedness = 'right', endless = false }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const plane = selectedId ? sim.plane(selectedId) : undefined;
@@ -91,7 +94,7 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
         <View style={[styles.grabber, { backgroundColor: c.panelBorder }]} />
       </View>
       <Animated.View style={{ transform: [{ translateY: slide }] }}>
-        {state === 'peek' && <Peek sim={sim} timeScale={timeScale} onTimeScale={onTimeScale} />}
+        {state === 'peek' && <Peek sim={sim} timeScale={timeScale} onTimeScale={onTimeScale} endless={endless} />}
         {state === 'expanded' && plane && (
           <View {...swipe.panHandlers}>
             <Expanded sim={sim} plane={plane} onClose={onClose} onCommand={onCommand} altUnit={altUnit} handedness={handedness} />
@@ -107,7 +110,7 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
   );
 }
 
-function Peek({ sim, timeScale, onTimeScale }: { sim: Sim; timeScale: number; onTimeScale: (s: number) => void }) {
+function Peek({ sim, timeScale, onTimeScale, endless }: { sim: Sim; timeScale: number; onTimeScale: (s: number) => void; endless: boolean }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -117,7 +120,7 @@ function Peek({ sim, timeScale, onTimeScale }: { sim: Sim; timeScale: number; on
       <View style={styles.peekRow}>
         <SpeedControl value={timeScale} onChange={onTimeScale} />
         <Text style={[t.small, styles.hint, { color: c.textDim }]}>
-          <Text style={{ color: c.text }}>{sim.planes.length} airborne</Text>
+          <Text style={{ color: c.text }} testID="traffic-line">{trafficLine(sim.planes.length, sim.remainingTraffic, endless)}</Text>
           {'\n'}Tap a plane · hold to draw
         </Text>
       </View>

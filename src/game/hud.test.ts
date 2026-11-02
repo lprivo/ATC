@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LHBP } from '../engine/airports/lhbp';
 import { Sim } from '../engine/sim';
 import type { SimEvent } from '../engine/types';
-import { conflictBanner, conflictSetKey, hasNewConflict, MAX_TOASTS, nextToastExpiry, pairKey, stepToastState, TOAST_MS, toastFor, updateToasts } from './hud';
+import { conflictBanner, conflictSetKey, hasNewConflict, MAX_TOASTS, nextToastExpiry, pairKey, sessionClock, stepToastState, trafficLine, TOAST_MS, toastFor, updateToasts } from './hud';
 
 const ev = (seq: number, kind: SimEvent['kind'], callsigns: string[], extra: Partial<SimEvent> = {}): SimEvent => ({
   seq,
@@ -111,5 +111,34 @@ describe('toast timing and keys', () => {
     const b = { a: '4', b: '3', distNm: 1, altFt: 0 };
     expect(conflictSetKey([a, b])).toBe(conflictSetKey([b, a]));
     expect(conflictSetKey([])).toBe('');
+  });
+});
+
+describe('session clock', () => {
+  it('counts down to the end of a timed session', () => {
+    expect(sessionClock(0, 1800)).toMatchObject({ text: '30:00', label: 'LEFT', lastMinute: false });
+    expect(sessionClock(305.2, 1800)).toMatchObject({ text: '24:55', a11y: '24:55 left' });
+  });
+  it('rounds up, so it only reads 00:00 once the session is over', () => {
+    expect(sessionClock(1799.5, 1800).text).toBe('00:01');
+    expect(sessionClock(1800, 1800).text).toBe('00:00');
+    expect(sessionClock(1900, 1800).text).toBe('00:00');
+  });
+  it('flags the last minute', () => {
+    expect(sessionClock(1739, 1800).lastMinute).toBe(false);
+    expect(sessionClock(1740, 1800).lastMinute).toBe(true);
+  });
+  it('shows the time played in an endless session', () => {
+    expect(sessionClock(131, null)).toMatchObject({ text: '02:11', label: null, lastMinute: false });
+  });
+});
+
+describe('traffic line', () => {
+  it('shows planes airborne and still to come', () => {
+    expect(trafficLine(4, 9, false)).toBe('4 airborne · 9 to come');
+    expect(trafficLine(2, 0, false)).toBe('2 airborne · no more to come');
+  });
+  it('shows only planes airborne in an endless session', () => {
+    expect(trafficLine(3, 40, true)).toBe('3 airborne');
   });
 });

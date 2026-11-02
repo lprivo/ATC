@@ -3,6 +3,7 @@ import { LHBP } from '../engine/airports/lhbp';
 import type { Plane } from '../engine/types';
 import {
   bracketPath,
+  splitAlpha,
   centreline,
   chevron,
   conflictRingRadius,
@@ -12,6 +13,7 @@ import {
   runwayLabelPos,
   runwayWidth,
   screenDir,
+  sweepSlices,
   trailAlpha,
   trailDots,
   wedgePath,
@@ -163,5 +165,34 @@ describe('sweep wedge', () => {
     expect(d.startsWith('M100,100 L100,50 ')).toBe(true); // north
     expect(d).toContain('A50,50 0 0 1 150,100'); // east
     expect(d.endsWith('Z')).toBe(true);
+  });
+});
+
+describe('sweep fade', () => {
+  const alphaAt = (slices: ReturnType<typeof sweepSlices>, bearing: number) => slices.find((l) => l.a0 <= bearing && bearing < l.a1)?.opacity ?? 0;
+
+  it('splits an rgba colour into an opaque colour and its alpha', () => {
+    expect(splitAlpha('rgba(148, 188, 227, 0.30)')).toEqual({ rgb: 'rgb(148,188,227)', alpha: 0.3 });
+    expect(splitAlpha('#b5d9fd')).toEqual({ rgb: '#b5d9fd', alpha: 1 });
+  });
+
+  it('peaks at the leading edge and fades to nothing at the tail, without gaps', () => {
+    const slices = sweepSlices(46, 60, 0.3);
+    expect(alphaAt(slices, -0.01)).toBeCloseTo(0.3, 6);
+    expect(alphaAt(slices, -46.01)).toBe(0);
+    expect(alphaAt(slices, -23)).toBeCloseTo(0.15, 1);
+    for (let i = 1; i < slices.length; i++) expect(slices[i].a1).toBeCloseTo(slices[i - 1].a0, 9);
+    expect(slices[slices.length - 1].a0).toBeCloseTo(-46, 9);
+  });
+
+  it('fades smoothly: no single step is a visible band (under 1% alpha)', () => {
+    const slices = sweepSlices(46, 60, 0.3);
+    let prev = alphaAt(slices, -0.01);
+    for (let b = -0.1; b > -46; b -= 0.1) {
+      const a = alphaAt(slices, b);
+      expect(a).toBeLessThanOrEqual(prev + 1e-12);
+      expect(prev - a).toBeLessThan(0.01);
+      prev = a;
+    }
   });
 });

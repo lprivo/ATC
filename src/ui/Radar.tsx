@@ -211,18 +211,51 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
   const onRelease = (e: GestureResponderEvent) => run(onUp(g.current, pointOf(e), Date.now(), cam.current));
   const onTerminate = () => run(onCancel(g.current));
 
-  // Scroll wheel / trackpad zoom on the web, around the pointer.
+  // Scroll wheel / trackpad zoom on the web, around the pointer. Chrome and
+  // Firefox report a trackpad pinch as a ctrl+wheel, so that's covered too.
+  // Safari reports it as `gesture*` events instead and, unless stopped, zooms
+  // the whole page; once the page is zoomed the browser keeps later pinches for
+  // itself and the map can't be zoomed any more. So the gesture events zoom the map.
   const hostRef = useRef<ComponentRef<typeof View>>(null);
   useEffect(() => {
     const el = webElement(hostRef.current);
     if (!el) return;
+    const local = (ev: { clientX: number; clientY: number }) => {
+      const r = el.getBoundingClientRect();
+      return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+    };
     const onWheel = (ev: WheelEvent) => {
       ev.preventDefault();
-      const r = el.getBoundingClientRect();
-      updateCam((v) => zoomAt(v, v.scale * wheelZoomFactor(wheelDeltaPx(ev)), ev.clientX - r.left, ev.clientY - r.top));
+      const at = local(ev);
+      updateCam((v) => zoomAt(v, v.scale * wheelZoomFactor(wheelDeltaPx(ev)), at.x, at.y));
+    };
+    let gestureStart: { scale: number } | null = null;
+    const onGestureStart = (ev: Event) => {
+      ev.preventDefault();
+      gestureStart = { scale: cam.current.scale };
+    };
+    const onGestureChange = (ev: Event) => {
+      ev.preventDefault();
+      const g = ev as Event & { scale?: number; clientX?: number; clientY?: number };
+      if (!gestureStart || !g.scale) return;
+      const at = local({ clientX: g.clientX ?? 0, clientY: g.clientY ?? 0 });
+      const k = gestureStart.scale * g.scale;
+      updateCam((v) => zoomAt(v, k, at.x, at.y));
+    };
+    const onGestureEnd = (ev: Event) => {
+      ev.preventDefault();
+      gestureStart = null;
     };
     el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    el.addEventListener('gesturestart', onGestureStart);
+    el.addEventListener('gesturechange', onGestureChange);
+    el.addEventListener('gestureend', onGestureEnd);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('gesturestart', onGestureStart);
+      el.removeEventListener('gesturechange', onGestureChange);
+      el.removeEventListener('gestureend', onGestureEnd);
+    };
     // updateCam only touches refs and a stable setter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -321,7 +354,9 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
 
 const styles = StyleSheet.create({
   // Drags on the radar pan or draw; on the web they must not select label text.
-  host: { flex: 1, overflow: 'hidden', ...Platform.select({ web: { userSelect: 'none' as const }, default: {} }) },
+  // Web: every touch on the radar is the game's (pan, pinch, draw). Without
+  // `touchAction: 'none'` a mobile browser zooms or scrolls the page instead.
+  host: { flex: 1, overflow: 'hidden', ...Platform.select({ web: { userSelect: 'none' as const, touchAction: 'none' as const }, default: {} }) },
   recentre: {
     position: 'absolute',
     right: HUD_EDGE,

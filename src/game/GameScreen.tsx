@@ -113,7 +113,7 @@ export function GameScreen({
         {!paused && (
           <>
           <View style={[styles.hud, side, { top }]} pointerEvents="box-none">
-            <TopBar sim={sim} paused={paused} onTogglePause={() => setPaused((p) => !p)} />
+            <TopBar sim={sim} paused={paused} onTogglePause={() => setPaused((p) => !p)} sessionSec={lengthSec(session.length)} />
           </View>
           {banner && (
             <View style={[styles.hud, side, { top: hudBottom }]} pointerEvents="box-none">
@@ -156,6 +156,7 @@ export function GameScreen({
           altUnit={settings.altUnit}
           handedness={settings.handedness}
           onHeight={setSheetHeight}
+          endless={session.length === 'endless'}
         />
       </View>
       {paused && (

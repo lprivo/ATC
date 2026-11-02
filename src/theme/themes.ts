@@ -81,10 +81,15 @@ export type TypeTokenName =
   | 'bannerTitle'
   | 'mark'
   | 'wordmark'
+  | 'menuWordmark'
+  | 'menuPrimary'
+  | 'menuButton'
+  | 'menuButtonSmall'
   | 'tagline'
   | 'chip'
   | 'body'
   | 'bodyStrong'
+  | 'bodyEmphasis'
   | 'small'
   | 'smallTight'
   | 'caps'
@@ -111,6 +116,14 @@ const type: ThemeType = {
   mark: { fontFamily: FONT_FAMILY.body400, fontSize: 14, lineHeight: 16 },
   /** "PRIVO ATC" wordmark (splash, menu). */
   wordmark: { fontFamily: FONT_FAMILY.condensed600, fontSize: 46, letterSpacing: em(46, 0.14) },
+  /** Main-menu wordmark (design S2). */
+  menuWordmark: { fontFamily: FONT_FAMILY.condensed600, fontSize: 40, lineHeight: 40, letterSpacing: em(40, 0.12) },
+  /** Main-menu PLAY. */
+  menuPrimary: { fontFamily: FONT_FAMILY.condensed600, fontSize: 28, lineHeight: 28, letterSpacing: em(28, 0.04) },
+  /** Main-menu full-width buttons (Choose airport, Replay a real day). */
+  menuButton: { fontFamily: FONT_FAMILY.condensed600, fontSize: 20, letterSpacing: em(20, 0.03) },
+  /** Main-menu bottom row (How to play / Best scores / Settings). */
+  menuButtonSmall: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, letterSpacing: em(16, 0.03) },
   /** "APPROACH CONTROL" tagline. */
   tagline: { fontFamily: FONT_FAMILY.body500, fontSize: 13, letterSpacing: em(13, 0.24) },
   /** Conflict banner title. */
@@ -119,6 +132,8 @@ const type: ThemeType = {
   chip: { fontFamily: FONT_FAMILY.condensed600, fontSize: 12, letterSpacing: em(12, 0.08) },
   body: { fontFamily: FONT_FAMILY.body400, fontSize: 15, lineHeight: 22 },
   bodyStrong: { fontFamily: FONT_FAMILY.body500, fontSize: 14 },
+  /** A highlighted run inside bodyStrong text (the best score on the menu). */
+  bodyEmphasis: { fontFamily: FONT_FAMILY.body600, fontSize: 14 },
   small: { fontFamily: FONT_FAMILY.body500, fontSize: 13, lineHeight: 17 },
   smallTight: { fontFamily: FONT_FAMILY.body500, fontSize: 12, fontVariant: tabular },
   caps: { fontFamily: FONT_FAMILY.body600, fontSize: 11, letterSpacing: em(11, 0.12) },

@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { AppIcon } from '../ui/AppIcon';
 import { RadarBackdrop } from '../ui/RadarBackdrop';
@@ -19,6 +20,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
+  const insets = useSafeAreaInsets();
   const progress = useRef(new Animated.Value(0)).current;
   const done = useRef(onDone);
   done.current = onDone;
@@ -31,12 +33,20 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]} testID="splash">
       <RadarBackdrop centreY={0.5} scale={7} />
-      <View style={styles.centre}>
-        <AppIcon size={104} />
-        <Text style={[t.wordmark, styles.wordmark, { color: c.text }]} accessibilityRole="header">
-          PRIVO ATC
-        </Text>
-        <Text style={[t.tagline, { color: c.textDim }]}>APPROACH CONTROL</Text>
+      {/* Design: the icon block starts 300 pt down an 844 pt screen. */}
+      <View style={styles.brand}>
+        <View style={[styles.icon, { borderColor: c.panelBorder, borderWidth: theme.hairline }]}>
+          <AppIcon size={104} />
+        </View>
+        <View style={styles.words}>
+          <Text style={[t.wordmark, styles.spaced, { color: c.text, paddingLeft: WORDMARK_TRACK }]} accessibilityRole="header">
+            PRIVO ATC
+          </Text>
+          <Text style={[t.tagline, { color: c.textDim, paddingLeft: TAGLINE_TRACK }]}>APPROACH CONTROL</Text>
+        </View>
+      </View>
+      {/* Design: 92 pt from the bottom of the screen, i.e. 58 above the home indicator. */}
+      <View style={[styles.foot, { bottom: insets.bottom + 58 }]}>
         <View style={[styles.track, { backgroundColor: c.rangeRing }]} accessibilityRole="progressbar" accessibilityLabel="Loading">
           <Animated.View style={[styles.fill, { backgroundColor: c.snapHalo, transform: [{ scaleX: progress }] }]} />
         </View>
@@ -46,10 +56,17 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
+// Letter-spacing also trails the last letter; padding the start by the same amount keeps the text optically centred.
+const WORDMARK_TRACK = 46 * 0.14;
+const TAGLINE_TRACK = 13 * 0.24;
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  centre: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  wordmark: { marginTop: 18 },
-  track: { width: 180, height: 2, marginTop: 28, overflow: 'hidden' },
+  brand: { position: 'absolute', left: 0, right: 0, top: '35.5%', alignItems: 'center', gap: 18 },
+  icon: { width: 106, height: 106, borderRadius: 25, overflow: 'hidden' },
+  words: { alignItems: 'center', gap: 6 },
+  spaced: { lineHeight: 46 },
+  foot: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 10 },
+  track: { width: 180, height: 2, overflow: 'hidden' },
   fill: { width: 180, height: 2, transformOrigin: 'left' },
 });

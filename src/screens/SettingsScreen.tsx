@@ -141,9 +141,14 @@ function Row({ label, sub, soon, children }: { label: string; sub?: string; soon
   );
 }
 
-/** A theme preview card: the theme's own colours, a ring, the runways and a plane. */
+/**
+ * Design S4 theme card: a small scope in the theme's own colours (a ring and a
+ * plane with its callsign), then the theme's name. The selected card has an
+ * `accent` border and a ● after its name.
+ */
 function ThemeCard({ th, selected, onPress }: { th: Theme; selected: boolean; onPress: () => void }) {
   const { theme } = useTheme();
+  const c = theme.colors;
   const k = th.colors;
   return (
     <Pressable
@@ -152,29 +157,35 @@ function ThemeCard({ th, selected, onPress }: { th: Theme; selected: boolean; on
       accessibilityLabel={`${th.name} theme`}
       onPress={onPress}
       testID={`theme-card-${th.id}`}
-      style={[styles.card, { backgroundColor: k.background, borderColor: selected ? theme.colors.accent : theme.colors.panelBorder, borderWidth: selected ? 2 : theme.hairline }]}
+      style={({ pressed }) => [styles.card, { borderColor: selected ? c.accent : c.panelBorder, borderWidth: theme.hairline, backgroundColor: pressed ? c.buttonPressed : 'transparent' }]}
     >
-      <View style={[styles.ring, { borderColor: k.rangeRing }]} />
-      <View style={[styles.runway, { backgroundColor: k.runway, top: 34, left: 40 }]} />
-      <View style={[styles.runway, { backgroundColor: k.runway, top: 44, left: 32 }]} />
-      <View style={[styles.blip, { borderColor: k.plane }]} />
-      <Text style={[theme.type.barCount, styles.cardLabel, { color: k.text }]}>{th.name}</Text>
+      <View style={[styles.preview, { backgroundColor: k.background, borderColor: k.rangeRing, borderWidth: theme.hairline }]}>
+        <View style={[styles.ring, { borderColor: k.rangeRing, borderWidth: theme.hairline }]} />
+        <View style={[styles.blip, { borderColor: k.plane }]} />
+        <Text style={[theme.radarFont.chip, styles.callsign, { color: k.plane }]}>WZZ12</Text>
+      </View>
+      <View style={styles.cardFoot}>
+        <Text style={[theme.type.barCount, { color: c.text }]}>{th.name}</Text>
+        {selected && <Text style={[theme.type.barCount, { color: c.accent }]}>●</Text>}
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 16 },
+  // Laid out for a phone; on a wide (web) window it stays phone-width and centred (the stack's background fills the rest).
+  screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 20 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   body: { gap: 24 },
   group: { gap: 8 },
-  cards: { flexDirection: 'row', gap: 12 },
-  card: { flex: 1, height: 110, overflow: 'hidden', justifyContent: 'flex-end', padding: 10 },
-  ring: { position: 'absolute', width: 120, height: 120, borderRadius: 60, borderWidth: 1, top: -20, left: 0 },
-  runway: { position: 'absolute', width: 34, height: 3, transform: [{ rotate: '42deg' }] },
-  blip: { position: 'absolute', width: 9, height: 9, borderWidth: 1.5, top: 18, right: 26 },
-  cardLabel: {},
+  cards: { flexDirection: 'row', gap: 10 },
+  card: { flex: 1, padding: 8, gap: 8 },
+  preview: { height: 70, overflow: 'hidden' },
+  ring: { position: 'absolute', left: 26, top: 12, width: 44, height: 44, borderRadius: 22 },
+  blip: { position: 'absolute', left: 46, top: 28, width: 8, height: 8, borderWidth: 1.5 },
+  callsign: { position: 'absolute', left: 58, top: 17 },
+  cardFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   row: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   rowText: { flex: 1, gap: 2 },
   rowTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
