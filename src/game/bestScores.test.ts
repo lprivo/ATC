@@ -53,7 +53,7 @@ describe('best scores', () => {
   it('menu line names the overall best; list is highest first', () => {
     let b = recordScore({}, steady, 1240, 1).bests;
     b = recordScore(b, { ...steady, traffic: 'busy', length: 'endless' }, 300, 2).bests;
-    expect(bestLine(b)).toBe('Best · 1,240 at LHBP, Steady, 30 min');
+    expect(bestLine(b)).toEqual({ score: '1,240', where: ' at LHBP, Steady, 30 min' });
     expect(bestLine({})).toBeNull();
     expect(bestList(b).map((x) => x.score)).toEqual([1240, 300]);
   });

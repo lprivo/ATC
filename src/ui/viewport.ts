@@ -52,6 +52,15 @@ export function zoomAt(v: Viewport, scale: number, fx: number, fy: number): View
   return { ...v, scale: k, ox: fx - w.x * k, oy: fy + w.y * k };
 }
 
+/**
+ * Safari trackpad pinch: `gestureScale` is relative to the scale when the
+ * pinch began (`startScale`), not to the previous event. Zooms to that
+ * (clamped), keeping the world point under the pointer `at` fixed.
+ */
+export function trackpadPinchZoom(v: Viewport, startScale: number, gestureScale: number, at: { x: number; y: number }): Viewport {
+  return zoomAt(v, startScale * gestureScale, at.x, at.y);
+}
+
 /** Double-tap: sector view zooms into the runways around the airport; anything else returns to the sector view. */
 export function toggleRunwayZoom(v: Viewport): Viewport {
   const toRunway = v.scale < (ZOOM.sector + ZOOM.runway) / 2;

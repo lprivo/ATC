@@ -25,6 +25,13 @@ export const meanIntervalSec = (t: Traffic) => 3600 / TRAFFIC_PER_HOUR[t];
 /** Session length in sim seconds, or null for endless. */
 export const lengthSec = (l: SessionLength) => (l === 'endless' ? null : l * 60);
 
+/** Sim clock, mm:ss (e.g. "02:11"). */
+export const clock = (sec: number) => {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
 /** Whether a session has reached its length (an endless one never does). */
 export const sessionOver = (l: SessionLength, simTime: number) => {
   const end = lengthSec(l);

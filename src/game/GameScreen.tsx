@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BackHandler, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { airportByIcao } from '../engine/airports';
 import type { SimStats } from '../engine/types';
@@ -15,9 +15,11 @@ import { BottomSheet } from '../ui/BottomSheet';
 import { Radar } from '../ui/Radar';
 import { Toasts } from '../ui/Toasts';
 import { TopBar } from '../ui/TopBar';
+import { usePreventPageZoom } from '../ui/useWebZoom';
 import { haptic } from './haptics';
 import { LABEL_SCALE } from '../theme/themes';
 import { useSettings } from './SettingsContext';
+import { sessionClock } from './hud';
 import { useHud } from './useHud';
 import { usePendingLanding } from './usePendingLanding';
 import { useSim } from './useSim';
@@ -50,6 +52,18 @@ export function GameScreen({
   const [bannerHeight, setBannerHeight] = useState(56);
   const [sheetHeight, setSheetHeight] = useState(0);
   const landing = usePendingLanding(sim);
+  usePreventPageZoom();
+  const sessionSec = lengthSec(session.length);
+  // Arrivals still to come; an endless session's traffic never runs out.
+  const toCome = sessionSec == null ? null : sim.remainingTraffic;
+  // Screen readers hear the last minute begin, once per session. (Kept here, not in the top
+  // bar, which unmounts while paused and would announce again on every resume.)
+  const lastMinute = sessionClock(sim.time, sessionSec).lastMinute;
+  const announcedLastMinute = useRef(false);
+  useEffect(() => {
+    if (lastMinute && !announcedLastMinute.current) AccessibilityInfo.announceForAccessibility('One minute left');
+    announcedLastMinute.current = lastMinute;
+  }, [lastMinute]);
   /** Selecting a plane (by tap, label or the banner's SELECT) gives a light tap. */
   const select = (id: string | null, opts?: { silent?: boolean }) => {
     if (id && id !== selectedId && !opts?.silent) haptic('select');
@@ -113,7 +127,7 @@ export function GameScreen({
         {!paused && (
           <>
           <View style={[styles.hud, side, { top }]} pointerEvents="box-none">
-            <TopBar sim={sim} paused={paused} onTogglePause={() => setPaused((p) => !p)} sessionSec={lengthSec(session.length)} />
+            <TopBar sim={sim} paused={paused} onTogglePause={() => setPaused((p) => !p)} sessionSec={sessionSec} toCome={toCome} />
           </View>
           {banner && (
             <View style={[styles.hud, side, { top: hudBottom }]} pointerEvents="box-none">
@@ -156,11 +170,11 @@ export function GameScreen({
           altUnit={settings.altUnit}
           handedness={settings.handedness}
           onHeight={setSheetHeight}
-          endless={session.length === 'endless'}
+          toCome={toCome}
         />
       </View>
       {paused && (
-        <PauseMenu sim={sim} sessionSec={lengthSec(session.length) ?? undefined} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} onQuit={onSessionEnd ? () => endSession(true) : onQuit}
+        <PauseMenu sim={sim} sessionSec={sessionSec} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} onQuit={onSessionEnd ? () => endSession(true) : onQuit}
           quitLabel={onSessionEnd ? 'End session' : undefined}
         />
       )}
@@ -169,7 +183,8 @@ export function GameScreen({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  // Web: no browser pinch-zoom anywhere on the game screen (the radar has its own); panning inside scroll views still works.
+  screen: { flex: 1, ...Platform.select({ web: { touchAction: 'pan-x pan-y' as const }, default: {} }) },
   radarArea: { flex: 1 },
   hud: { position: 'absolute' },
 });

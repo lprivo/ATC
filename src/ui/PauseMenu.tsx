@@ -14,8 +14,8 @@ const CONFIRM_MS = 4000;
 
 interface Props {
   sim: Sim;
-  /** Session length in sim seconds, for "02:11 / 30:00"; omitted for endless sessions. */
-  sessionSec?: number;
+  /** Session length in sim seconds, for "02:11 / 30:00"; null for endless sessions. */
+  sessionSec: number | null;
   topInset: number;
   bottomInset: number;
   onResume: () => void;
@@ -38,7 +38,7 @@ export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, on
   const [explaining, setExplaining] = useState<StatKey | null>(null);
   const [confirming, setConfirming] = useState<'restart' | 'quit' | null>(null);
   const box = { borderColor: c.panelBorder, borderWidth: theme.hairline };
-  const session = `PAUSED · ${sim.airport.icao} · ${clock(sim.time)}${sessionSec ? ` / ${clock(sessionSec)}` : ''}`;
+  const session = `PAUSED · ${sim.airport.icao} · ${clock(sim.time)}${sessionSec != null ? ` / ${clock(sessionSec)}` : ''}`;
 
   // An armed Restart / Quit disarms on its own after a few seconds, and on any other press.
   useEffect(() => {

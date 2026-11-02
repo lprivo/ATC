@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LHBP } from '../engine/airports/lhbp';
 import { Sim } from '../engine/sim';
 import type { SimEvent } from '../engine/types';
-import { conflictBanner, conflictSetKey, hasNewConflict, MAX_TOASTS, nextToastExpiry, pairKey, sessionClock, stepToastState, trafficLine, TOAST_MS, toastFor, updateToasts } from './hud';
+import { conflictBanner, conflictSetKey, hasNewConflict, MAX_TOASTS, nextToastExpiry, pairKey, sessionClock, stepToastState, toComeCaption, trafficLine, TOAST_MS, toastFor, updateToasts } from './hud';
 
 const ev = (seq: number, kind: SimEvent['kind'], callsigns: string[], extra: Partial<SimEvent> = {}): SimEvent => ({
   seq,
@@ -116,7 +116,7 @@ describe('toast timing and keys', () => {
 
 describe('session clock', () => {
   it('counts down to the end of a timed session', () => {
-    expect(sessionClock(0, 1800)).toMatchObject({ text: '30:00', label: 'LEFT', lastMinute: false });
+    expect(sessionClock(0, 1800)).toEqual({ text: '30:00', caption: 'LEFT', a11y: '30:00 left', lastMinute: false });
     expect(sessionClock(305.2, 1800)).toMatchObject({ text: '24:55', a11y: '24:55 left' });
   });
   it('rounds up, so it only reads 00:00 once the session is over', () => {
@@ -124,21 +124,25 @@ describe('session clock', () => {
     expect(sessionClock(1800, 1800).text).toBe('00:00');
     expect(sessionClock(1900, 1800).text).toBe('00:00');
   });
-  it('flags the last minute', () => {
-    expect(sessionClock(1739, 1800).lastMinute).toBe(false);
-    expect(sessionClock(1740, 1800).lastMinute).toBe(true);
+  it('marks the last minute in words as well as colour', () => {
+    expect(sessionClock(1739, 1800)).toMatchObject({ caption: 'LEFT', lastMinute: false });
+    expect(sessionClock(1740, 1800)).toMatchObject({ caption: 'LAST MIN', lastMinute: true });
   });
   it('shows the time played in an endless session', () => {
-    expect(sessionClock(131, null)).toMatchObject({ text: '02:11', label: null, lastMinute: false });
+    expect(sessionClock(131, null)).toEqual({ text: '02:11', caption: null, a11y: '02:11 played', lastMinute: false });
   });
 });
 
-describe('traffic line', () => {
-  it('shows planes airborne and still to come', () => {
-    expect(trafficLine(4, 9, false)).toBe('4 airborne · 9 to come');
-    expect(trafficLine(2, 0, false)).toBe('2 airborne · no more to come');
+describe('planes still to come', () => {
+  it('captions the count for the top bar', () => {
+    expect(toComeCaption(6)).toBe('6 TO COME');
+    expect(toComeCaption(0)).toBe('NONE TO COME');
+  });
+  it('shows planes airborne and still to come in the sheet', () => {
+    expect(trafficLine(4, 9)).toBe('4 airborne · 9 to come');
+    expect(trafficLine(2, 0)).toBe('2 airborne · none to come');
   });
   it('shows only planes airborne in an endless session', () => {
-    expect(trafficLine(3, 40, true)).toBe('3 airborne');
+    expect(trafficLine(3, null)).toBe('3 airborne');
   });
 });

@@ -9,6 +9,7 @@ import { DifficultyBars } from '../ui/DifficultyBars';
 import { BackIcon, LockIcon, SearchIcon } from '../ui/icons';
 import { RunwayPreview } from '../ui/RunwayPreview';
 import { UnlockOffer } from '../ui/UnlockOffer';
+import { shellColumn } from '../ui/shellLayout';
 
 /**
  * Design S3a: search, region chips, the free airport pinned as a card, the
@@ -149,7 +150,7 @@ export function ChooseAirport({ onPick, onBack }: { onPick: (icao: string) => vo
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 16, gap: 10 },
+  screen: { ...shellColumn, flex: 1, paddingHorizontal: 16, gap: 10 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   search: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },

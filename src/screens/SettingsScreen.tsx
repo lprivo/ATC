@@ -5,9 +5,11 @@ import { useSettings } from '../game/SettingsContext';
 import type { Settings } from '../game/settings';
 import { useTheme } from '../theme/ThemeContext';
 import type { Theme } from '../theme/themes';
+import { ComingSoonTag } from '../ui/ComingSoonTag';
 import { BackIcon } from '../ui/icons';
 import { Segmented } from '../ui/Segmented';
 import { Toggle } from '../ui/Toggle';
+import { shellColumn } from '../ui/shellLayout';
 
 /**
  * Design S4: THEME (Radar / Paper preview cards, follow system), FEEL (sound,
@@ -132,7 +134,7 @@ function Row({ label, sub, soon, children }: { label: string; sub?: string; soon
       <View style={styles.rowText}>
         <View style={styles.rowTitle}>
           <Text style={[t.bodyStrong, { color: soon ? c.textDim : c.text }]}>{label}</Text>
-          {soon && <Text style={[t.chip, styles.soon, { color: c.textDim, borderColor: c.textDim, borderWidth: theme.hairline }]}>COMING SOON</Text>}
+          {soon && <ComingSoonTag />}
         </View>
         {sub && <Text style={[t.smallTight, { color: c.textDim }]}>{sub}</Text>}
       </View>
@@ -159,10 +161,11 @@ function ThemeCard({ th, selected, onPress }: { th: Theme; selected: boolean; on
       testID={`theme-card-${th.id}`}
       style={({ pressed }) => [styles.card, { borderColor: selected ? c.accent : c.panelBorder, borderWidth: theme.hairline, backgroundColor: pressed ? c.buttonPressed : 'transparent' }]}
     >
-      <View style={[styles.preview, { backgroundColor: k.background, borderColor: k.rangeRing, borderWidth: theme.hairline }]}>
+      {/* Design: a preview the same colour as the screen behind it gets a hairline so it doesn't vanish; a contrasting one has none. */}
+      <View style={[styles.preview, { backgroundColor: k.background }, k.background === c.background && { borderColor: k.rangeRing, borderWidth: theme.hairline }]}>
         <View style={[styles.ring, { borderColor: k.rangeRing, borderWidth: theme.hairline }]} />
         <View style={[styles.blip, { borderColor: k.plane }]} />
-        <Text style={[theme.radarFont.chip, styles.callsign, { color: k.plane }]}>WZZ12</Text>
+        <Text style={[theme.type.previewLabel, styles.callsign, { color: k.plane }]}>WZZ12</Text>
       </View>
       <View style={styles.cardFoot}>
         <Text style={[theme.type.barCount, { color: c.text }]}>{th.name}</Text>
@@ -173,8 +176,7 @@ function ThemeCard({ th, selected, onPress }: { th: Theme; selected: boolean; on
 }
 
 const styles = StyleSheet.create({
-  // Laid out for a phone; on a wide (web) window it stays phone-width and centred (the stack's background fills the rest).
-  screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 20 },
+  screen: { ...shellColumn, flex: 1, paddingHorizontal: 20 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   body: { gap: 24 },
@@ -184,10 +186,9 @@ const styles = StyleSheet.create({
   preview: { height: 70, overflow: 'hidden' },
   ring: { position: 'absolute', left: 26, top: 12, width: 44, height: 44, borderRadius: 22 },
   blip: { position: 'absolute', left: 46, top: 28, width: 8, height: 8, borderWidth: 1.5 },
-  callsign: { position: 'absolute', left: 58, top: 17 },
+  callsign: { position: 'absolute', left: 58, top: 20 },
   cardFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   row: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   rowText: { flex: 1, gap: 2 },
   rowTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  soon: { paddingHorizontal: 6, paddingVertical: 2 },
 });

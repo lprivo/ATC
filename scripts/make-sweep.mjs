@@ -1,37 +1,13 @@
-// Generates assets/sweep.png: the radar sweep's fade as a white image with an
-// alpha ramp (a conic gradient), tinted with the theme's `sweep` colour at
-// runtime. SVG has no conic gradient, and building one from slices leaves
-// hairline seams, so it's baked here instead.
-//
-// The image is a square centred on the radar. The leading edge points north
-// (up) at full alpha and the fade trails anticlockwise over SPAN_DEG to zero.
-// Run: node scripts/make-sweep.mjs
+// Bakes the radar sweep's fade into images: white with an alpha ramp (a
+// conic gradient), tinted with the theme's `sweep` colour at runtime. SVG has
+// no conic gradient, and building one from SVG slices leaves hairline seams
+// between them, so it's baked here instead. The ramp itself is
+// src/ui/sweepRamp.ts (unit tested, including a check that the committed
+// images match it), so change it there and re-run:
+//   node scripts/make-sweep.mjs
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
-
-const SIZE = 1024;
-const SPAN_DEG = 46; // design: 0.8 rad
-
-const c = SIZE / 2;
-const rows = Buffer.alloc(SIZE * (1 + SIZE * 4));
-for (let y = 0; y < SIZE; y++) {
-  const row = y * (1 + SIZE * 4);
-  rows[row] = 0; // filter: none
-  for (let x = 0; x < SIZE; x++) {
-    const dx = x + 0.5 - c;
-    const dy = c - (y + 0.5);
-    const r = Math.hypot(dx, dy);
-    const bearing = (Math.atan2(dx, dy) * 180) / Math.PI; // clockwise from north
-    const pxDeg = r > 0 ? 57.2958 / r : 360; // one pixel's width in degrees here
-    // Ramp from 0 at -SPAN to 1 at 0, cut at the leading edge with one pixel of anti-aliasing.
-    const ramp = Math.min(1, Math.max(0, 1 + bearing / SPAN_DEG));
-    const edge = Math.min(1, Math.max(0, -bearing / pxDeg + 0.5));
-    const a = bearing <= pxDeg && bearing >= -SPAN_DEG ? ramp * edge : 0;
-    const i = row + 1 + x * 4;
-    rows[i] = rows[i + 1] = rows[i + 2] = 255;
-    rows[i + 3] = Math.round(a * 255);
-  }
-}
+import { SWEEP_IMAGES, sweepAlpha } from '../src/ui/sweepRamp.ts';
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {
   let k = n;
@@ -51,16 +27,29 @@ const chunk = (type, data) => {
   sum.writeUInt32BE(crc(body));
   return Buffer.concat([len, body, sum]);
 };
-const ihdr = Buffer.alloc(13);
-ihdr.writeUInt32BE(SIZE, 0);
-ihdr.writeUInt32BE(SIZE, 4);
-ihdr[8] = 8; // bit depth
-ihdr[9] = 6; // RGBA
-const png = Buffer.concat([
-  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-  chunk('IHDR', ihdr),
-  chunk('IDAT', deflateSync(rows, { level: 9 })),
-  chunk('IEND', Buffer.alloc(0)),
-]);
-writeFileSync(new URL('../assets/sweep.png', import.meta.url), png);
-console.log(`assets/sweep.png: ${SIZE}×${SIZE}, ${(png.length / 1024).toFixed(0)} KB`);
+
+for (const { file, size, spanDeg } of SWEEP_IMAGES) {
+  const c = size / 2;
+  const rows = Buffer.alloc(size * (1 + size * 4));
+  for (let y = 0; y < size; y++) {
+    const row = y * (1 + size * 4); // each row starts with filter byte 0 (none)
+    for (let x = 0; x < size; x++) {
+      const i = row + 1 + x * 4;
+      rows[i] = rows[i + 1] = rows[i + 2] = 255;
+      rows[i + 3] = Math.round(sweepAlpha(x + 0.5 - c, c - (y + 0.5), spanDeg) * 255);
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // RGBA
+  const png = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', deflateSync(rows, { level: 9 })),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+  writeFileSync(new URL(`../assets/${file}`, import.meta.url), png);
+  console.log(`assets/${file}: ${size}×${size}, ${spanDeg}°, ${(png.length / 1024).toFixed(0)} KB`);
+}

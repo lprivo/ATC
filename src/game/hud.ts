@@ -2,7 +2,7 @@
 // automatic slow-down on a new conflict. Pure (no React / React Native imports).
 import type { Sim } from '../engine/sim';
 import type { Conflict, SimEvent } from '../engine/types';
-import { clock } from '../ui/format';
+import { clock } from './session';
 import { conflictAltitude, formatDistance, type AltUnit, type DistUnit } from './settings';
 
 /** Design: at most 2 toasts at once, auto-dismissed after 4 s. */
@@ -108,21 +108,27 @@ export const hasNewConflict = (known: ReadonlySet<string>, conflicts: readonly C
 
 /**
  * The top bar's clock. In a timed session it counts down to the end ("24:55",
- * labelled LEFT), so the player always knows how long is left; it reads 00:00
- * only when the session is over. An endless session shows the time played.
+ * captioned LEFT, then LAST MIN in the final minute, so the warning isn't
+ * colour alone); it reads 00:00 only when the session is over. An endless
+ * session shows the time played, uncaptioned.
  */
-export function sessionClock(simTime: number, sessionSec: number | null): { text: string; label: string | null; a11y: string; lastMinute: boolean } {
-  if (sessionSec == null) return { text: clock(simTime), label: null, a11y: `${clock(simTime)} played`, lastMinute: false };
+export function sessionClock(simTime: number, sessionSec: number | null): { text: string; caption: string | null; a11y: string; lastMinute: boolean } {
+  if (sessionSec == null) return { text: clock(simTime), caption: null, a11y: `${clock(simTime)} played`, lastMinute: false };
   const left = Math.max(0, Math.ceil(sessionSec - simTime));
-  return { text: clock(left), label: 'LEFT', a11y: `${clock(left)} left`, lastMinute: left <= 60 };
+  const lastMinute = left <= 60;
+  return { text: clock(left), caption: lastMinute ? 'LAST MIN' : 'LEFT', a11y: `${clock(left)} left`, lastMinute };
 }
+
+/** Arrivals still to come, for the top bar: "6 TO COME", "NONE TO COME". */
+export const toComeCaption = (toCome: number) => (toCome === 0 ? 'NONE TO COME' : `${toCome} TO COME`);
 
 /**
  * The sheet's traffic line: planes in the sector now and, in a timed session,
- * the arrivals still to come ("4 airborne · 9 to come"). An endless session
- * has no end to its traffic, so it shows only the planes airborne.
+ * the arrivals still to come ("4 airborne · 9 to come"). `toCome` is null in
+ * an endless session, which has no end to its traffic: then only the planes
+ * airborne are shown.
  */
-export function trafficLine(airborne: number, toCome: number, endless: boolean): string {
-  if (endless) return `${airborne} airborne`;
-  return `${airborne} airborne · ${toCome === 0 ? 'no more to come' : `${toCome} to come`}`;
+export function trafficLine(airborne: number, toCome: number | null): string {
+  if (toCome == null) return `${airborne} airborne`;
+  return `${airborne} airborne · ${toCome === 0 ? 'none to come' : `${toCome} to come`}`;
 }

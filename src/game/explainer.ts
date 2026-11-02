@@ -3,7 +3,7 @@
 import { SCORING } from '../engine/scoring';
 import { RULES, sectorLimitNm, type Sim } from '../engine/sim';
 import type { SimEvent, SimEventKind } from '../engine/types';
-import { clock } from '../ui/format';
+import { clock } from './session';
 
 export type StatKey = 'landed' | 'sep' | 'goAround' | 'exits' | 'airborne';
 

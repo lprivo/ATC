@@ -24,7 +24,7 @@ import { haptic } from '../game/haptics';
 import type { AltUnit, DistUnit } from '../game/settings';
 import { DrawOverlay } from './DrawOverlay';
 import { snapTarget } from './drawing';
-import { wheelDeltaPx, wheelZoomFactor } from './gestures';
+import { useWebZoom } from './useWebZoom';
 import { HUD_EDGE } from './hudLayout';
 import { LABEL_METRICS, labelBaseline, textWidth, type LabelMode, type LabelSpec } from './labels';
 import {
@@ -47,7 +47,6 @@ import {
   resizeViewport,
   toScreen,
   toWorld,
-  zoomAt,
   type Viewport,
 } from './viewport';
 
@@ -211,54 +210,9 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
   const onRelease = (e: GestureResponderEvent) => run(onUp(g.current, pointOf(e), Date.now(), cam.current));
   const onTerminate = () => run(onCancel(g.current));
 
-  // Scroll wheel / trackpad zoom on the web, around the pointer. Chrome and
-  // Firefox report a trackpad pinch as a ctrl+wheel, so that's covered too.
-  // Safari reports it as `gesture*` events instead and, unless stopped, zooms
-  // the whole page; once the page is zoomed the browser keeps later pinches for
-  // itself and the map can't be zoomed any more. So the gesture events zoom the map.
+  // Web: wheel and trackpad-pinch zoom (see useWebZoom).
   const hostRef = useRef<ComponentRef<typeof View>>(null);
-  useEffect(() => {
-    const el = webElement(hostRef.current);
-    if (!el) return;
-    const local = (ev: { clientX: number; clientY: number }) => {
-      const r = el.getBoundingClientRect();
-      return { x: ev.clientX - r.left, y: ev.clientY - r.top };
-    };
-    const onWheel = (ev: WheelEvent) => {
-      ev.preventDefault();
-      const at = local(ev);
-      updateCam((v) => zoomAt(v, v.scale * wheelZoomFactor(wheelDeltaPx(ev)), at.x, at.y));
-    };
-    let gestureStart: { scale: number } | null = null;
-    const onGestureStart = (ev: Event) => {
-      ev.preventDefault();
-      gestureStart = { scale: cam.current.scale };
-    };
-    const onGestureChange = (ev: Event) => {
-      ev.preventDefault();
-      const g = ev as Event & { scale?: number; clientX?: number; clientY?: number };
-      if (!gestureStart || !g.scale) return;
-      const at = local({ clientX: g.clientX ?? 0, clientY: g.clientY ?? 0 });
-      const k = gestureStart.scale * g.scale;
-      updateCam((v) => zoomAt(v, k, at.x, at.y));
-    };
-    const onGestureEnd = (ev: Event) => {
-      ev.preventDefault();
-      gestureStart = null;
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    el.addEventListener('gesturestart', onGestureStart);
-    el.addEventListener('gesturechange', onGestureChange);
-    el.addEventListener('gestureend', onGestureEnd);
-    return () => {
-      el.removeEventListener('wheel', onWheel);
-      el.removeEventListener('gesturestart', onGestureStart);
-      el.removeEventListener('gesturechange', onGestureChange);
-      el.removeEventListener('gestureend', onGestureEnd);
-    };
-    // updateCam only touches refs and a stable setter.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useWebZoom(hostRef, cam, updateCam);
 
   // When a plane is selected (or the radar is resized), pan just enough to keep
   // it on screen. Never while a path is being drawn: the map must not move under the finger.
@@ -526,12 +480,6 @@ function PlaneGlyph({ plane: p, vp, theme, selected }: { plane: Plane; vp: Viewp
       )}
     </G>
   );
-}
-
-/** The DOM element behind a View on react-native-web (null on native), for listeners RN doesn't expose. */
-function webElement(view: unknown): HTMLElement | null {
-  if (Platform.OS !== 'web' || view == null) return null;
-  return typeof (view as HTMLElement).addEventListener === 'function' ? (view as HTMLElement) : null;
 }
 
 /**

@@ -1,5 +1,6 @@
 // Per-weight subpath imports: each pulls in only its own .ttf. Importing from
 // the package root would require (and bundle) every face of the family.
+import { Barlow_300Light } from '@expo-google-fonts/barlow/300Light';
 import { Barlow_400Regular } from '@expo-google-fonts/barlow/400Regular';
 import { Barlow_500Medium } from '@expo-google-fonts/barlow/500Medium';
 import { Barlow_600SemiBold } from '@expo-google-fonts/barlow/600SemiBold';
@@ -16,6 +17,7 @@ const FACES: Record<(typeof FONT_FAMILY)[keyof typeof FONT_FAMILY], number> = {
   [FONT_FAMILY.condensed400]: BarlowCondensed_400Regular,
   [FONT_FAMILY.condensed500]: BarlowCondensed_500Medium,
   [FONT_FAMILY.condensed600]: BarlowCondensed_600SemiBold,
+  [FONT_FAMILY.body300]: Barlow_300Light,
   [FONT_FAMILY.body400]: Barlow_400Regular,
   [FONT_FAMILY.body500]: Barlow_500Medium,
   [FONT_FAMILY.body600]: Barlow_600SemiBold,

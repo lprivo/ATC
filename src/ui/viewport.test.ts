@@ -11,6 +11,7 @@ import {
   toggleRunwayZoom,
   toScreen,
   toWorld,
+  trackpadPinchZoom,
   zoomAt,
   ZOOM,
   type Viewport,
@@ -126,5 +127,26 @@ describe('hitTest', () => {
     expect(Math.hypot(b.x - x, b.y - y)).toBeLessThan(Math.hypot(a.x - x, a.y - y)); // b's symbol is closer
     expect(hitTest(planes, vp, new Map([['a', { rect: label }]]), x, y, 24)).toBe('a');
     expect(hitTest(planes, vp, none, x, y, 24)).not.toBe('a');
+  });
+});
+
+describe('trackpad pinch zoom (Safari)', () => {
+  const v = defaultViewport(390, 844);
+  it('scales from the scale at the start of the pinch, not cumulatively per event', () => {
+    const once = trackpadPinchZoom(v, 8, 1.5, { x: 100, y: 200 });
+    const again = trackpadPinchZoom(once, 8, 1.5, { x: 100, y: 200 });
+    expect(once.scale).toBeCloseTo(12);
+    expect(again.scale).toBeCloseTo(12);
+  });
+  it('keeps the world point under the pointer fixed', () => {
+    const at = { x: 100, y: 200 };
+    const before = toWorld(v, at.x, at.y);
+    const after = toWorld(trackpadPinchZoom(v, 8, 2, at), at.x, at.y);
+    expect(after.x).toBeCloseTo(before.x, 9);
+    expect(after.y).toBeCloseTo(before.y, 9);
+  });
+  it('clamps to the zoom limits', () => {
+    expect(trackpadPinchZoom(v, 8, 100, { x: 0, y: 0 }).scale).toBe(ZOOM.max);
+    expect(trackpadPinchZoom(v, 8, 0.01, { x: 0, y: 0 }).scale).toBe(ZOOM.min);
   });
 });

@@ -8,7 +8,7 @@ export default function Menu() {
   const { bests } = useResults();
   return (
     <MainMenu
-      bestLine={bestLine(bests) ?? undefined}
+      best={bestLine(bests)}
       onPlay={() => router.push('/game')}
       onChooseAirport={() => router.push('/airports')}
       onBestScores={() => router.push('/scores')}

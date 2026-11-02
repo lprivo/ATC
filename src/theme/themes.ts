@@ -53,6 +53,7 @@ export const FONT_FAMILY = {
   condensed400: 'BarlowCondensed_400Regular',
   condensed500: 'BarlowCondensed_500Medium',
   condensed600: 'BarlowCondensed_600SemiBold',
+  body300: 'Barlow_300Light',
   body400: 'Barlow_400Regular',
   body500: 'Barlow_500Medium',
   body600: 'Barlow_600SemiBold',
@@ -85,6 +86,10 @@ export type TypeTokenName =
   | 'menuPrimary'
   | 'menuButton'
   | 'menuButtonSmall'
+  | 'menuSub'
+  | 'version'
+  | 'tag'
+  | 'previewLabel'
   | 'tagline'
   | 'chip'
   | 'body'
@@ -113,19 +118,27 @@ const type: ThemeType = {
   /** Top-bar counters and segmented-control labels. */
   barCount: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, fontVariant: tabular },
   /** Blueprint "+" registration marks. */
-  mark: { fontFamily: FONT_FAMILY.body400, fontSize: 14, lineHeight: 16 },
+  mark: { fontFamily: FONT_FAMILY.body300, fontSize: 16, lineHeight: 16 },
   /** "PRIVO ATC" wordmark (splash, menu). */
   wordmark: { fontFamily: FONT_FAMILY.condensed600, fontSize: 46, letterSpacing: em(46, 0.14) },
   /** Main-menu wordmark (design S2). */
   menuWordmark: { fontFamily: FONT_FAMILY.condensed600, fontSize: 40, lineHeight: 40, letterSpacing: em(40, 0.12) },
   /** Main-menu PLAY. */
   menuPrimary: { fontFamily: FONT_FAMILY.condensed600, fontSize: 28, lineHeight: 28, letterSpacing: em(28, 0.04) },
+  /** Main-menu PLAY sub-line ("Random session · LHBP · Steady"). */
+  menuSub: { fontFamily: FONT_FAMILY.body500, fontSize: 13, lineHeight: 13 },
+  /** Boxed caps tag, e.g. COMING SOON. */
+  tag: { fontFamily: FONT_FAMILY.body600, fontSize: 11, lineHeight: 11, letterSpacing: em(11, 0.12) },
+  /** Callsign in the Settings theme-preview cards. */
+  previewLabel: { fontFamily: FONT_FAMILY.condensed600, fontSize: 9, lineHeight: 9 },
   /** Main-menu full-width buttons (Choose airport, Replay a real day). */
   menuButton: { fontFamily: FONT_FAMILY.condensed600, fontSize: 20, letterSpacing: em(20, 0.03) },
   /** Main-menu bottom row (How to play / Best scores / Settings). */
   menuButtonSmall: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, letterSpacing: em(16, 0.03) },
   /** "APPROACH CONTROL" tagline. */
-  tagline: { fontFamily: FONT_FAMILY.body500, fontSize: 13, letterSpacing: em(13, 0.24) },
+  tagline: { fontFamily: FONT_FAMILY.body500, fontSize: 13, lineHeight: 13, letterSpacing: em(13, 0.24) },
+  /** Splash version line ("v1.0"). */
+  version: { fontFamily: FONT_FAMILY.body500, fontSize: 13, lineHeight: 13, letterSpacing: em(13, 0.04) },
   /** Conflict banner title. */
   bannerTitle: { fontFamily: FONT_FAMILY.condensed600, fontSize: 16, letterSpacing: em(16, 0.04) },
   /** Small condensed chips (status, toast kind). */

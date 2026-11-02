@@ -9,6 +9,7 @@ import { DifficultyBars } from '../ui/DifficultyBars';
 import { BackIcon, LockIcon } from '../ui/icons';
 import { RunwayPreview } from '../ui/RunwayPreview';
 import { UnlockOffer } from '../ui/UnlockOffer';
+import { shellColumn } from '../ui/shellLayout';
 
 const TRAFFIC: readonly Traffic[] = ['light', 'steady', 'busy'];
 
@@ -98,7 +99,7 @@ export function SessionSetup({ icao, onStart, onBack }: { icao: string; onStart:
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 16 },
+  screen: { ...shellColumn, flex: 1, paddingHorizontal: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   body: { gap: 20 },

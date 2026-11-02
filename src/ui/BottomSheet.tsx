@@ -35,8 +35,8 @@ interface Props {
   altUnit?: AltUnit;
   /** Controls on the left (settings): the close button moves to the left edge. */
   handedness?: Handedness;
-  /** Endless session: there's no count of planes still to come. */
-  endless?: boolean;
+  /** Arrivals still to come (timed session), or null for endless. */
+  toCome: number | null;
 }
 
 /**
@@ -45,7 +45,7 @@ interface Props {
  * - Expanded (a plane selected): header and three steppers.
  * - Compact (swipe down while selected): callsign and three read-only values; tap to expand.
  */
-export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, onTimeScale, bottomInset, onHeight, altUnit = 'ft', handedness = 'right', endless = false }: Props) {
+export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, onTimeScale, bottomInset, onHeight, altUnit = 'ft', handedness = 'right', toCome }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const plane = selectedId ? sim.plane(selectedId) : undefined;
@@ -94,7 +94,7 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
         <View style={[styles.grabber, { backgroundColor: c.panelBorder }]} />
       </View>
       <Animated.View style={{ transform: [{ translateY: slide }] }}>
-        {state === 'peek' && <Peek sim={sim} timeScale={timeScale} onTimeScale={onTimeScale} endless={endless} />}
+        {state === 'peek' && <Peek sim={sim} timeScale={timeScale} onTimeScale={onTimeScale} toCome={toCome} />}
         {state === 'expanded' && plane && (
           <View {...swipe.panHandlers}>
             <Expanded sim={sim} plane={plane} onClose={onClose} onCommand={onCommand} altUnit={altUnit} handedness={handedness} />
@@ -110,7 +110,7 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
   );
 }
 
-function Peek({ sim, timeScale, onTimeScale, endless }: { sim: Sim; timeScale: number; onTimeScale: (s: number) => void; endless: boolean }) {
+function Peek({ sim, timeScale, onTimeScale, toCome }: { sim: Sim; timeScale: number; onTimeScale: (s: number) => void; toCome: number | null }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -119,10 +119,15 @@ function Peek({ sim, timeScale, onTimeScale, endless }: { sim: Sim; timeScale: n
       <Text style={[t.capsSmall, { color: c.textDim }]}>SIM SPEED · HOW FAST TIME RUNS</Text>
       <View style={styles.peekRow}>
         <SpeedControl value={timeScale} onChange={onTimeScale} />
-        <Text style={[t.small, styles.hint, { color: c.textDim }]}>
-          <Text style={{ color: c.text }} testID="traffic-line">{trafficLine(sim.planes.length, sim.remainingTraffic, endless)}</Text>
-          {'\n'}Tap a plane · hold to draw
-        </Text>
+        {/* One line each, shrinking rather than wrapping, so the sheet's height doesn't change as the counts do. */}
+        <View style={styles.hint}>
+          <Text style={[t.small, { color: c.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} testID="traffic-line">
+            {trafficLine(sim.planes.length, toCome)}
+          </Text>
+          <Text style={[t.small, { color: c.textDim }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            Tap a plane · hold to draw
+          </Text>
+        </View>
       </View>
     </View>
   );

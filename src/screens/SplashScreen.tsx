@@ -38,27 +38,24 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         <View style={[styles.icon, { borderColor: c.panelBorder, borderWidth: theme.hairline }]}>
           <AppIcon size={104} />
         </View>
+        {/* Letter-spacing also trails the last letter; padding the start by the same amount keeps each line optically centred. */}
         <View style={styles.words}>
-          <Text style={[t.wordmark, styles.spaced, { color: c.text, paddingLeft: WORDMARK_TRACK }]} accessibilityRole="header">
+          <Text style={[t.wordmark, styles.spaced, { color: c.text, paddingLeft: t.wordmark.letterSpacing }]} accessibilityRole="header">
             PRIVO ATC
           </Text>
-          <Text style={[t.tagline, { color: c.textDim, paddingLeft: TAGLINE_TRACK }]}>APPROACH CONTROL</Text>
+          <Text style={[t.tagline, { color: c.textDim, paddingLeft: t.tagline.letterSpacing }]}>APPROACH CONTROL</Text>
         </View>
       </View>
-      {/* Design: 92 pt from the bottom of the screen, i.e. 58 above the home indicator. */}
-      <View style={[styles.foot, { bottom: insets.bottom + 58 }]}>
+      {/* Design: 92 pt from the bottom of the screen (58 above a 34 pt home indicator); never closer on screens without one. */}
+      <View style={[styles.foot, { bottom: Math.max(92, insets.bottom + 58) }]}>
         <View style={[styles.track, { backgroundColor: c.rangeRing }]} accessibilityRole="progressbar" accessibilityLabel="Loading">
           <Animated.View style={[styles.fill, { backgroundColor: c.snapHalo, transform: [{ scaleX: progress }] }]} />
         </View>
-        <Text style={[t.smallTight, { color: c.textDim }]}>v{version}</Text>
+        <Text style={[t.version, { color: c.textDim, paddingLeft: t.version.letterSpacing }]}>v{version}</Text>
       </View>
     </View>
   );
 }
-
-// Letter-spacing also trails the last letter; padding the start by the same amount keeps the text optically centred.
-const WORDMARK_TRACK = 46 * 0.14;
-const TAGLINE_TRACK = 13 * 0.24;
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },

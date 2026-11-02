@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDoubleTap, isTap, pinchOf, wheelDeltaPx, wheelZoomFactor } from './gestures';
+import { isDoubleTap, isTap, isTrackpadPinch, pinchOf, wheelDeltaPx, wheelZoomFactor } from './gestures';
 
 describe('radar gestures', () => {
   it('a tap is under 6 pt of movement and under 300 ms', () => {
@@ -33,5 +33,18 @@ describe('radar gestures', () => {
     expect(wheelDeltaPx({ deltaY: 3, deltaMode: 1 })).toBe(48);
     expect(wheelDeltaPx({ deltaY: 1, deltaMode: 2 })).toBe(800);
     expect(wheelDeltaPx({ deltaY: 53, deltaMode: 0 })).toBe(53);
+  });
+});
+
+describe('Safari gesture events', () => {
+  it('zooms for a macOS trackpad pinch (it carries the pointer position)', () => {
+    expect(isTrackpadPinch({ scale: 1.2, clientX: 100, clientY: 200 })).toBe(true);
+  });
+  it('ignores iOS touch-pinch gesture events (no position; the touch pinch handles them)', () => {
+    expect(isTrackpadPinch({ scale: 1.2 })).toBe(false);
+    expect(isTrackpadPinch({ scale: 1.2, clientX: undefined, clientY: undefined })).toBe(false);
+  });
+  it('ignores events without a scale', () => {
+    expect(isTrackpadPinch({ clientX: 1, clientY: 2 })).toBe(false);
   });
 });

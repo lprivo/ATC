@@ -30,3 +30,12 @@ export const wheelDeltaPx = (ev: { deltaY: number; deltaMode: number }) =>
 
 /** Zoom factor for one wheel event (web): ~10% per notch, smooth for trackpads. */
 export const wheelZoomFactor = (deltaY: number) => Math.exp(-deltaY * 0.0015);
+
+/**
+ * Whether a Safari `gesturechange` should zoom the map. Only a macOS trackpad
+ * pinch: its event carries the pointer position. iOS Safari fires the same
+ * events for a two-finger touch pinch, without a position; the radar's touch
+ * pinch already handles that one, so applying it too would zoom twice.
+ */
+export const isTrackpadPinch = (ev: { scale?: unknown; clientX?: unknown; clientY?: unknown }): ev is { scale: number; clientX: number; clientY: number } =>
+  typeof ev.scale === 'number' && typeof ev.clientX === 'number' && typeof ev.clientY === 'number';

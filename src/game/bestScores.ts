@@ -61,12 +61,19 @@ export function resolveResult(bests: BestScores, session: Session, score: number
   return { bests: isNewBest ? r.bests : bests, isNewBest, previousBest: r.previous, counted };
 }
 
-/** The menu line for the highest best of all, e.g. "Best · 1,240 at LHBP, Steady, 30 min". */
-export function bestLine(bests: BestScores): string | null {
+/**
+ * The menu line for the highest best of all, in parts so the menu can pick out
+ * the score: "Best · " + score "1,240" + where " at LHBP, Steady, 30 min".
+ */
+export interface BestLine {
+  score: string;
+  where: string;
+}
+export function bestLine(bests: BestScores): BestLine | null {
   const top = bestList(bests)[0];
   if (!top) return null;
   const s = top.session;
-  return `Best · ${top.score.toLocaleString('en-GB')} at ${s.icao}, ${TRAFFIC_LABEL[s.traffic]}, ${lengthLabel(s.length)}`;
+  return { score: top.score.toLocaleString('en-GB'), where: ` at ${s.icao}, ${TRAFFIC_LABEL[s.traffic]}, ${lengthLabel(s.length)}` };
 }
 
 /** All bests, highest first, for the Best scores screen. */

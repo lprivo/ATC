@@ -5,6 +5,7 @@ import { useResults } from '../game/ResultsContext';
 import { lengthLabel, TRAFFIC_LABEL } from '../game/session';
 import { useTheme } from '../theme/ThemeContext';
 import { BackIcon } from '../ui/icons';
+import { shellColumn } from '../ui/shellLayout';
 
 /** Best scores kept on this device, one per airport + traffic + length, highest first. */
 export function BestScoresScreen({ onBack }: { onBack: () => void }) {
@@ -46,7 +47,7 @@ export function BestScoresScreen({ onBack }: { onBack: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 16 },
+  screen: { ...shellColumn, flex: 1, paddingHorizontal: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   row: { height: 54, flexDirection: 'row', alignItems: 'center', gap: 12 },

@@ -4,6 +4,7 @@ import { scoreLines, type ScoreLine } from '../engine/scoring';
 import type { SessionResult } from '../game/ResultsContext';
 import { sessionLabel } from '../game/session';
 import { useTheme } from '../theme/ThemeContext';
+import { shellColumn } from '../ui/shellLayout';
 
 const LINE_LABEL: Record<ScoreLine['key'], string> = { landed: 'Landed', separationLoss: 'Separation lost', goAround: 'Go-arounds', exit: 'Exits' };
 const signed = (n: number) => (n > 0 ? `+${n.toLocaleString('en-GB')}` : n === 0 ? '0' : n.toLocaleString('en-GB'));
@@ -69,7 +70,7 @@ export function SummaryScreen({ result, onMenu, onPlayAgain }: { result: Session
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 20 },
+  screen: { ...shellColumn, flex: 1, paddingHorizontal: 20 },
   body: { gap: 8 },
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
   newBest: { paddingHorizontal: 8, paddingVertical: 4 },
