@@ -2,7 +2,7 @@
 // automatic slow-down on a new conflict. Pure (no React / React Native imports).
 import type { Sim } from '../engine/sim';
 import type { Conflict, SimEvent } from '../engine/types';
-import { formatAltitude, formatDistance, type AltUnit, type DistUnit } from './settings';
+import { conflictAltitude, formatDistance, type AltUnit, type DistUnit } from './settings';
 
 /** Design: at most 2 toasts at once, auto-dismissed after 4 s. */
 export const MAX_TOASTS = 2;
@@ -91,7 +91,7 @@ export function conflictBanner(
     if (!a || !b) continue;
     // Rounded down like the radar's pair tag, so it never shows the limit itself.
     const dist = formatDistance(cf.distNm, units.dist);
-    const alt = units.alt === 'm' ? formatAltitude(cf.altFt, 'm', true) : `${Math.floor(cf.altFt / 100) * 100} ft`;
+    const alt = conflictAltitude(cf.altFt, units.alt);
     return { title: 'SEPARATION LOST', detail: `${a.callsign} · ${b.callsign} — ${dist}, ${alt}`, selectId: a.id, pairKey: pairKey(cf) };
   }
   return null;

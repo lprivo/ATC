@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, effectiveTheme, formatAltitude, formatDistance, parseSettings } from './settings';
+import { conflictAltitude, DEFAULT_SETTINGS, effectiveTheme, formatAltitude, formatDistance, parseSettings } from './settings';
 
 describe('settings', () => {
   it('missing, broken or partial storage falls back to defaults field by field', () => {
@@ -27,5 +27,8 @@ describe('settings', () => {
     expect(formatAltitude(7000, 'm', true)).toBe('2,130 m');
     expect(formatDistance(2.7, 'nm')).toBe('2.7 nm');
     expect(formatDistance(2.7, 'km')).toBe('5.0 km');
+    // Conflict separation rounds down in both units (950 ft is 289.6 m).
+    expect(conflictAltitude(950, 'm')).toBe('280 m');
+    expect(conflictAltitude(999, 'ft')).toBe('900 ft');
   });
 });

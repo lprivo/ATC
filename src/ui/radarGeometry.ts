@@ -3,7 +3,7 @@
 // can be unit tested. All results are in screen points; `scale` is pt per nm.
 import { add, dirOf } from '../engine/math';
 import type { Airport, Plane, RunwayEnd, Vec2 } from '../engine/types';
-import { formatDistance, type AltUnit, type DistUnit } from '../game/settings';
+import { conflictAltitude, formatDistance, type AltUnit, type DistUnit } from '../game/settings';
 import { textWidth } from './labels';
 import { toScreen, type Viewport } from './viewport';
 
@@ -159,8 +159,7 @@ export function pairTag(
   const x = (sa.x + sb.x) / 2;
   const y = (sa.y + sb.y) / 2 + 26;
   const dist = formatDistance(distNm, units.dist).toUpperCase();
-  // Metres floored to 10 so a conflict never reads as the (≈305 m) limit; feet floored to 100.
-  const alt = units.alt === 'm' ? `${Math.floor((altFt * 0.3048) / 10) * 10} M` : `${Math.floor(altFt / 100) * 100} FT`;
+  const alt = conflictAltitude(altFt, units.alt).toUpperCase();
   const text = `${dist} · ${alt}`;
   const w = textWidth(text, fontSize) + 8;
   /** The filled chip behind the text (14 pt tall, centred on x, y). */

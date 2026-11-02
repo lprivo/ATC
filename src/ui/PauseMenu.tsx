@@ -102,6 +102,7 @@ export function PauseMenu({ sim, sessionSec, topInset, bottomInset, onResume, on
         <Text style={[t.capsSmall, { color: c.textDim }]}>THEME</Text>
         <Segmented
           options={themes.map((th) => ({ value: th.id, label: th.name, testID: `theme-${th.id}` }))}
+          label="Theme"
           value={theme.id}
           onChange={(id) => {
             disarm();

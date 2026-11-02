@@ -9,6 +9,7 @@ export function SpeedControl({ value, onChange }: { value: number; onChange: (s:
       value={value}
       onChange={onChange}
       segmentWidth={46}
+      label="Sim speed"
     />
   );
 }

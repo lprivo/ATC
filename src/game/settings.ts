@@ -81,5 +81,13 @@ export function formatDistance(nm: number, unit: DistUnit) {
   return `${(Math.floor(v * 10) / 10).toFixed(1)} ${unit}`;
 }
 
+/**
+ * Vertical separation of a conflict, rounded down (100 ft / 10 m) so it never
+ * reads as the 1,000 ft (≈305 m) minimum it is breaking: "400 ft" / "120 m".
+ */
+export function conflictAltitude(altFt: number, unit: AltUnit) {
+  return unit === 'm' ? `${Math.floor((altFt * M_PER_FT) / 10) * 10} m` : `${Math.floor(altFt / 100) * 100} ft`;
+}
+
 /** Caps label for the altitude stepper / cells. */
 export const altLabel = (u: AltUnit) => (u === 'm' ? 'ALT M' : 'ALT FT');
