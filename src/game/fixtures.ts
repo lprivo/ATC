@@ -90,14 +90,15 @@ export const conflict = (opts: SceneOptions = {}) =>
     { time: 512, toCome: 4, stats: { landed: 3 }, ...opts },
   );
 
-/** A5, busy: 13 planes (labels drop to Min above 8). */
+/** A5, busy: 13 planes (labels drop to Min above 8), circling without losing separation for the first minutes. */
 export const busy = (opts: SceneOptions = {}) => {
   const calls = ['WZZ1', 'RYR22', 'DLH340', 'AFR77', 'BAW99', 'EZY512', 'KLM16', 'LOT537', 'AUA81', 'SWR4', 'THY1F', 'QTR201', 'EWG93'];
   return scene(
     calls.map((callsign, i) => {
       const a = (i / calls.length) * 2 * Math.PI;
       const r = 9 + (i % 3) * 6;
-      return { callsign, pos: { x: Math.sin(a) * r, y: Math.cos(a) * r }, heading: ((a * 180) / Math.PI + 200) % 360, altitude: 4000 + (i % 5) * 1000, speed: 220 + (i % 4) * 15 };
+      // Flying round the airport (at a tangent to their ring), each at its own level 1,000 ft apart, so the scene stays busy without losing separation.
+      return { callsign, pos: { x: Math.sin(a) * r, y: Math.cos(a) * r }, heading: ((a * 180) / Math.PI + 90) % 360, altitude: 3000 + i * 1000, speed: 220 + (i % 4) * 15 };
     }),
     { time: 1260, toCome: 9, stats: { landed: 7, goArounds: 1 }, ...opts },
   );

@@ -43,7 +43,7 @@ export function MainMenu({ onPlay, onChooseAirport, onHowToPlay, onBestScores, o
     <View style={[styles.screen, { backgroundColor: c.background }]} testID="main-menu">
       {/* A dimmed, self-running demo of the game (#40) under the design's sweep: rings centred 300 pt down an 844 pt screen, 9 pt/nm. */}
       <MenuDemo centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} active={active} seed={demoSeed} />
-      <RadarBackdrop centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} opacity={0.7} rings={false} active={active} />
+      <RadarBackdrop centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} opacity={0.7} active={active} />
       <View style={[styles.column, { paddingTop: insets.top + 49, paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.head}>
           <Text style={[t.menuWordmark, { color: c.text }]} accessibilityRole="header">

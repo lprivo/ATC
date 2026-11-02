@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
  * they're memoised and only re-render when the viewport or theme changes, not
  * on every sim frame.
  */
-export const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airport: Airport; vp: Viewport; theme: Theme }) {
+export const StaticMap = memo(function StaticMap({ airport, vp, theme, rings = true }: { airport: Airport; vp: Viewport; theme: Theme; /** Range rings and their labels (off when something else draws them, e.g. the menu's sweep layer). */ rings?: boolean }) {
   const c = theme.colors;
   const fixFont = theme.radarFont.fix;
   const rwyFont = theme.radarFont.runway;
@@ -335,10 +335,10 @@ export const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airpo
   const rwW = runwayWidth(vp.scale);
   return (
     <G>
-      {RANGE_RINGS_NM.filter((r) => r <= airport.rangeNm).map((r) => (
+      {rings && RANGE_RINGS_NM.filter((r) => r <= airport.rangeNm).map((r) => (
         <Circle key={r} cx={centre.x} cy={centre.y} r={r * vp.scale} stroke={c.rangeRing} strokeWidth={1} fill="none" />
       ))}
-      {ringLabels(vp, airport.rangeNm).map((l) => (
+      {rings && ringLabels(vp, airport.rangeNm).map((l) => (
         <SvgText key={`rl-${l.r}`} x={l.x} y={l.y} fill={c.fixLabel} opacity={0.75} fontFamily={fixFont.fontFamily} fontSize={fixFont.fontSize}>
           {String(l.r)}
         </SvgText>
@@ -395,7 +395,7 @@ export const StaticMap = memo(function StaticMap({ airport, vp, theme }: { airpo
 });
 
 /** A plane's assigned path: dashed `route`, or solid `routeCleared` once cleared to land; chevron at the end. */
-export function RouteLine({ plane: p, vp, theme }: { plane: Plane; vp: Viewport; theme: Theme }) {
+function RouteLine({ plane: p, vp, theme }: { plane: Plane; vp: Viewport; theme: Theme }) {
   if (p.route.length === 0) return null;
   const pts = [p.pos, ...p.route];
   const cleared = p.clearedRunway != null;

@@ -22,6 +22,10 @@ describe('story fixtures', () => {
     expect(c.planes.filter((p) => p.conflict).map((p) => p.callsign).sort()).toEqual(['LOT537', 'WZZ8638']);
     expect(busy().planes).toHaveLength(13);
     expect(busy().conflicts).toHaveLength(0);
+    // Busy stays busy, not a pile-up: no separation lost in the first two minutes of it running.
+    const b = busy();
+    for (let t = 0; t < 120; t++) b.step(1);
+    expect(b.stats.separationViolations).toBe(0);
     expect(lastMinute().remainingTraffic).toBe(0);
     expect(30 * 60 - lastMinute().time).toBeLessThan(60);
   });

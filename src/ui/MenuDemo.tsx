@@ -71,7 +71,8 @@ export function MenuDemo({
     <View style={[StyleSheet.absoluteFill, { opacity: DEMO_OPACITY }]} onLayout={onLayout} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden testID="menu-demo">
       {size.w > 0 && (
         <Svg width={size.w} height={size.h}>
-          <StaticMap airport={demo.sim.airport} vp={vp} theme={theme} />
+          {/* Rings come from the sweep layer above (design: .7), not this dimmed layer. */}
+          <StaticMap airport={demo.sim.airport} vp={vp} theme={theme} rings={false} />
           {demo.sim.planes.map((p) => (
             <PlaneGlyph key={p.id} plane={p} vp={vp} theme={theme} selected={false} />
           ))}
