@@ -1,4 +1,3 @@
-import { useIsFocused } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg from 'react-native-svg';
@@ -24,14 +23,25 @@ const DEMO_OPACITY = 0.4;
  * route lines, which would compete with the menu. Not interactive and dimmed. It only runs while the
  * menu is focused, and stands still (one frame) when Reduce Motion is on.
  */
-export function MenuDemo({ centreY, scale }: { centreY: number; scale: number }) {
+export function MenuDemo({
+  centreY,
+  scale,
+  active = true,
+  seed,
+}: {
+  centreY: number;
+  scale: number;
+  /** Whether the menu is the screen showing (the route passes `useIsFocused()`); the demo pauses when not. */
+  active?: boolean;
+  /** Fixed seed for a repeatable demo (stories); random by default. */
+  seed?: number;
+}) {
   const { theme } = useTheme();
-  const [demo] = useState(() => createDemo(pickDemoAirport(Object.values(AIRPORTS), Math.random), Math.floor(Math.random() * 1e9)));
+  const [demo] = useState(() => createDemo(pickDemoAirport(Object.values(AIRPORTS), Math.random), seed ?? Math.floor(Math.random() * 1e9)));
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [, setFrame] = useState(0);
-  const focused = useIsFocused();
   const reduceMotion = useReduceMotion();
-  const running = focused && !reduceMotion;
+  const running = active && !reduceMotion;
 
   useEffect(() => {
     if (!running) return;

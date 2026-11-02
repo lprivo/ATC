@@ -17,11 +17,19 @@ npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — re
 npx expo start              # start the dev server
 npm test                    # unit tests (vitest): engine, dial controls, viewport
 npm run typecheck           # typecheck
+npm run storybook           # Storybook instead of the app (phone via Expo Go, or press w for the browser)
 npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
 ```
 
 Run `npm test` and `npm run typecheck` before declaring any task done. (There is no linter set up yet.)
+
+## Storybook
+
+- Every screen and component, in each of its states, has stories (`*.stories.tsx` next to it). Config is in `.rnstorybook/`: `preview.tsx` wraps every story in the app's real providers and fonts, and `parameters.app` sets the story's theme, free/full version, settings, best scores and last result, without touching the device.
+- **A new screen or a new state of one gets a story.** Game-screen states come from prepared sims in `src/game/fixtures.ts` (`scene()` places planes exactly; add a named scene for a new state). Sample results and best scores are in `src/stories/data.ts`.
+- Screens take what a story needs as props (`progress` on the splash, `active` on screens with animations, `start` on the game screen) or from the providers. Route files in `src/app/` do the router work (e.g. `useIsFocused`), so screens and components render without a navigator.
+- `npm run storybook` swaps the app's entry point for Storybook (`STORYBOOK_ENABLED=true`, see `metro.config.js`). Without it, builds contain no Storybook code. In the browser, `?STORYBOOK_STORY_ID=<id>` opens a story directly; the id is the title and the export name in kebab case, e.g. `game-game-screen--conflict`.
 
 ## Navigation & Routing
 

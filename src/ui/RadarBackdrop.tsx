@@ -1,4 +1,3 @@
-import { useIsFocused } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Image, Platform, StyleSheet, View, type ImageSourcePropType, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
@@ -28,18 +27,30 @@ const STILL_PHASE = 0.125;
  * is a pre-rendered image, tinted from the theme. It fills a square centred on
  * the radar, so it reaches every corner at every angle.
  *
- * It only turns while its screen is focused (the menu stays mounted under the
- * game), and stands still when Reduce Motion is on. `rings={false}` when
+ * It only turns while `active` (its screen is the one showing: the menu stays
+ * mounted under the game), and stands still when Reduce Motion is on. `rings={false}` when
  * something else under it already draws them (the menu's demo radar).
  */
-export function RadarBackdrop({ centreY = 0.5, scale = 8, opacity = 0.85, rings = true }: { centreY?: number; scale?: number; opacity?: number; rings?: boolean }) {
+export function RadarBackdrop({
+  centreY = 0.5,
+  scale = 8,
+  opacity = 0.85,
+  rings = true,
+  active = true,
+}: {
+  centreY?: number;
+  scale?: number;
+  opacity?: number;
+  rings?: boolean;
+  /** Whether its screen is the one showing (the route passes `useIsFocused()`); the sweep stops when not. */
+  active?: boolean;
+}) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [size, setSize] = useState({ w: 0, h: 0 });
   const spin = useRef(new Animated.Value(0)).current;
-  const focused = useIsFocused();
   const reduceMotion = useReduceMotion();
-  const running = focused && !reduceMotion;
+  const running = active && !reduceMotion;
   useEffect(() => {
     if (!running) {
       if (reduceMotion) spin.setValue(STILL_PHASE);

@@ -12,10 +12,15 @@ interface SettingsCtx {
 
 const Ctx = createContext<SettingsCtx | null>(null);
 
-/** Player settings, loaded synchronously from the device on start and saved on every change. */
-export function SettingsProvider({ children }: { children: ReactNode }) {
+/**
+ * Player settings, loaded synchronously from the device on start and saved on
+ * every change. With `initial` (stories, tests) it starts from those settings
+ * instead and never reads or writes the device.
+ */
+export function SettingsProvider({ children, initial }: { children: ReactNode; initial?: Partial<Settings> }) {
+  const persist = initial === undefined;
   const [settings, setSettings] = useState<Settings>(() => {
-    const s = parseSettings(kv.get(KEY));
+    const s = persist ? parseSettings(kv.get(KEY)) : { ...parseSettings(null), ...initial };
     setHapticsEnabled(s.haptics); // before the first frame
     return s;
   });
@@ -23,8 +28,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const loaded = useRef(settings);
   useEffect(() => {
     setHapticsEnabled(settings.haptics);
-    if (settings !== loaded.current) kv.set(KEY, JSON.stringify(settings));
-  }, [settings]);
+    if (persist && settings !== loaded.current) kv.set(KEY, JSON.stringify(settings));
+  }, [settings, persist]);
   const update = useCallback((patch: Partial<Settings>) => setSettings((s) => ({ ...s, ...patch })), []);
   const value = useMemo(() => ({ settings, update }), [settings, update]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

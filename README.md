@@ -21,6 +21,14 @@ npm test                # unit tests (vitest): engine, dial controls, viewport
 npm run typecheck
 ```
 
+### Storybook: every screen and state
+
+```sh
+npm run storybook       # opens Storybook instead of the game: scan the QR code with Expo Go, or press w for the browser
+```
+
+It covers the splash at each stage, the menu, airports and session setup in the free and full versions, the unlock offer, best scores, settings, every kind of summary, the game screen in each design state (idle, plane selected, separation lost, busy, paused, last minute, endless), and the components. Each comes in the Radar and Paper themes where it matters. Pick a story from the ☰ list at the bottom. In the browser, `?STORYBOOK_STORY_ID=game-game-screen--conflict` opens one directly.
+
 ## Code layout
 
 | Path | What |

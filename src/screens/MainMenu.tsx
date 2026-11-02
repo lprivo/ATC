@@ -21,6 +21,10 @@ interface Props {
   onSettings?: () => void;
   /** The best score so far ("Best · 1,240 at LHBP, Steady, 30 min"), or null until there is one. */
   best: BestLineParts | null;
+  /** Whether the menu is the screen showing; its animations pause when not (default on). */
+  active?: boolean;
+  /** Fixed seed for the background demo (stories); random by default. */
+  demoSeed?: number;
 }
 
 /**
@@ -29,7 +33,7 @@ interface Props {
  * airport, an inert "Replay a real day" (COMING SOON), and How to play /
  * Best scores / Settings. Labels sit left with a chevron on the right.
  */
-export function MainMenu({ onPlay, onChooseAirport, onHowToPlay, onBestScores, onSettings, best }: Props) {
+export function MainMenu({ onPlay, onChooseAirport, onHowToPlay, onBestScores, onSettings, best, active = true, demoSeed }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -38,8 +42,8 @@ export function MainMenu({ onPlay, onChooseAirport, onHowToPlay, onBestScores, o
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]} testID="main-menu">
       {/* A dimmed, self-running demo of the game (#40) under the design's sweep: rings centred 300 pt down an 844 pt screen, 9 pt/nm. */}
-      <MenuDemo centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} />
-      <RadarBackdrop centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} opacity={0.7} rings={false} />
+      <MenuDemo centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} active={active} seed={demoSeed} />
+      <RadarBackdrop centreY={MENU_RADAR_Y} scale={MENU_RADAR_SCALE} opacity={0.7} rings={false} active={active} />
       <View style={[styles.column, { paddingTop: insets.top + 49, paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.head}>
           <Text style={[t.menuWordmark, { color: c.text }]} accessibilityRole="header">

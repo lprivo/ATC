@@ -16,23 +16,37 @@ const SPLASH_MS = 1400;
  * Design S1: app start only (no airport). Rings and the sweep, the app icon,
  * the PRIVO ATC wordmark and tagline, a 180×2 progress bar and the version.
  */
-export function SplashScreen({ onDone }: { onDone: () => void }) {
+export function SplashScreen({
+  onDone,
+  progress: fixedProgress,
+  active = true,
+}: {
+  onDone: () => void;
+  /** Hold the progress bar at this fraction (0–1) instead of loading and calling `onDone` (stories). */
+  progress?: number;
+  /** Whether the splash is the screen showing; the sweep stops when not (default on). */
+  active?: boolean;
+}) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
   const insets = useSafeAreaInsets();
-  const progress = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(fixedProgress ?? 0)).current;
   const done = useRef(onDone);
   done.current = onDone;
   useEffect(() => {
+    if (fixedProgress != null) {
+      progress.setValue(fixedProgress);
+      return;
+    }
     const anim = Animated.timing(progress, { toValue: 1, duration: SPLASH_MS, easing: Easing.out(Easing.quad), useNativeDriver: true });
     anim.start(({ finished }) => finished && done.current());
     return () => anim.stop();
-  }, [progress]);
+  }, [progress, fixedProgress]);
   const version = Constants.expoConfig?.version ?? '1.0';
   return (
     <View style={[styles.screen, { backgroundColor: c.background }]} testID="splash">
-      <RadarBackdrop centreY={0.5} scale={7} />
+      <RadarBackdrop centreY={0.5} scale={7} active={active} />
       {/* Design: the icon block starts 300 pt down an 844 pt screen. */}
       <View style={styles.brand}>
         <View style={[styles.icon, { borderColor: c.panelBorder, borderWidth: theme.hairline }]}>

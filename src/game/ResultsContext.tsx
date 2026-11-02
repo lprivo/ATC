@@ -30,9 +30,15 @@ interface ResultsCtx {
 
 const Ctx = createContext<ResultsCtx | null>(null);
 
-export function ResultsProvider({ children }: { children: ReactNode }) {
-  const [bests, setBests] = useState<BestScores>(() => parseBests(kv.get(KEY)));
-  const [last, setLast] = useState<SessionResult | null>(null);
+/**
+ * Best scores (saved on the device) and the last finished session. With
+ * `initialBests` / `initialLast` (stories, tests) it starts from those instead
+ * and never reads or writes the device.
+ */
+export function ResultsProvider({ children, initialBests, initialLast = null }: { children: ReactNode; initialBests?: BestScores; initialLast?: SessionResult | null }) {
+  const persist = initialBests === undefined;
+  const [bests, setBests] = useState<BestScores>(() => (persist ? parseBests(kv.get(KEY)) : initialBests));
+  const [last, setLast] = useState<SessionResult | null>(initialLast);
   // finish reads the latest table through a ref, never a stale closure.
   const bestsRef = useRef(bests);
   const value = useMemo<ResultsCtx>(
@@ -45,12 +51,12 @@ export function ResultsProvider({ children }: { children: ReactNode }) {
         if (r.isNewBest) {
           bestsRef.current = r.bests;
           setBests(r.bests);
-          kv.set(KEY, JSON.stringify(r.bests));
+          if (persist) kv.set(KEY, JSON.stringify(r.bests));
         }
         setLast({ session, stats: { ...stats }, score: total, isNewBest: r.isNewBest, previousBest: r.previousBest, endedEarly, counted: r.counted });
       },
     }),
-    [bests, last],
+    [bests, last, persist],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

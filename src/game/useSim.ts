@@ -19,6 +19,12 @@ export interface SimOptions {
   endless?: boolean;
 }
 
+/** Start from a prepared sim instead of fresh random traffic, optionally paused (stories, fixtures). */
+export interface SimStart {
+  sim: () => Sim;
+  paused?: boolean;
+}
+
 /** An endless session tops up when less than this much scheduled traffic is left (sim seconds). */
 const TOP_UP_AHEAD_SEC = 600;
 
@@ -49,10 +55,10 @@ function newSim(airport: Airport, opts: SimOptions, seed = Math.floor(Math.rando
  * While paused nothing re-renders on its own, so callers that change the sim
  * (dials, drawn routes) call `refresh()` afterwards.
  */
-export function useSim(airport: Airport, opts: SimOptions) {
-  const [sim, setSim] = useState(() => newSim(airport, opts));
+export function useSim(airport: Airport, opts: SimOptions, start?: SimStart) {
+  const [sim, setSim] = useState(() => start?.sim() ?? newSim(airport, opts));
   const [, setFrame] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(start?.paused ?? false);
   const [timeScale, setTimeScale] = useState(1);
   /** Design: while a path is being drawn the sim runs at half speed. */
   const [drawing, setDrawing] = useState(false);

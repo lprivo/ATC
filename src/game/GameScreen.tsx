@@ -22,12 +22,13 @@ import { useSettings } from './SettingsContext';
 import { sessionClock } from './hud';
 import { useHud } from './useHud';
 import { usePendingLanding } from './usePendingLanding';
-import { useSim } from './useSim';
+import { useSim, type SimStart } from './useSim';
 
 export function GameScreen({
   session = FREE_SESSION,
   onQuit,
   onSessionEnd,
+  start,
 }: {
   session?: Session;
   onQuit?: () => void;
@@ -36,6 +37,8 @@ export function GameScreen({
    * (`endedEarly`). Without it, Quit just calls `onQuit`.
    */
   onSessionEnd?: (stats: SimStats, endedEarly: boolean) => void;
+  /** Start from a prepared state instead of a fresh random session (stories): the sim, paused or not, and a selected plane. */
+  start?: SimStart & { selectedId?: string | null };
 } = {}) {
   const airport = airportByIcao(session.icao) ?? LHBP;
   const { theme } = useTheme();
@@ -44,8 +47,8 @@ export function GameScreen({
     meanIntervalSec: meanIntervalSec(session.traffic),
     durationSec: trafficHorizonSec(session.length),
     endless: session.length === 'endless',
-  });
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  }, start);
+  const [selectedId, setSelectedId] = useState<string | null>(start?.selectedId ?? null);
   const { settings } = useSettings();
   const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh, distUnit: settings.distUnit, altUnit: settings.altUnit });
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
