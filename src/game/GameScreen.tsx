@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { airportByIcao } from '../engine/airports';
+import type { SimStats } from '../engine/types';
 import { LHBP } from '../engine/airports/lhbp';
 import { FREE_SESSION, lengthSec, meanIntervalSec, trafficHorizonSec, type Session } from './session';
 import { useTheme } from '../theme/ThemeContext';
@@ -21,7 +22,16 @@ import { useHud } from './useHud';
 import { usePendingLanding } from './usePendingLanding';
 import { useSim } from './useSim';
 
-export function GameScreen({ session = FREE_SESSION, onQuit }: { session?: Session; onQuit?: () => void } = {}) {
+export function GameScreen({
+  session = FREE_SESSION,
+  onQuit,
+  onSessionEnd,
+}: {
+  session?: Session;
+  onQuit?: () => void;
+  /** A timed session reached its length (endless sessions never end on their own). */
+  onSessionEnd?: (stats: SimStats) => void;
+} = {}) {
   const airport = airportByIcao(session.icao) ?? LHBP;
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -42,6 +52,19 @@ export function GameScreen({ session = FREE_SESSION, onQuit }: { session?: Sessi
     if (id && id !== selectedId && !opts?.silent) haptic('select');
     setSelectedId(id);
   };
+
+  // A timed session ends at its length: stop the sim and hand over the final stats (once).
+  const endAt = lengthSec(session.length);
+  const ended = useRef(false);
+  useEffect(() => {
+    if (ended.current || endAt == null || sim.time < endAt) return;
+    ended.current = true;
+    setPaused(true);
+    onSessionEnd?.({ ...sim.stats });
+  });
+  useEffect(() => {
+    ended.current = false;
+  }, [sim]);
 
   // Android back opens the pause menu (and closes it again) instead of leaving a live game.
   useEffect(() => {

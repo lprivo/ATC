@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { EntitlementProvider } from '../game/EntitlementContext';
+import { ResultsProvider } from '../game/ResultsContext';
 import { SettingsProvider } from '../game/SettingsContext';
 import { useAppFonts } from '../theme/fonts';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
@@ -28,7 +29,9 @@ export default function RootLayout() {
       <SettingsProvider>
         <ThemeProvider>
           <EntitlementProvider>
-            <ThemedStack />
+            <ResultsProvider>
+              <ThemedStack />
+            </ResultsProvider>
           </EntitlementProvider>
         </ThemeProvider>
       </SettingsProvider>
@@ -44,6 +47,8 @@ function ThemedStack() {
       <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: theme.colors.background } }}>
         {/* No swipe-back out of a live game: leaving goes through the pause menu's confirmed Quit. */}
         <Stack.Screen name="game" options={{ gestureEnabled: false }} />
+        {/* The summary replaces the game; back goes to the menu, not into the finished session. */}
+        <Stack.Screen name="summary" options={{ gestureEnabled: false }} />
       </Stack>
     </>
   );
