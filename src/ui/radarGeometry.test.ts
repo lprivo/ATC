@@ -6,14 +6,13 @@ import {
   centreline,
   chevron,
   conflictRingRadius,
-  headingVector,
   pairTag,
   ringLabels,
   runwayLabelPos,
   runwayWidth,
   screenDir,
-  trailAlpha,
-  trailDots,
+  planeTail,
+  type TailPiece,
 } from './radarGeometry';
 import { toScreen, type Viewport } from './viewport';
 
@@ -74,50 +73,69 @@ describe('radar geometry', () => {
     expect(proj(r, tr, screenDir(312))).toBeCloseTo(13);
   });
 
-  it('heading vector is one minute of flight, at least 14 pt', () => {
-    const long = headingVector(plane({ speed: 240 }), vp(8), 1, 14); // 4 nm × 8 = 32 pt
-    expect(long.x2 - 200).toBeCloseTo(32);
-    const short = headingVector(plane({ speed: 240 }), vp(2), 1, 14); // 8 pt → clamped to 14
-    expect(short.x2 - 200).toBeCloseTo(14);
+  const TAIL = { minutes: 1, minPt: 14, startPt: 6, pieces: 8, width: 2, widthEnd: 0.75 };
+  const tailLength = (pieces: TailPiece[]) =>
+    pieces.reduce((sum, pc) => sum + pc.points.slice(1).reduce((t, q, i) => t + Math.hypot(q.x - pc.points[i].x, q.y - pc.points[i].y), 0), 0);
+  // Flew east along y = 0 for 6 nm, history every 0.1 nm (oldest first); now at (0, 0).
+  const eastbound = Array.from({ length: 60 }, (_, i) => ({ x: -6 + i * 0.1, y: 0 }));
+
+  it('tail is one minute of flight at the current speed: twice as fast, twice as long', () => {
+    const fast = planeTail(plane({ speed: 240, trail: eastbound }), vp(8), TAIL); // 4 nm × 8 = 32 pt
+    const slow = planeTail(plane({ speed: 120, trail: eastbound }), vp(8), TAIL); // 16 pt
+    expect(tailLength(fast) + TAIL.startPt).toBeCloseTo(32, 6);
+    expect(tailLength(slow) + TAIL.startPt).toBeCloseTo(16, 6);
   });
 
-  it('trail: dots along the flown path, spaced max(5 pt, 0.45 nm), fading', () => {
-    // Flew east along y = 0, history every 0.1 nm (oldest first).
-    const trail = Array.from({ length: 40 }, (_, i) => ({ x: -4 + i * 0.1, y: 0 }));
-    const dots = trailDots(plane({ heading: 90, trail }), vp(20), 5);
-    expect(dots).toHaveLength(5);
-    expect(dots[0].x).toBeCloseTo(200 - 9); // 0.45 nm × 20
-    expect(dots[4].x).toBeCloseTo(200 - 45);
-    expect(dots[0].opacity).toBeCloseTo(0.84);
-    expect(dots[4].opacity).toBeCloseTo(0.2);
-    expect(trailDots(plane({ trail }), vp(2), 5)[0].x).toBeCloseTo(195); // 5 pt minimum
+  it('tail is behind the plane, not in front', () => {
+    const pieces = planeTail(plane({ heading: 90, trail: eastbound }), vp(8), TAIL);
+    const pts = pieces.flatMap((pc) => pc.points);
+    expect(pts.every((q) => q.x <= 200 - TAIL.startPt + 1e-6 && Math.abs(q.y - 200) < 1e-6)).toBe(true);
   });
 
-  it('trail follows a turn instead of the current heading', () => {
-    // Came north up x = 0, then turned east; now at (1, 0) heading east.
-    const trail = [{ x: 0, y: -2 }, { x: 0, y: -1 }, { x: 0, y: 0 }];
-    const dots = trailDots(plane({ pos: { x: 1, y: 0 }, heading: 90, trail }), vp(20), 5);
-    // 1 nm = 20 pt back to the corner (dots at 9 and 18 pt), then down the northbound leg.
-    expect(dots[1].y).toBeCloseTo(200);
-    expect(dots[2].x).toBeCloseTo(200);
-    expect(dots[2].y).toBeGreaterThan(200); // south of the corner on screen
+  it('tail is at least 14 pt, so a slow plane at low zoom still shows one', () => {
+    expect(tailLength(planeTail(plane({ speed: 140, trail: eastbound }), vp(2), TAIL)) + TAIL.startPt).toBeCloseTo(14, 6);
   });
 
-  it('trail has fewer dots while the history is short, and alpha works for any count', () => {
-    expect(trailDots(plane({ trail: [] }), vp(20), 5)).toHaveLength(0);
-    expect(trailDots(plane({ trail: [{ x: -1, y: 0 }] }), vp(20), 5)).toHaveLength(2);
-    expect(trailAlpha(0, 7)).toBeCloseTo(0.84);
-    expect(trailAlpha(6, 7)).toBeCloseTo(0.2);
-    expect(trailAlpha(3, 7)).toBeCloseTo(0.52);
+  it('tail follows a turn instead of the current heading', () => {
+    // Came north up x = 0, then turned east; now at (1, 0) heading east, 240 kt at 8 pt/nm = 32 pt of tail.
+    const trail = [{ x: 0, y: -4 }, { x: 0, y: -2 }, { x: 0, y: 0 }];
+    const pts = planeTail(plane({ pos: { x: 1, y: 0 }, heading: 90, trail }), vp(8), TAIL).flatMap((pc) => pc.points);
+    const far = pts[pts.length - 1];
+    expect(far.x).toBeCloseTo(200); // round the corner (8 pt back)...
+    expect(far.y).toBeCloseTo(200 + 24); // ...and 24 pt down the northbound leg
   });
 
-  it('trail copes with repeated history points (spawned or sampled in place)', () => {
+  it('tail carries on straight back where the history is too short (just spawned)', () => {
+    const none = planeTail(plane({ heading: 90, trail: [] }), vp(8), TAIL).flatMap((pc) => pc.points);
+    expect(none[none.length - 1]).toEqual({ x: 200 - 32, y: 200 });
+    // One step of history from the south-west (flying north-east): the extension continues that line, not the heading.
+    const one = planeTail(plane({ heading: 90, trail: [{ x: -0.5, y: -0.5 }] }), vp(8), TAIL).flatMap((pc) => pc.points);
+    const end = one[one.length - 1];
+    expect(end.x).toBeLessThan(200); // west...
+    expect(end.y).toBeGreaterThan(200); // ...and south (screen y down)
+    expect(end.x - 200).toBeCloseTo(-(end.y - 200)); // along the diagonal
+    expect(Math.hypot(end.x - 200, end.y - 200)).toBeCloseTo(32, 6);
+  });
+
+  it('tail fades and narrows away from the plane, in gap-free pieces', () => {
+    const pieces = planeTail(plane({ trail: eastbound }), vp(8), TAIL);
+    expect(pieces).toHaveLength(8);
+    expect(pieces[0].opacity).toBeCloseTo(0.9);
+    expect(pieces[7].opacity).toBeCloseTo(0.1);
+    expect(pieces[0].width).toBeCloseTo(2);
+    expect(pieces[7].width).toBeCloseTo(0.75);
+    for (let i = 1; i < pieces.length; i++) {
+      expect(pieces[i].opacity).toBeLessThan(pieces[i - 1].opacity);
+      expect(pieces[i].points[0].x).toBeCloseTo(pieces[i - 1].points[pieces[i - 1].points.length - 1].x, 6);
+    }
+    expect(pieces[0].points[0].x).toBeCloseTo(200 - TAIL.startPt, 6);
+  });
+
+  it('tail copes with repeated history points (spawned or sampled in place)', () => {
     const at = { x: 0, y: 0 };
-    const dots = trailDots(plane({ pos: at, trail: [at, at, at] }), vp(20), 5);
-    expect(dots).toHaveLength(0);
-    const mixed = trailDots(plane({ pos: at, trail: [{ x: -1, y: 0 }, at, at] }), vp(20), 5);
-    expect(mixed.every((d) => Number.isFinite(d.x) && Number.isFinite(d.y))).toBe(true);
-    expect(mixed).toHaveLength(2);
+    const pieces = planeTail(plane({ pos: at, trail: [at, { x: -1, y: 0 }, at, at] }), vp(8), TAIL);
+    expect(pieces.flatMap((pc) => pc.points).every((q) => Number.isFinite(q.x) && Number.isFinite(q.y))).toBe(true);
+    expect(tailLength(pieces) + TAIL.startPt).toBeCloseTo(32, 6);
   });
 
   it('conflict ring is max(16 pt, 1.5 nm)', () => {

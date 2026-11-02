@@ -79,42 +79,89 @@ function awaySide(airport: Airport, end: RunwayEnd): ScreenPt {
   return { x: n.x * sign, y: -n.y * sign };
 }
 
-/** Heading vector end: one minute of flight ahead, at least `minPt`. */
-export function headingVector(p: Plane, vp: Viewport, minutes: number, minPt: number) {
-  const s = toScreen(vp, p.pos);
-  const d = screenDir(p.heading);
-  const len = Math.max(minPt, (p.speed / 60) * minutes * vp.scale);
-  const start = 6; // clear of the symbol
-  return { x1: s.x + d.x * start, y1: s.y + d.y * start, x2: s.x + d.x * len, y2: s.y + d.y * len };
+export interface TailPiece {
+  /** Screen points, from the end nearer the plane backwards. */
+  points: ScreenPt[];
+  opacity: number;
+  width: number;
 }
 
-/** Trail dot alpha: 0.84 for the newest dot down to 0.2 for the oldest, for any dot count. */
-export const trailAlpha = (k: number, count: number) => (count <= 1 ? 0.84 : 0.84 - (k / (count - 1)) * 0.64);
+export interface TailStyle {
+  /** Tail length: this many minutes of flight at the plane's current speed... */
+  minutes: number;
+  /** ...but at least this many pt, so a slow plane at low zoom still shows one. */
+  minPt: number;
+  /** Gap left clear around the symbol, pt. */
+  startPt: number;
+  /** Number of fading pieces. */
+  pieces: number;
+  /** Stroke width at the plane and at the far end. */
+  width: number;
+  widthEnd: number;
+}
+
+/** Tail length on screen: `minutes` of flight at the plane's current speed, at least `minPt`. */
+export const tailLengthPt = (p: Pick<Plane, 'speed'>, vp: Viewport, style: Pick<TailStyle, 'minutes' | 'minPt'>) =>
+  Math.max(style.minPt, (p.speed / 60) * style.minutes * vp.scale);
 
 /**
- * Trail: up to `count` dots along the plane's real flown path (newest history
- * first), one every max(5 pt, 0.45 nm) of path length, fading 0.84 → 0.2.
- * Fewer dots while the history is still short (just after spawning).
+ * The plane's tail (playtest feedback, #37): behind the plane, along the path
+ * it actually flew, as long as `minutes` of flight at its **current** speed, so
+ * its length reads as speed at a glance and changes as soon as the speed does.
+ * Where the history is too short (just spawned), the tail carries on straight
+ * back. It fades and narrows away from the plane, in `pieces` steps.
  */
-export function trailDots(p: Plane, vp: Viewport, count: number) {
-  const gap = Math.max(5, 0.45 * vp.scale);
-  const path = [toScreen(vp, p.pos), ...[...p.trail].reverse().map((q) => toScreen(vp, q))];
-  const out: { x: number; y: number; opacity: number }[] = [];
-  let need = gap; // path length still to walk before the next dot
-  for (let i = 1; i < path.length && out.length < count; i++) {
+export function planeTail(p: Plane, vp: Viewport, style: TailStyle): TailPiece[] {
+  const total = tailLengthPt(p, vp, style);
+  if (total <= style.startPt) return [];
+  // The flown path backwards from the plane, without zero-length steps.
+  const path: ScreenPt[] = [toScreen(vp, p.pos)];
+  for (const q of [...p.trail].reverse()) {
+    const s = toScreen(vp, q);
+    const last = path[path.length - 1];
+    if (Math.hypot(s.x - last.x, s.y - last.y) > 1e-6) path.push(s);
+  }
+  // Too short: extend straight back (along the last flown step, or opposite the heading).
+  let length = 0;
+  for (let i = 1; i < path.length; i++) length += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+  if (length < total) {
+    const end = path[path.length - 1];
+    let back: ScreenPt;
+    if (path.length >= 2) {
+      const prev = path[path.length - 2];
+      const d = Math.hypot(end.x - prev.x, end.y - prev.y);
+      back = { x: (end.x - prev.x) / d, y: (end.y - prev.y) / d };
+    } else {
+      const h = screenDir(p.heading);
+      back = { x: -h.x, y: -h.y };
+    }
+    path.push({ x: end.x + back.x * (total - length), y: end.y + back.y * (total - length) });
+  }
+  // Walk the path once, cutting it at the piece boundaries.
+  const step = (total - style.startPt) / style.pieces;
+  const cuts = Array.from({ length: style.pieces + 1 }, (_, k) => style.startPt + k * step);
+  const pieces: TailPiece[] = [];
+  let walked = 0;
+  let current: ScreenPt[] = [];
+  let k = 0;
+  for (let i = 1; i < path.length && k < style.pieces; i++) {
     const a = path[i - 1];
     const b = path[i];
     const seg = Math.hypot(b.x - a.x, b.y - a.y);
-    let used = 0;
-    while (seg - used >= need && out.length < count) {
-      used += need;
-      const t = used / seg;
-      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, opacity: 0 });
-      need = gap;
+    const at = (d: number) => ({ x: a.x + ((b.x - a.x) * (d - walked)) / seg, y: a.y + ((b.y - a.y) * (d - walked)) / seg });
+    if (current.length === 0 && cuts[k] <= walked + seg) current.push(at(cuts[k]));
+    while (k < style.pieces && cuts[k + 1] <= walked + seg + 1e-9) {
+      if (current.length === 0) current.push(at(cuts[k]));
+      current.push(at(cuts[k + 1]));
+      const t = style.pieces === 1 ? 0 : k / (style.pieces - 1);
+      pieces.push({ points: current, opacity: 0.9 - 0.8 * t, width: style.width + (style.widthEnd - style.width) * t });
+      k++;
+      current = k < style.pieces ? [at(cuts[k])] : [];
     }
-    need -= seg - used;
+    if (current.length) current.push(b);
+    walked += seg;
   }
-  return out.map((d, k) => ({ ...d, opacity: trailAlpha(k, count) }));
+  return pieces;
 }
 
 /** Conflict ring radius: max(minPt, ringNm). */

@@ -12,13 +12,12 @@ import {
   chevron,
   conflictRingRadius,
   fixTriangle,
-  headingVector,
   pairTag,
   RANGE_RINGS_NM,
   ringLabels,
   runwayLabelPos,
   runwayWidth,
-  trailDots,
+  planeTail,
 } from './radarGeometry';
 import { haptic } from '../game/haptics';
 import type { AltUnit, DistUnit } from '../game/settings';
@@ -447,15 +446,23 @@ function PlaneGlyph({ plane: p, vp, theme, selected }: { plane: Plane; vp: Viewp
   const z = theme.size;
   const s = toScreen(vp, p.pos);
   const color = p.conflict ? c.planeConflict : selected ? c.planeSelected : c.plane;
-  const hv = headingVector(p, vp, z.headingVectorMinutes, z.headingVectorMin);
   const half = z.planeSymbol / 2;
 
   return (
     <G>
-      {trailDots(p, vp, z.trailDots).map((d, i) => (
-        <Circle key={i} cx={d.x} cy={d.y} r={z.trailDotRadius} fill={c.trail} opacity={d.opacity} />
+      {/* The tail: behind the plane, as long as a minute of flight at its current speed. */}
+      {planeTail(p, vp, z.tail).map((piece, i) => (
+        <Polyline
+          key={i}
+          points={piece.points.map((q) => `${q.x},${q.y}`).join(' ')}
+          fill="none"
+          stroke={color}
+          strokeOpacity={piece.opacity}
+          strokeWidth={piece.width}
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+        />
       ))}
-      <Line {...hv} stroke={color} strokeWidth={1.25} />
       {p.conflict && (
         <Circle
           cx={s.x}

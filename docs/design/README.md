@@ -109,13 +109,12 @@ Card at bottom 56, inset 20, `panel` background, 1 pt `accent` border; step `n /
 
 ### Plane symbol and data block
 - **Symbol:** 11 pt square, 1.5 stroke. Normal: hollow `plane`. Selected: filled `planeSelected` plus corner brackets (26 box, 5 arms). Conflict: `planeConflict` plus a dashed ring of radius max(16 pt, 1.5 nm), dash 5/4. Cleared: a 3.5 pt centre dot in `routeCleared`.
-- **Heading vector:** 1 minute of flight (spd/60 nm), minimum 14 pt.
-- **Trail:** 5 dots radius 1.5, spaced max(5 pt, 0.45 nm), alpha 0.84 → 0.2.
+- **Tail** (*changed after playtesting, #37*: replaces the forward heading vector and the trail dots, which read as the plane flying backwards): behind the plane, along its flown path, 1 minute of flight at its **current** speed (spd/60 nm), minimum 14 pt, starting 6 pt clear of the symbol; in the symbol's colour, fading 0.9 → 0.1 and narrowing 2 → 0.75 pt in 8 steps. Its length reads as speed at a glance.
 - **Label:** Condensed 600 13 (line 1) and 500 12 (line 2) × `labelScale`, line height 15, padding 3, solid `labelBg`.
   - Line 1: callsign, then (Full) type in `fixLabel`, then chips (`!`, runway, `GA`). Line 2: altitude in hundreds, trend arrow, target, then speed, e.g. `070↓040 250`.
   - Selected: 1 pt `planeSelected` frame. Conflict: whole label inverts to `danger` / `onDanger`.
   - **Min mode** (automatic above 8 planes, unless selected or in conflict): callsign, trend and chips only.
-- **Auto-placement:** 16 candidate slots (8 compass positions at 12 pt, plus 8 at 30 pt with a leader line). Score = preference + 40 (far ring) + 120 (in front of the heading vector) + label overlap × 5 + symbol overlap × 4 + off-safe-area × 6. Place selected and conflict labels first; conflict pair-distance tags are obstacles. Re-run at 2 Hz and ease labels 150 ms to their new slot.
+- **Auto-placement:** 16 candidate slots (8 compass positions at 12 pt, plus 8 at 30 pt with a leader line). Score = preference + 40 (far ring) + 120 (in front of the plane, or over its tail) + label overlap × 5 + symbol overlap × 4 + off-safe-area × 6. Place selected and conflict labels first; conflict pair-distance tags are obstacles. Re-run at 2 Hz and ease labels 150 ms to their new slot.
 - **Hit target:** a 44 pt circle (24 pt radius) around the symbol, plus the label rectangle.
 
 ### Stepper (sheet)
@@ -186,7 +185,6 @@ Implemented in `src/theme/themes.ts`. Tokens marked **NEW** were added to the or
 | plane | #d6ebff | #1d2d3d |
 | planeSelected | #ffffff | #000000 |
 | planeConflict | #ffb547 | #c2410c |
-| trail | #4f7090 | #a9b3bd |
 | route | #94bce3 | #597ea3 |
 | routeCleared | #6fe3c6 | #0b7a63 |
 | routeDraft | #ffffff | #1d1f20 |

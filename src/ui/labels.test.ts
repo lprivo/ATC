@@ -125,11 +125,25 @@ describe('label placement', () => {
     expect(q.leader).toBeNull();
   });
 
-  it('never covers the heading vector when another slot is free', () => {
+  it('keeps clear of the way ahead when another slot is free', () => {
     // Heading north-east (045): the NE slot is in front of the plane.
     const [p] = placeLabels([item('a', 200, 400, { heading: 45 })], { near: 12, far: 30, safe });
     const ne = p.rect.x > 200 && p.rect.y + p.rect.h < 400;
     expect(ne).toBe(false);
+  });
+
+  it('never covers the tail when another slot is free', () => {
+    // The tail is a line 32 pt straight back from the symbol; no label box may cross it.
+    for (const heading of [0, 45, 90, 135, 180, 225, 270, 315]) {
+      const [p] = placeLabels([item('a', 200, 400, { heading, tail: 32 })], { near: 12, far: 30, safe });
+      const back = { x: -Math.sin((heading * Math.PI) / 180), y: Math.cos((heading * Math.PI) / 180) }; // screen, y down
+      for (let d = 6; d <= 32; d += 1) {
+        const x = 200 + back.x * d;
+        const y = 400 + back.y * d;
+        const inside = x > p.rect.x && x < p.rect.x + p.rect.w && y > p.rect.y && y < p.rect.y + p.rect.h;
+        expect(inside, `heading ${heading}, ${d} pt back`).toBe(false);
+      }
+    }
   });
 
   it('two close planes get labels that do not overlap', () => {

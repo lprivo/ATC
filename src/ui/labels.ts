@@ -124,6 +124,8 @@ export interface LabelItem {
   x: number;
   y: number;
   heading: number;
+  /** Length of the plane's tail, pt (it runs straight back from the symbol). */
+  tail?: number;
   w: number;
   h: number;
   /** Placed first: selected (4) and conflict (2) labels win the best slots. */
@@ -148,7 +150,7 @@ export const overlap = (a: Rect, b: Rect) =>
 /**
  * Auto-places every label in one of 16 slots (8 compass positions at `near` pt
  * from the symbol, 8 more at `far` pt with a leader line), scoring each slot:
- * preference + 40 (far ring) + 120 (in front of the heading vector)
+ * preference + 40 (far ring) + 120 (in front of the plane, or over its tail)
  * + overlap with placed labels × 5 + overlap with other symbols × 4
  * + area outside `safe` × 6. Selected and conflict labels go first;
  * `obstacles` (e.g. conflict pair tags) count as already placed.
@@ -170,7 +172,9 @@ export function placeLabels(items: LabelItem[], opts: { near: number; far: numbe
         const x = ux > 0.1 ? o.x + R * ux : ux < -0.1 ? o.x + R * ux - o.w : o.x - o.w / 2;
         const y = uy > 0.1 ? o.y + R * uy : uy < -0.1 ? o.y + R * uy - o.h : o.y - o.h / 2;
         const r = { x, y, w: o.w, h: o.h };
-        let score = PREF[j] + (R > opts.near ? 40 : 0) + (ux * head.x + uy * head.y > 0.4 ? 120 : 0);
+        // In front of the plane (where it's going), or over its tail.
+        const ahead = ux * head.x + uy * head.y > 0.4;
+        let score = PREF[j] + (R > opts.near ? 40 : 0) + (ahead || crossesTail(r, o, head) ? 120 : 0);
         for (const q of placed) score += overlap(r, q) * 5;
         for (const s of symbols) if (s.id !== o.id) score += overlap(r, s.r) * 4;
         score += (o.w * o.h - overlap(r, opts.safe)) * 6;
@@ -184,6 +188,16 @@ export function placeLabels(items: LabelItem[], opts: { near: number; far: numbe
     out.push({ id: o.id, rect: best, leader: leaderFor(o, best) });
   }
   return out;
+}
+
+/** Whether a label box crosses the plane's tail: a line from 6 pt to `tail` pt straight back from the symbol (sampled every 2 pt). */
+function crossesTail(r: Rect, o: LabelItem, head: { x: number; y: number }) {
+  for (let d = 6; d <= (o.tail ?? 0); d += 2) {
+    const x = o.x - head.x * d;
+    const y = o.y - head.y * d;
+    if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true;
+  }
+  return false;
 }
 
 /** Leader line from 8 pt out from the symbol to the box's nearest point, if the box is more than 9 pt away. */

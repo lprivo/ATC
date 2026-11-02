@@ -20,7 +20,6 @@ export interface ThemeColors {
   plane: string;
   planeSelected: string;
   planeConflict: string;
-  trail: string;
   route: string;
   routeCleared: string;
   routeDraft: string;
@@ -192,8 +191,8 @@ export interface ThemeSize {
   selectBracketArm: number;
   hitTarget: number;
   hitRadius: number;
-  headingVectorMinutes: number;
-  headingVectorMin: number;
+  /** The plane's tail (behind it, length ∝ speed): see `TailStyle` in ui/radarGeometry. */
+  tail: { minutes: number; minPt: number; startPt: number; pieces: number; width: number; widthEnd: number };
   conflictRingNm: number;
   conflictRingMin: number;
   labelOffsetNear: number;
@@ -201,8 +200,6 @@ export interface ThemeSize {
   snapRadius: number;
   loupeRadius: number;
   loupeZoom: number;
-  trailDots: number;
-  trailDotRadius: number;
   /** Route drawing: candidate ring, snapped threshold ring and draft end handle radii; snap halo opacity. */
   candidateRing: number;
   snapRing: number;
@@ -220,9 +217,12 @@ const size: ThemeSize = {
   /** Touch target around a plane symbol: nominal 44 pt, hit-tested with a 24 pt radius (design). */
   hitTarget: 44,
   hitRadius: 24,
-  /** Heading vector: this many minutes of flight, at least `headingVectorMin` pt. */
-  headingVectorMinutes: 1,
-  headingVectorMin: 14,
+  /**
+   * Tail (playtest, #37; replaces the design's forward heading vector and trail
+   * dots): 1 minute of flight at the current speed, at least 14 pt, starting
+   * 6 pt clear of the symbol, fading in 8 steps from 2 pt to 0.75 pt wide.
+   */
+  tail: { minutes: 1, minPt: 14, startPt: 6, pieces: 8, width: 2, widthEnd: 0.75 },
   /** Conflict ring radius: max(conflictRingNm, conflictRingMin pt). */
   conflictRingNm: 1.5,
   conflictRingMin: 16,
@@ -233,8 +233,6 @@ const size: ThemeSize = {
   snapRadius: 28,
   loupeRadius: 62,
   loupeZoom: 2.2,
-  trailDots: 5,
-  trailDotRadius: 1.5,
   candidateRing: 9,
   snapRing: 10,
   draftHandle: 7,
@@ -280,7 +278,6 @@ export const radarTheme: Theme = {
     plane: '#d6ebff',
     planeSelected: '#ffffff',
     planeConflict: '#ffb547',
-    trail: '#4f7090',
     route: '#94bce3',
     routeCleared: '#6fe3c6',
     routeDraft: '#ffffff',
@@ -319,7 +316,6 @@ export const paperTheme: Theme = {
     plane: '#1d2d3d',
     planeSelected: '#000000',
     planeConflict: '#c2410c',
-    trail: '#a9b3bd',
     route: '#597ea3',
     routeCleared: '#0b7a63',
     routeDraft: '#1d1f20',

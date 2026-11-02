@@ -18,7 +18,7 @@ import {
   type Slot,
 } from './labels';
 import type { AltUnit, DistUnit } from '../game/settings';
-import { pairTag } from './radarGeometry';
+import { pairTag, tailLengthPt } from './radarGeometry';
 import { toScreen, type Viewport } from './viewport';
 
 export interface DrawnLabel extends PlacedLabel {
@@ -83,7 +83,7 @@ export function useLabelLayout(
       return [{ x: r.x - 2, y: r.y - 2, w: r.w + 4, h: r.h + 4 }];
     });
     const placed = placeLabels(
-      items.map((i) => ({ id: i.p.id, x: i.s.x, y: i.s.y, heading: i.p.heading, w: i.size.w, h: i.size.h, rank: i.rank })),
+      items.map((i) => ({ id: i.p.id, x: i.s.x, y: i.s.y, heading: i.p.heading, tail: tailLengthPt(i.p, vp, theme.size.tail), w: i.size.w, h: i.size.h, rank: i.rank })),
       { near: theme.size.labelOffsetNear, far: theme.size.labelOffsetFar, safe: safeArea(vp, opts.insets), obstacles },
     );
     const byId = new Map(items.map((i) => [i.p.id, i.s]));
