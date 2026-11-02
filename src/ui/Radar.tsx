@@ -78,13 +78,15 @@ interface Props {
   insets?: { top: number; bottom: number };
   /** While paused nothing re-renders on its own, so labels snap instead of easing. */
   paused?: boolean;
-  /** Plane labels setting (Auto | Full | Min); default Auto. Wired to Settings in #15. */
+  /** Plane labels setting (Auto | Full | Min); default Auto. */
   labelMode?: LabelMode;
-  /** Label size setting (theme LABEL_SCALE); default 1. Wired to Settings in #15. */
+  /** Label size setting (theme LABEL_SCALE); default 1. */
   labelScale?: number;
+  /** Controls on the left (settings): the re-centre button moves to the left edge. */
+  handedness?: 'left' | 'right';
 }
 
-export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawing, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS }: Props) {
+export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawing, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS, handedness = 'right' }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [vp, setVp] = useState<Viewport>(() => defaultViewport(0, 0));
@@ -300,6 +302,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
         style={({ pressed }) => [
           styles.recentre,
           { bottom: insets.bottom + HUD_EDGE },
+          handedness === 'left' && { right: undefined, left: HUD_EDGE },
           { backgroundColor: pressed ? c.buttonPressed : c.panel, borderColor: c.panelBorder, borderWidth: theme.hairline },
         ]}
       >

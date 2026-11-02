@@ -15,6 +15,8 @@ import { Radar } from '../ui/Radar';
 import { Toasts } from '../ui/Toasts';
 import { TopBar } from '../ui/TopBar';
 import { haptic } from './haptics';
+import { LABEL_SCALE } from '../theme/themes';
+import { useSettings } from './SettingsContext';
 import { useHud } from './useHud';
 import { usePendingLanding } from './usePendingLanding';
 import { useSim } from './useSim';
@@ -29,7 +31,8 @@ export function GameScreen({ session = FREE_SESSION, onQuit }: { session?: Sessi
     endless: session.length === 'endless',
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh });
+  const { settings } = useSettings();
+  const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh, distUnit: settings.distUnit, altUnit: settings.altUnit });
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
   const [bannerHeight, setBannerHeight] = useState(56);
   const [sheetHeight, setSheetHeight] = useState(0);
@@ -71,6 +74,9 @@ export function GameScreen({ session = FREE_SESSION, onQuit }: { session?: Sessi
           onCommand={refresh}
           paused={paused}
           insets={{ top: toastTop, bottom: sheetHeight }}
+          labelMode={settings.labelMode}
+          labelScale={LABEL_SCALE[settings.labelSize]}
+          handedness={settings.handedness}
           onLanding={landing.land}
           onDrawing={setDrawing}
         />
@@ -118,6 +124,8 @@ export function GameScreen({ session = FREE_SESSION, onQuit }: { session?: Sessi
           timeScale={timeScale}
           onTimeScale={setTimeScale}
           bottomInset={insets.bottom}
+          altUnit={settings.altUnit}
+          handedness={settings.handedness}
           onHeight={setSheetHeight}
         />
       </View>

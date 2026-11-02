@@ -1,27 +1,31 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { useColorScheme } from 'react-native';
+import { useSettings } from '../game/SettingsContext';
+import { effectiveTheme } from '../game/settings';
 import { themes, type Theme } from './themes';
 
 interface ThemeCtx {
   theme: Theme;
   /** All selectable themes, for pickers. */
   themes: readonly Theme[];
+  /** Choose a theme (this also turns "follow system" off). */
   setTheme: (id: string) => void;
 }
 
 const Ctx = createContext<ThemeCtx | null>(null);
 
+/** The theme from the player's settings (or the system's light/dark mode when following it). */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [index, setIndex] = useState(0);
+  const { settings, update } = useSettings();
+  const scheme = useColorScheme();
+  const id = effectiveTheme(settings, scheme);
   const value = useMemo(
     () => ({
-      theme: themes[index],
+      theme: themes.find((t) => t.id === id) ?? themes[0],
       themes,
-      setTheme: (id: string) => {
-        const i = themes.findIndex((t) => t.id === id);
-        if (i >= 0) setIndex(i);
-      },
+      setTheme: (next: string) => update({ theme: next, followSystem: false }),
     }),
-    [index],
+    [id, update],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { EntitlementProvider } from '../game/EntitlementContext';
+import { SettingsProvider } from '../game/SettingsContext';
 import { useAppFonts } from '../theme/fonts';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { themes } from '../theme/themes';
@@ -24,11 +25,13 @@ export default function RootLayout() {
   }
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <EntitlementProvider>
-          <ThemedStack />
-        </EntitlementProvider>
-      </ThemeProvider>
+      <SettingsProvider>
+        <ThemeProvider>
+          <EntitlementProvider>
+            <ThemedStack />
+          </EntitlementProvider>
+        </ThemeProvider>
+      </SettingsProvider>
     </SafeAreaProvider>
   );
 }

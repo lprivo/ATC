@@ -5,7 +5,8 @@ import type { Sim } from '../engine/sim';
 import type { Plane } from '../engine/types';
 import { atLimit, isFollowingRoute, nextAltitude, nextHeading, nextSpeed, statusChip, trend } from '../game/controls';
 import { useTheme } from '../theme/ThemeContext';
-import { feet, pad3 } from './format';
+import { altLabel, formatAltitude, type AltUnit, type Handedness } from '../game/settings';
+import { pad3 } from './format';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CloseIcon } from './icons';
 import { SpeedControl } from './SpeedControl';
 import { Stepper } from './Stepper';
@@ -29,6 +30,10 @@ interface Props {
   bottomInset: number;
   /** Reports the sheet's height (including the inset), so the radar can keep planes and buttons above it. */
   onHeight: (h: number) => void;
+  /** Altitude unit setting (the sim works in feet; steps stay 1,000 ft). */
+  altUnit?: AltUnit;
+  /** Controls on the left (settings): the close button moves to the left edge. */
+  handedness?: Handedness;
 }
 
 /**
@@ -37,7 +42,7 @@ interface Props {
  * - Expanded (a plane selected): header and three steppers.
  * - Compact (swipe down while selected): callsign and three read-only values; tap to expand.
  */
-export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, onTimeScale, bottomInset, onHeight }: Props) {
+export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, onTimeScale, bottomInset, onHeight, altUnit = 'ft', handedness = 'right' }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const plane = selectedId ? sim.plane(selectedId) : undefined;
@@ -89,12 +94,12 @@ export function BottomSheet({ sim, selectedId, onClose, onCommand, timeScale, on
         {state === 'peek' && <Peek sim={sim} timeScale={timeScale} onTimeScale={onTimeScale} />}
         {state === 'expanded' && plane && (
           <View {...swipe.panHandlers}>
-            <Expanded sim={sim} plane={plane} onClose={onClose} onCommand={onCommand} />
+            <Expanded sim={sim} plane={plane} onClose={onClose} onCommand={onCommand} altUnit={altUnit} handedness={handedness} />
           </View>
         )}
         {state === 'compact' && plane && (
           <View {...swipe.panHandlers}>
-            <Compact plane={plane} onExpand={() => setCompact(false)} />
+            <Compact plane={plane} onExpand={() => setCompact(false)} altUnit={altUnit} />
           </View>
         )}
       </Animated.View>
@@ -120,7 +125,21 @@ function Peek({ sim, timeScale, onTimeScale }: { sim: Sim; timeScale: number; on
   );
 }
 
-function Expanded({ sim, plane: p, onClose, onCommand }: { sim: Sim; plane: Plane; onClose: () => void; onCommand: () => void }) {
+function Expanded({
+  sim,
+  plane: p,
+  onClose,
+  onCommand,
+  altUnit,
+  handedness,
+}: {
+  sim: Sim;
+  plane: Plane;
+  onClose: () => void;
+  onCommand: () => void;
+  altUnit: AltUnit;
+  handedness: Handedness;
+}) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -136,7 +155,8 @@ function Expanded({ sim, plane: p, onClose, onCommand }: { sim: Sim; plane: Plan
 
   return (
     <View style={styles.expanded} testID="plane-panel">
-      <View style={styles.header}>
+      {/* Controls on the left (settings) mirror the header: the close button sits at the left edge. */}
+      <View style={[styles.header, handedness === 'left' && styles.headerMirrored]}>
         <View>
           <Text style={[t.callsign, { color: c.planeSelected }]}>{p.callsign}</Text>
           <Text style={[t.small, { color: c.textDim, marginTop: 5 }]}>{airline ? `${p.aircraftType} · ${airline}` : p.aircraftType}</Text>
@@ -151,7 +171,7 @@ function Expanded({ sim, plane: p, onClose, onCommand }: { sim: Sim; plane: Plan
           testID="close-panel"
           accessibilityRole="button"
           accessibilityLabel="Close"
-          style={({ pressed }) => [styles.close, { borderColor: c.panelBorder, borderWidth: theme.hairline }, pressed && { backgroundColor: c.buttonPressed }]}
+          style={({ pressed }) => [styles.close, handedness === 'left' && styles.closeMirrored, { borderColor: c.panelBorder, borderWidth: theme.hairline }, pressed && { backgroundColor: c.buttonPressed }]}
         >
           <CloseIcon color={c.text} />
         </Pressable>
@@ -168,9 +188,9 @@ function Expanded({ sim, plane: p, onClose, onCommand }: { sim: Sim; plane: Plan
         />
         <Stepper
           testID="step-alt"
-          label="ALT FT"
-          value={feet(p.target.altitude)}
-          now={`now ${feet(p.altitude)} ${trend('altitude', p)}`.trim()}
+          label={altLabel(altUnit)}
+          value={formatAltitude(p.target.altitude, altUnit)}
+          now={`now ${formatAltitude(p.altitude, altUnit)} ${trend('altitude', p)}`.trim()}
           dec={{ icon: <ChevronDown color={iconColor} />, a11y: 'Descend 1,000 feet', atLimit: atLimit('altitude', p, -1) }}
           inc={{ icon: <ChevronUp color={iconColor} />, a11y: 'Climb 1,000 feet', atLimit: atLimit('altitude', p, 1) }}
           onStep={(d) => command(() => sim.setAltitude(p.id, nextAltitude(p, d)))}
@@ -189,7 +209,7 @@ function Expanded({ sim, plane: p, onClose, onCommand }: { sim: Sim; plane: Plan
   );
 }
 
-function Compact({ plane: p, onExpand }: { plane: Plane; onExpand: () => void }) {
+function Compact({ plane: p, onExpand, altUnit }: { plane: Plane; onExpand: () => void; altUnit: AltUnit }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
@@ -200,13 +220,13 @@ function Compact({ plane: p, onExpand }: { plane: Plane; onExpand: () => void })
     </View>
   );
   const hdg = isFollowingRoute(p) ? '———' : pad3(p.target.heading);
-  const label = `${p.callsign}, heading ${isFollowingRoute(p) ? 'own navigation' : hdg}, ${feet(p.target.altitude)} feet, ${Math.round(p.target.speed)} knots. Show controls`;
+  const label = `${p.callsign}, heading ${isFollowingRoute(p) ? 'own navigation' : hdg}, ${formatAltitude(p.target.altitude, altUnit, true)}, ${Math.round(p.target.speed)} knots. Show controls`;
   return (
     <Pressable onPress={onExpand} testID="sheet-compact" accessibilityRole="button" accessibilityLabel={label} style={styles.compact}>
       <Text style={[t.callsign, { color: c.planeSelected }]}>{p.callsign}</Text>
       <View style={styles.compactCells}>
         {cell('HDG', hdg)}
-        {cell('ALT', feet(p.target.altitude))}
+        {cell('ALT', formatAltitude(p.target.altitude, altUnit))}
         {cell('SPD', String(Math.round(p.target.speed)))}
       </View>
     </Pressable>
@@ -232,6 +252,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   status: { marginLeft: 6, alignSelf: 'flex-start', marginTop: 3, paddingVertical: 4, paddingHorizontal: 6 },
   close: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerMirrored: { flexDirection: 'row-reverse' },
+  closeMirrored: { marginLeft: 0, marginRight: 'auto' },
   steppers: { flexDirection: 'row', gap: 8 },
   compact: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   compactCells: { flex: 1, flexDirection: 'row', gap: 6 },

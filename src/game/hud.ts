@@ -2,6 +2,7 @@
 // automatic slow-down on a new conflict. Pure (no React / React Native imports).
 import type { Sim } from '../engine/sim';
 import type { Conflict, SimEvent } from '../engine/types';
+import { formatAltitude, formatDistance, type AltUnit, type DistUnit } from './settings';
 
 /** Design: at most 2 toasts at once, auto-dismissed after 4 s. */
 export const MAX_TOASTS = 2;
@@ -78,17 +79,20 @@ export interface Banner {
 }
 
 /** The conflict banner for the first current conflict (or the first one `only` accepts), or null when there is none. */
-export function conflictBanner(sim: Sim, only: (cf: Conflict) => boolean = () => true): Banner | null {
+export function conflictBanner(
+  sim: Sim,
+  only: (cf: Conflict) => boolean = () => true,
+  units: { dist: DistUnit; alt: AltUnit } = { dist: 'nm', alt: 'ft' },
+): Banner | null {
   for (const cf of sim.conflicts) {
     if (!only(cf)) continue;
     const a = sim.plane(cf.a);
     const b = sim.plane(cf.b);
     if (!a || !b) continue;
     // Rounded down like the radar's pair tag, so it never shows the limit itself.
-    const nm = (Math.floor(cf.distNm * 10) / 10).toFixed(1);
-    // Always under 1,000 ft in a conflict, so no thousands separator is needed.
-    const ft = Math.floor(cf.altFt / 100) * 100;
-    return { title: 'SEPARATION LOST', detail: `${a.callsign} · ${b.callsign} — ${nm} nm, ${ft} ft`, selectId: a.id, pairKey: pairKey(cf) };
+    const dist = formatDistance(cf.distNm, units.dist);
+    const alt = units.alt === 'm' ? formatAltitude(cf.altFt, 'm', true) : `${Math.floor(cf.altFt / 100) * 100} ft`;
+    return { title: 'SEPARATION LOST', detail: `${a.callsign} · ${b.callsign} — ${dist}, ${alt}`, selectId: a.id, pairKey: pairKey(cf) };
   }
   return null;
 }

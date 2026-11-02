@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import type { Sim } from '../engine/sim';
 import { haptic } from './haptics';
+import type { AltUnit, DistUnit } from './settings';
 import { conflictBanner, conflictSetKey, hasNewConflict, nextToastExpiry, pairKey, stepToastState, type ToastState } from './hud';
 
 /**
@@ -9,8 +10,12 @@ import { conflictBanner, conflictSetKey, hasNewConflict, nextToastExpiry, pairKe
  * clean in the same render), the conflict banner, and the design rule that a
  * new conflict drops the sim to ×1.
  */
-export function useHud(sim: Sim, opts: { paused: boolean; timeScale: number; setTimeScale: (s: number) => void; refresh: () => void }) {
+export function useHud(
+  sim: Sim,
+  opts: { paused: boolean; timeScale: number; setTimeScale: (s: number) => void; refresh: () => void; distUnit?: DistUnit; altUnit?: AltUnit },
+) {
   const { paused, timeScale, setTimeScale, refresh } = opts;
+  const units = { dist: opts.distUnit ?? 'nm', alt: opts.altUnit ?? 'ft' } as const;
 
   const toastState = useRef<ToastState>({ owner: sim, toasts: [], lastSeq: 0 });
   toastState.current = stepToastState(toastState.current, sim, sim.events, Date.now());
@@ -33,7 +38,7 @@ export function useHud(sim: Sim, opts: { paused: boolean; timeScale: number; set
       haptic('conflict');
       // Announced here, once per new pair, so pausing (which hides the banner) doesn't repeat it.
       // Announce the pair that is new, not whichever pair the banner shows first.
-      const b = conflictBanner(sim, (cf) => !known.current.pairs.has(pairKey(cf)));
+      const b = conflictBanner(sim, (cf) => !known.current.pairs.has(pairKey(cf)), units);
       if (b) AccessibilityInfo.announceForAccessibility(`${b.title}. ${b.detail}`);
       if (timeScale !== 1) setTimeScale(1);
     }
@@ -42,5 +47,5 @@ export function useHud(sim: Sim, opts: { paused: boolean; timeScale: number; set
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sim, setKey]);
 
-  return { toasts, banner: conflictBanner(sim) };
+  return { toasts, banner: conflictBanner(sim, undefined, units) };
 }
