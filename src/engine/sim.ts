@@ -99,9 +99,10 @@ function onParallelFinals(a: Plane, b: Plane): boolean {
   return establishedOnFinal(a) && establishedOnFinal(b);
 }
 /**
- * Position history for radar trails: one sample every 2 s, kept for 2 minutes.
- * At sector zoom on a phone (~6.5 pt/nm) five trail dots need ~3.9 nm of path,
- * which a plane at approach speed (140 kt) covers in ~100 s.
+ * Position history for the radar tail: one sample every 2 s, kept for 2 minutes.
+ * The tail is 1 minute of flight at the plane's current speed, so 2 minutes of
+ * history covers it unless the plane has recently more than doubled its speed;
+ * the UI extends the tail straight back in that case.
  */
 const TRAIL_EVERY_SEC = 2;
 export const TRAIL_LENGTH = 60;

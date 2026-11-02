@@ -231,7 +231,7 @@ Barlow Condensed for display and numbers, Barlow for body; all numbers use tabul
 | size.planeSymbol | 11 |
 | size.selectBracket | 26 (arm 5) |
 | size.hitTarget | 44 (hit-tested with a 24 pt radius) |
-| size.headingVector | 1 min, minimum 14 |
+| size.tail | 1 min at current speed, minimum 14; from 6 pt; 8 pieces, opacity 0.9 → 0.1, width 2 → 0.75 (#37) |
 | size.conflictRing | 1.5 nm, minimum 16 |
 | size.labelOffset | 12 / 30 |
 | size.snapRadius | 28 |

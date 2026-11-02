@@ -13,11 +13,11 @@ import {
   conflictRingRadius,
   fixTriangle,
   pairTag,
+  planeTail,
   RANGE_RINGS_NM,
   ringLabels,
   runwayLabelPos,
   runwayWidth,
-  planeTail,
 } from './radarGeometry';
 import { haptic } from '../game/haptics';
 import type { AltUnit, DistUnit } from '../game/settings';

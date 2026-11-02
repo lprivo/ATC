@@ -4,7 +4,7 @@
 import { add, dirOf } from '../engine/math';
 import type { Airport, Plane, RunwayEnd, Vec2 } from '../engine/types';
 import { conflictAltitude, formatDistance, type AltUnit, type DistUnit } from '../game/settings';
-import { textWidth } from './labels';
+import { textWidth, type LabelItem } from './labels';
 import { toScreen, type Viewport } from './viewport';
 
 export interface ScreenPt {
@@ -98,32 +98,63 @@ export interface TailStyle {
   /** Stroke width at the plane and at the far end. */
   width: number;
   widthEnd: number;
+  /** Opacity at the plane and at the far end. */
+  opacity: number;
+  opacityEnd: number;
 }
 
 /** Tail length on screen: `minutes` of flight at the plane's current speed, at least `minPt`. */
 export const tailLengthPt = (p: Pick<Plane, 'speed'>, vp: Viewport, style: Pick<TailStyle, 'minutes' | 'minPt'>) =>
   Math.max(style.minPt, (p.speed / 60) * style.minutes * vp.scale);
 
+const lerp = (a: ScreenPt, b: ScreenPt, t: number): ScreenPt => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+
+/** The part of a polyline between distances `from` and `to` along it (`to` past its end stops at the end). */
+export function slicePolyline(path: ScreenPt[], from: number, to: number): ScreenPt[] {
+  const out: ScreenPt[] = [];
+  let walked = 0;
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    const seg = Math.hypot(b.x - a.x, b.y - a.y);
+    if (seg === 0) continue;
+    const end = walked + seg;
+    if (end >= from) {
+      if (out.length === 0) out.push(lerp(a, b, (from - walked) / seg));
+      if (end >= to) {
+        out.push(lerp(a, b, (to - walked) / seg));
+        return out;
+      }
+      if (end > from) out.push(b); // a slice starting exactly on b already has it
+    }
+    walked = end;
+  }
+  return out;
+}
+
 /**
- * The plane's tail (playtest feedback, #37): behind the plane, along the path
- * it actually flew, as long as `minutes` of flight at its **current** speed, so
- * its length reads as speed at a glance and changes as soon as the speed does.
- * Where the history is too short (just spawned), the tail carries on straight
- * back. It fades and narrows away from the plane, in `pieces` steps.
+ * The tail's centreline on screen (playtest feedback, #37): from `startPt`
+ * behind the symbol, back along the path the plane actually flew, for
+ * `minutes` of flight at its **current** speed, so its length reads as speed at
+ * a glance and changes as soon as the speed does. Where the history is too
+ * short (just spawned), it carries on straight back. Label placement avoids it.
  */
-export function planeTail(p: Plane, vp: Viewport, style: TailStyle): TailPiece[] {
+export function tailPath(p: Plane, vp: Viewport, style: TailStyle): ScreenPt[] {
   const total = tailLengthPt(p, vp, style);
-  if (total <= style.startPt) return [];
-  // The flown path backwards from the plane, without zero-length steps.
+  if (!(total > style.startPt)) return [];
+  // Walk back from the newest history sample, only as far as the tail needs, skipping zero-length steps.
   const path: ScreenPt[] = [toScreen(vp, p.pos)];
-  for (const q of [...p.trail].reverse()) {
-    const s = toScreen(vp, q);
+  let length = 0;
+  for (let i = p.trail.length - 1; i >= 0 && length < total; i--) {
+    const s = toScreen(vp, p.trail[i]);
     const last = path[path.length - 1];
-    if (Math.hypot(s.x - last.x, s.y - last.y) > 1e-6) path.push(s);
+    const d = Math.hypot(s.x - last.x, s.y - last.y);
+    if (d > 1e-6) {
+      path.push(s);
+      length += d;
+    }
   }
   // Too short: extend straight back (along the last flown step, or opposite the heading).
-  let length = 0;
-  for (let i = 1; i < path.length; i++) length += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
   if (length < total) {
     const end = path[path.length - 1];
     let back: ScreenPt;
@@ -137,31 +168,29 @@ export function planeTail(p: Plane, vp: Viewport, style: TailStyle): TailPiece[]
     }
     path.push({ x: end.x + back.x * (total - length), y: end.y + back.y * (total - length) });
   }
-  // Walk the path once, cutting it at the piece boundaries.
-  const step = (total - style.startPt) / style.pieces;
-  const cuts = Array.from({ length: style.pieces + 1 }, (_, k) => style.startPt + k * step);
-  const pieces: TailPiece[] = [];
-  let walked = 0;
-  let current: ScreenPt[] = [];
-  let k = 0;
-  for (let i = 1; i < path.length && k < style.pieces; i++) {
-    const a = path[i - 1];
-    const b = path[i];
-    const seg = Math.hypot(b.x - a.x, b.y - a.y);
-    const at = (d: number) => ({ x: a.x + ((b.x - a.x) * (d - walked)) / seg, y: a.y + ((b.y - a.y) * (d - walked)) / seg });
-    if (current.length === 0 && cuts[k] <= walked + seg) current.push(at(cuts[k]));
-    while (k < style.pieces && cuts[k + 1] <= walked + seg + 1e-9) {
-      if (current.length === 0) current.push(at(cuts[k]));
-      current.push(at(cuts[k + 1]));
-      const t = style.pieces === 1 ? 0 : k / (style.pieces - 1);
-      pieces.push({ points: current, opacity: 0.9 - 0.8 * t, width: style.width + (style.widthEnd - style.width) * t });
-      k++;
-      current = k < style.pieces ? [at(cuts[k])] : [];
-    }
-    if (current.length) current.push(b);
-    walked += seg;
-  }
-  return pieces;
+  return slicePolyline(path, style.startPt, total);
+}
+
+/** The tail as drawn: `tailPath` in `pieces` equal lengths, fading and narrowing away from the plane. */
+export function planeTail(p: Plane, vp: Viewport, style: TailStyle): TailPiece[] {
+  const path = tailPath(p, vp, style);
+  if (path.length < 2 || style.pieces < 1) return [];
+  let length = 0;
+  for (let i = 1; i < path.length; i++) length += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+  const step = length / style.pieces;
+  return Array.from({ length: style.pieces }, (_, k) => {
+    const t = style.pieces === 1 ? 0 : k / (style.pieces - 1);
+    return {
+      points: slicePolyline(path, k * step, (k + 1) * step),
+      opacity: style.opacity + (style.opacityEnd - style.opacity) * t,
+      width: style.width + (style.widthEnd - style.width) * t,
+    };
+  });
+}
+
+/** A plane's entry for label placement: symbol position, label size, rank, and its tail to keep clear of. */
+export function labelItemFor(p: Plane, s: ScreenPt, size: { w: number; h: number }, rank: number, vp: Viewport, tail: TailStyle): LabelItem {
+  return { id: p.id, x: s.x, y: s.y, heading: p.heading, tail: tailPath(p, vp, tail), w: size.w, h: size.h, rank };
 }
 
 /** Conflict ring radius: max(minPt, ringNm). */

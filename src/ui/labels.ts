@@ -124,8 +124,8 @@ export interface LabelItem {
   x: number;
   y: number;
   heading: number;
-  /** Length of the plane's tail, pt (it runs straight back from the symbol). */
-  tail?: number;
+  /** The plane's tail on screen (a polyline), which labels keep clear of. */
+  tail?: readonly { x: number; y: number }[];
   w: number;
   h: number;
   /** Placed first: selected (4) and conflict (2) labels win the best slots. */
@@ -174,7 +174,7 @@ export function placeLabels(items: LabelItem[], opts: { near: number; far: numbe
         const r = { x, y, w: o.w, h: o.h };
         // In front of the plane (where it's going), or over its tail.
         const ahead = ux * head.x + uy * head.y > 0.4;
-        let score = PREF[j] + (R > opts.near ? 40 : 0) + (ahead || crossesTail(r, o, head) ? 120 : 0);
+        let score = PREF[j] + (R > opts.near ? 40 : 0) + (ahead || crossesTail(r, o.tail) ? 120 : 0);
         for (const q of placed) score += overlap(r, q) * 5;
         for (const s of symbols) if (s.id !== o.id) score += overlap(r, s.r) * 4;
         score += (o.w * o.h - overlap(r, opts.safe)) * 6;
@@ -190,12 +190,14 @@ export function placeLabels(items: LabelItem[], opts: { near: number; far: numbe
   return out;
 }
 
-/** Whether a label box crosses the plane's tail: a line from 6 pt to `tail` pt straight back from the symbol (sampled every 2 pt). */
-function crossesTail(r: Rect, o: LabelItem, head: { x: number; y: number }) {
-  for (let d = 6; d <= (o.tail ?? 0); d += 2) {
-    const x = o.x - head.x * d;
-    const y = o.y - head.y * d;
-    if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true;
+/** Whether a label box crosses the plane's tail polyline (sampled every 2 pt). */
+function crossesTail(r: Rect, tail: readonly { x: number; y: number }[] = []) {
+  const inside = (x: number, y: number) => x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h;
+  for (let i = 1; i < tail.length; i++) {
+    const a = tail[i - 1];
+    const b = tail[i];
+    const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 2));
+    for (let k = 0; k <= steps; k++) if (inside(a.x + ((b.x - a.x) * k) / steps, a.y + ((b.y - a.y) * k) / steps)) return true;
   }
   return false;
 }

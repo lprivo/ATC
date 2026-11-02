@@ -192,7 +192,7 @@ export interface ThemeSize {
   hitTarget: number;
   hitRadius: number;
   /** The plane's tail (behind it, length ∝ speed): see `TailStyle` in ui/radarGeometry. */
-  tail: { minutes: number; minPt: number; startPt: number; pieces: number; width: number; widthEnd: number };
+  tail: { minutes: number; minPt: number; startPt: number; pieces: number; width: number; widthEnd: number; opacity: number; opacityEnd: number };
   conflictRingNm: number;
   conflictRingMin: number;
   labelOffsetNear: number;
@@ -222,7 +222,7 @@ const size: ThemeSize = {
    * dots): 1 minute of flight at the current speed, at least 14 pt, starting
    * 6 pt clear of the symbol, fading in 8 steps from 2 pt to 0.75 pt wide.
    */
-  tail: { minutes: 1, minPt: 14, startPt: 6, pieces: 8, width: 2, widthEnd: 0.75 },
+  tail: { minutes: 1, minPt: 14, startPt: 6, pieces: 8, width: 2, widthEnd: 0.75, opacity: 0.9, opacityEnd: 0.1 },
   /** Conflict ring radius: max(conflictRingNm, conflictRingMin pt). */
   conflictRingNm: 1.5,
   conflictRingMin: 16,

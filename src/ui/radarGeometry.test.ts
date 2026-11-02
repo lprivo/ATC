@@ -6,12 +6,15 @@ import {
   centreline,
   chevron,
   conflictRingRadius,
+  labelItemFor,
   pairTag,
+  planeTail,
   ringLabels,
   runwayLabelPos,
   runwayWidth,
   screenDir,
-  planeTail,
+  slicePolyline,
+  tailPath,
   type TailPiece,
 } from './radarGeometry';
 import { toScreen, type Viewport } from './viewport';
@@ -73,7 +76,7 @@ describe('radar geometry', () => {
     expect(proj(r, tr, screenDir(312))).toBeCloseTo(13);
   });
 
-  const TAIL = { minutes: 1, minPt: 14, startPt: 6, pieces: 8, width: 2, widthEnd: 0.75 };
+  const TAIL = { minutes: 1, minPt: 14, startPt: 6, pieces: 8, width: 2, widthEnd: 0.75, opacity: 0.9, opacityEnd: 0.1 };
   const tailLength = (pieces: TailPiece[]) =>
     pieces.reduce((sum, pc) => sum + pc.points.slice(1).reduce((t, q, i) => t + Math.hypot(q.x - pc.points[i].x, q.y - pc.points[i].y), 0), 0);
   // Flew east along y = 0 for 6 nm, history every 0.1 nm (oldest first); now at (0, 0).
@@ -96,13 +99,26 @@ describe('radar geometry', () => {
     expect(tailLength(planeTail(plane({ speed: 140, trail: eastbound }), vp(2), TAIL)) + TAIL.startPt).toBeCloseTo(14, 6);
   });
 
-  it('tail follows a turn instead of the current heading', () => {
-    // Came north up x = 0, then turned east; now at (1, 0) heading east, 240 kt at 8 pt/nm = 32 pt of tail.
-    const trail = [{ x: 0, y: -4 }, { x: 0, y: -2 }, { x: 0, y: 0 }];
-    const pts = planeTail(plane({ pos: { x: 1, y: 0 }, heading: 90, trail }), vp(8), TAIL).flatMap((pc) => pc.points);
-    const far = pts[pts.length - 1];
-    expect(far.x).toBeCloseTo(200); // round the corner (8 pt back)...
-    expect(far.y).toBeCloseTo(200 + 24); // ...and 24 pt down the northbound leg
+  it('tail follows a turn instead of the current heading, with every piece on the flown path', () => {
+    // Came north up x = 0, then turned east; now heading east, 240 kt at 8 pt/nm = 32 pt of tail.
+    // On screen the path is: east leg from the plane back to the corner at (200, 200), then south down the northbound leg.
+    for (const cornerNm of [1, 2.5]) {
+      const trail = [{ x: 0, y: -4 }, { x: 0, y: -2 }, { x: 0, y: 0 }];
+      const pieces = planeTail(plane({ pos: { x: cornerNm, y: 0 }, heading: 90, trail }), vp(8), TAIL);
+      const onPath = (q: { x: number; y: number }) =>
+        (Math.abs(q.y - 200) < 1e-6 && q.x >= 200 - 1e-6) || (Math.abs(q.x - 200) < 1e-6 && q.y >= 200 - 1e-6);
+      for (const pc of pieces) for (const q of pc.points) expect(onPath(q), `corner ${cornerNm}: ${q.x},${q.y}`).toBe(true);
+      for (let i = 1; i < pieces.length; i++) {
+        const prev = pieces[i - 1].points[pieces[i - 1].points.length - 1];
+        expect(pieces[i].points[0].x).toBeCloseTo(prev.x, 6);
+        expect(pieces[i].points[0].y).toBeCloseTo(prev.y, 6);
+      }
+      const all = pieces.flatMap((pc) => pc.points);
+      const far = all[all.length - 1];
+      expect(far.x).toBeCloseTo(200);
+      expect(far.y).toBeCloseTo(200 + (32 - cornerNm * 8)); // the rest of the 32 pt down the northbound leg
+      expect(tailLength(pieces) + TAIL.startPt).toBeCloseTo(32, 6);
+    }
   });
 
   it('tail carries on straight back where the history is too short (just spawned)', () => {
@@ -131,8 +147,45 @@ describe('radar geometry', () => {
     expect(pieces[0].points[0].x).toBeCloseTo(200 - TAIL.startPt, 6);
   });
 
+  it('one piece is drawn at full width and opacity', () => {
+    const [only] = planeTail(plane({ trail: eastbound }), vp(8), { ...TAIL, pieces: 1 });
+    expect(only.opacity).toBeCloseTo(0.9);
+    expect(only.width).toBeCloseTo(2);
+  });
+
+  it('fade and width come from the style', () => {
+    const pieces = planeTail(plane({ trail: eastbound }), vp(8), { ...TAIL, pieces: 3, opacity: 0.5, opacityEnd: 0.2, width: 3, widthEnd: 1 });
+    expect(pieces.map((pc) => pc.opacity)).toEqual([0.5, 0.35, 0.2].map((v) => expect.closeTo(v, 9)));
+    expect(pieces.map((pc) => pc.width)).toEqual([3, 2, 1].map((v) => expect.closeTo(v, 9)));
+  });
+
+  it('walks back through the history only as far as the tail needs', () => {
+    // 60 samples 0.1 nm apart (0.8 pt at 8 pt/nm); a 32 pt tail needs ~40 of them, not all 60.
+    expect(tailPath(plane({ trail: eastbound }), vp(8), TAIL).length).toBeLessThan(45);
+  });
+
+  it('slices a polyline between two distances along it', () => {
+    const path = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }];
+    expect(slicePolyline(path, 5, 15)).toEqual([{ x: 5, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 5 }]);
+    expect(slicePolyline(path, 0, 10)).toEqual([{ x: 0, y: 0 }, { x: 10, y: 0 }]); // ends exactly on a vertex, no repeat
+    expect(slicePolyline(path, 12, 99)).toEqual([{ x: 10, y: 2 }, { x: 10, y: 10 }]); // past the end stops there
+    expect(slicePolyline(path, 10, 15)).toEqual([{ x: 10, y: 0 }, { x: 10, y: 5 }]); // starts exactly on a vertex, no repeat
+  });
+
+  it('label placement gets the same tail that is drawn', () => {
+    const p = plane({ id: 'p1', trail: eastbound } as Partial<Plane>);
+    const item = labelItemFor(p, toScreen(vp(8), p.pos), { w: 40, h: 30 }, 4, vp(8), TAIL);
+    expect(item.tail).toEqual(tailPath(p, vp(8), TAIL));
+    expect(item.tail!.length).toBeGreaterThan(1);
+    expect(item).toMatchObject({ id: 'p1', x: 200, y: 200, heading: 90, w: 40, h: 30, rank: 4 });
+  });
+
   it('tail copes with repeated history points (spawned or sampled in place)', () => {
     const at = { x: 0, y: 0 };
+    // Only repeats of the current position: no direction from history, so straight back opposite the heading.
+    const dupes = planeTail(plane({ pos: at, heading: 90, trail: [at, at] }), vp(8), TAIL);
+    expect(dupes).toHaveLength(8);
+    expect(tailLength(dupes) + TAIL.startPt).toBeCloseTo(32, 6);
     const pieces = planeTail(plane({ pos: at, trail: [at, { x: -1, y: 0 }, at, at] }), vp(8), TAIL);
     expect(pieces.flatMap((pc) => pc.points).every((q) => Number.isFinite(q.x) && Number.isFinite(q.y))).toBe(true);
     expect(tailLength(pieces) + TAIL.startPt).toBeCloseTo(32, 6);

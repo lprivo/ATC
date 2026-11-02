@@ -135,14 +135,26 @@ describe('label placement', () => {
   it('never covers the tail when another slot is free', () => {
     // The tail is a line 32 pt straight back from the symbol; no label box may cross it.
     for (const heading of [0, 45, 90, 135, 180, 225, 270, 315]) {
-      const [p] = placeLabels([item('a', 200, 400, { heading, tail: 32 })], { near: 12, far: 30, safe });
       const back = { x: -Math.sin((heading * Math.PI) / 180), y: Math.cos((heading * Math.PI) / 180) }; // screen, y down
+      const tail = [6, 32].map((d) => ({ x: 200 + back.x * d, y: 400 + back.y * d }));
+      const [p] = placeLabels([item('a', 200, 400, { heading, tail })], { near: 12, far: 30, safe });
       for (let d = 6; d <= 32; d += 1) {
         const x = 200 + back.x * d;
         const y = 400 + back.y * d;
         const inside = x > p.rect.x && x < p.rect.x + p.rect.w && y > p.rect.y && y < p.rect.y + p.rect.h;
         expect(inside, `heading ${heading}, ${d} pt back`).toBe(false);
       }
+    }
+  });
+
+  it('keeps clear of a tail that bends after a turn', () => {
+    // Heading north now, but it just turned from flying west: the tail runs south 6 pt, then east 36 pt.
+    const tail = [{ x: 200, y: 406 }, { x: 200, y: 412 }, { x: 236, y: 412 }];
+    const [p] = placeLabels([item('a', 200, 400, { heading: 0, tail })], { near: 12, far: 30, safe });
+    const tailPts = [...Array.from({ length: 7 }, (_, i) => ({ x: 200, y: 406 + i })), ...Array.from({ length: 37 }, (_, i) => ({ x: 200 + i, y: 412 }))];
+    for (const q of tailPts) {
+      const inside = q.x > p.rect.x && q.x < p.rect.x + p.rect.w && q.y > p.rect.y && q.y < p.rect.y + p.rect.h;
+      expect(inside, `${q.x},${q.y}`).toBe(false);
     }
   });
 
