@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { airportByIcao } from '../engine/airports';
+import type { Sim } from '../engine/sim';
 import type { SimStats } from '../engine/types';
 import { LHBP } from '../engine/airports/lhbp';
 import { FREE_SESSION, lengthSec, meanIntervalSec, sessionOver, trafficHorizonSec, type Session } from './session';
@@ -16,6 +17,7 @@ import { Radar } from '../ui/Radar';
 import { Toasts } from '../ui/Toasts';
 import { TopBar } from '../ui/TopBar';
 import { usePreventPageZoom } from '../ui/useWebZoom';
+import type { Viewport } from '../ui/viewport';
 import { haptic } from './haptics';
 import { LABEL_SCALE } from '../theme/themes';
 import { useSettings } from './SettingsContext';
@@ -24,11 +26,26 @@ import { useHud } from './useHud';
 import { usePendingLanding } from './usePendingLanding';
 import { useSim, type SimStart } from './useSim';
 
+/** What an overlay drawn over the game (the tutorial's coach marks) can see. */
+export interface CoachState {
+  sim: Sim;
+  selectedId: string | null;
+  /** The radar camera as drawn (null until it has laid out). */
+  vp: Viewport | null;
+  /** Height of the bottom sheet, measured. */
+  sheetHeight: number;
+  /** Starts the session again (from the prepared start, if there is one). */
+  restart: () => void;
+  /** Clears the selection (closes the plane's controls). */
+  deselect: () => void;
+}
+
 export function GameScreen({
   session = FREE_SESSION,
   onQuit,
   onSessionEnd,
   start,
+  coach,
 }: {
   session?: Session;
   onQuit?: () => void;
@@ -39,6 +56,8 @@ export function GameScreen({
   onSessionEnd?: (stats: SimStats, endedEarly: boolean) => void;
   /** Start from a prepared state instead of a fresh random session (stories): the sim, paused or not, and a selected plane. */
   start?: SimStart & { selectedCallsign?: string };
+  /** Drawn over the game (not while paused), e.g. the tutorial's coach marks; touches pass through it unless it handles them. */
+  coach?: (state: CoachState) => ReactNode;
 } = {}) {
   const airport = airportByIcao(session.icao) ?? LHBP;
   const { theme } = useTheme();
@@ -54,6 +73,8 @@ export function GameScreen({
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
   const [bannerHeight, setBannerHeight] = useState(56);
   const [sheetHeight, setSheetHeight] = useState(0);
+  // Only tracked for an overlay: the radar reports every camera change.
+  const [vp, setVp] = useState<Viewport | null>(null);
   const landing = usePendingLanding(sim);
   usePreventPageZoom();
   const sessionSec = lengthSec(session.length);
@@ -125,6 +146,7 @@ export function GameScreen({
           units={{ dist: settings.distUnit, alt: settings.altUnit }}
           onLanding={landing.land}
           onDrawing={setDrawing}
+          onViewport={coach ? setVp : undefined}
         />
         {/* The pause menu replaces the HUD (its own header shows the session and score). */}
         {!paused && (
@@ -175,6 +197,11 @@ export function GameScreen({
           onHeight={setSheetHeight}
           toCome={toCome}
         />
+        {coach && !paused && (
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            {coach({ sim, selectedId, vp: vp && vp.w > 0 ? vp : null, sheetHeight, restart: onRestart, deselect: () => setSelectedId(null) })}
+          </View>
+        )}
       </View>
       {paused && (
         <PauseMenu sim={sim} sessionSec={sessionSec} topInset={insets.top} bottomInset={insets.bottom} onResume={() => setPaused(false)} onRestart={onRestart} onQuit={onSessionEnd ? () => endSession(true) : onQuit}

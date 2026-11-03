@@ -14,6 +14,7 @@ export default function Menu() {
       best={bestLine(bests)}
       onPlay={() => router.push('/game')}
       onChooseAirport={() => router.push('/airports')}
+      onHowToPlay={() => router.push('/tutorial')}
       onBestScores={() => router.push('/scores')}
       onSettings={() => router.push('/settings')}
     />

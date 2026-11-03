@@ -90,8 +90,10 @@ export function useSim(airport: Airport, opts: SimOptions, start?: SimStart) {
   }, [sim]);
 
   // Reads the latest options through the ref, so a restart always uses the current session.
+  // A prepared start (tutorial, stories) restarts from the same prepared state.
+  const prepared = useRef(start?.sim);
   const restart = useCallback(() => {
-    setSim(newSim(airport, live.current.opts));
+    setSim(prepared.current?.() ?? newSim(airport, live.current.opts));
     setPaused(false);
     setOver(false);
   }, [airport]);

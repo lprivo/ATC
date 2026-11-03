@@ -41,8 +41,17 @@ export interface ThemeColors {
   onDanger: string;
   /** Text drawn on a `good` fill (e.g. the FREE tag). */
   onGood: string;
-  /** Dims the radar behind menus and coach marks. */
+  /** Dims the radar behind menus. */
   scrim: string;
+  /** The tutorial's darker scrim around its spotlight. */
+  coachScrim: string;
+  /** Tutorial highlights: the ring round a plane, the step counter. */
+  coachMark: string;
+  /** Tutorial card body text. */
+  coachBody: string;
+  /** Tutorial touch hints (where to put two fingers): fill and outline. */
+  touchHint: string;
+  touchHintBorder: string;
   /** Radar sweep on the splash and menu. */
   sweep: string;
 }
@@ -296,6 +305,11 @@ export const radarTheme: Theme = {
     onDanger: '#1a1206',
     onGood: '#0f1b26',
     scrim: 'rgba(6,12,18,0.72)',
+    coachScrim: 'rgba(6,12,18,0.78)',
+    coachMark: '#b5d9fd',
+    coachBody: '#c7d5e2',
+    touchHint: 'rgba(238,246,255,0.16)',
+    touchHintBorder: 'rgba(238,246,255,0.6)',
     sweep: 'rgba(148,188,227,0.30)',
   },
   ...shared,
@@ -334,6 +348,11 @@ export const paperTheme: Theme = {
     onDanger: '#ffffff',
     onGood: '#ffffff',
     scrim: 'rgba(29,31,32,0.45)',
+    coachScrim: 'rgba(29,31,32,0.55)',
+    coachMark: '#2c455d',
+    coachBody: '#3a3c3e',
+    touchHint: 'rgba(29,31,32,0.10)',
+    touchHintBorder: 'rgba(29,31,32,0.5)',
     sweep: 'rgba(89,128,166,0.22)',
   },
   ...shared,

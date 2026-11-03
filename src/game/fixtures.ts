@@ -5,6 +5,7 @@ import { LHBP } from '../engine/airports/lhbp';
 import { add, dirOf } from '../engine/math';
 import { Sim } from '../engine/sim';
 import type { Airport, SimStats, TrafficEntry, Vec2 } from '../engine/types';
+import { TUTORIAL_CALLSIGN } from './tutorial';
 
 export interface PlaneSpec {
   callsign: string;
@@ -112,6 +113,19 @@ export const busy = (opts: SceneOptions = {}) => {
     }),
     { time: 1260, toCome: 9, stats: { landed: 7, goArounds: 1 }, ...opts },
   );
+};
+
+/**
+ * The tutorial's mini-session (design T1–T4): WZZ9003 north-west of the airport
+ * heading east at 6,000 ft, with room to descend and be cleared to 13L, and
+ * RYR41HB already on a 7 nm final to 31R. Nothing else is coming.
+ */
+export const tutorial = () => {
+  const thr31R = LHBP.runways.flatMap((r) => r.ends).find((e) => e.id === '31R')!;
+  return scene([
+    { callsign: TUTORIAL_CALLSIGN, type: 'A319', pos: { x: -12, y: 9 }, heading: 80, altitude: 6000, speed: 230 },
+    { callsign: 'RYR41HB', type: 'B738', pos: add(thr31R.threshold, dirOf(thr31R.heading + 180), 7), heading: thr31R.heading, altitude: 2000, speed: 160, clearedTo: '31R' },
+  ]);
 };
 
 /** Near the end of a 30-minute session: 40 s left, nothing more to come, separation lost once. */

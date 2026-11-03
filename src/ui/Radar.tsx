@@ -86,12 +86,17 @@ interface Props {
   handedness?: 'left' | 'right';
   /** Distance and altitude units (settings) for the conflict pair tag. */
   units?: { dist: DistUnit; alt: AltUnit };
+  /** The camera as drawn, after each change (the tutorial watches zoom and places its marks). */
+  onViewport?: (vp: Viewport) => void;
 }
 
-export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawing, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS, handedness = 'right', units = DEFAULT_UNITS }: Props) {
+export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawing, paused = false, labelMode = 'auto', labelScale = 1, insets = NO_INSETS, handedness = 'right', units = DEFAULT_UNITS, onViewport }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const [vp, setVp] = useState<Viewport>(() => defaultViewport(0, 0));
+  const reportVp = useRef(onViewport);
+  reportVp.current = onViewport;
+  useEffect(() => reportVp.current?.(vp), [vp]);
 
   // Data blocks: content every frame, placement at 2 Hz. Touch handlers read the
   // last drawn rectangles so a tap on a label selects its plane.
