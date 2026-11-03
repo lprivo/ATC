@@ -4,7 +4,7 @@ const log: string[] = [];
 let finishSpeech: (() => void) | null = null;
 
 vi.mock('expo-speech', () => ({
-  getAvailableVoicesAsync: () => Promise.resolve([{ identifier: 'gb', language: 'en-GB', quality: 'Enhanced' }, { identifier: 'us', language: 'en-US', quality: 'Default' }]),
+  getAvailableVoicesAsync: () => Promise.resolve([{ identifier: 'gb', name: 'Daniel', language: 'en-GB', quality: 'Enhanced' }, { identifier: 'us', name: 'Samantha', language: 'en-US', quality: 'Default' }]),
   speak: (text: string, o: { voice?: string; onDone?: () => void; onStopped?: () => void }) => {
     log.push(`say[${o.voice}] ${text}`);
     finishSpeech = () => o.onDone?.();

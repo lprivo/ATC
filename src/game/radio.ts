@@ -200,19 +200,44 @@ export class RadioDesk {
 
 export interface VoiceInfo {
   identifier: string;
+  name: string;
   language: string;
   quality: string;
 }
 
 /**
+ * Apple's novelty and retro voices (macOS, and iOS's Eloquence set): never
+ * for the radio. They're the croaky, robotic or sung ones.
+ */
+const NOVELTY = new Set(
+  [
+    'Albert', 'Bad News', 'Bahh', 'Bells', 'Boing', 'Bubbles', 'Cellos', 'Deranged', 'Good News', 'Hysterical', 'Jester', 'Organ', 'Pipe Organ',
+    'Superstar', 'Trinoids', 'Whisper', 'Wobble', 'Zarvox', 'Fred', 'Junior', 'Ralph', 'Kathy', 'Princess', 'Bruce', 'Agnes', 'Vicki', 'Victoria',
+    'Eddy', 'Flo', 'Grandma', 'Grandpa', 'Reed', 'Rocko', 'Sandy', 'Shelley',
+  ].map((n) => n.toLowerCase()),
+);
+const isNovelty = (v: VoiceInfo) =>
+  NOVELTY.has((v.name ?? "").toLowerCase().replace(/\s*\(.*\)$/, '')) || /eloquence|speech\.synthesis\.voice/i.test(v.identifier);
+
+/** Natural-sounding voices that ship with (or download onto) Apple devices, best first. */
+const PREFERRED = ['Daniel', 'Arthur', 'Malcolm', 'Oliver', 'Jamie', 'Serena', 'Kate', 'Stephanie', 'Samantha', 'Evan', 'Nathan', 'Tom', 'Alex', 'Aaron', 'Nicky', 'Ava', 'Allison', 'Susan', 'Zoe', 'Karen', 'Lee', 'Moira', 'Tessa', 'Rishi'];
+
+/**
  * Two different English voices, so controller and pilot are easy to tell
  * apart: a British one for the controller, preferably another accent for the
- * pilot, the better ("Enhanced") voice of each where there is one. Either may
- * be undefined (the device's default English voice is used).
+ * pilot. Never a novelty voice; the best quality first (Premium, Enhanced),
+ * then Apple's natural voices. Either may be undefined (the device's default
+ * English voice is used).
  */
 export function pickVoices(voices: readonly VoiceInfo[]): { controller?: string; pilot?: string } {
-  const en = voices.filter((v) => v.language.toLowerCase().startsWith('en'));
-  const rank = (v: VoiceInfo) => (v.quality === 'Enhanced' ? 0 : 1);
+  const en = voices.filter((v) => v.language.toLowerCase().startsWith('en') && !isNovelty(v));
+  // Premium / Enhanced first, then the known natural voices, then the rest.
+  const preferred = (v: VoiceInfo) => {
+    const i = PREFERRED.findIndex((n) => (v.name ?? "").toLowerCase().startsWith(n.toLowerCase()));
+    return i < 0 ? PREFERRED.length : i;
+  };
+  const tier = (v: VoiceInfo) => (/premium/i.test(v.identifier) ? 0 : v.quality === 'Enhanced' || /enhanced/i.test(v.identifier) ? 1 : 2);
+  const rank = (v: VoiceInfo) => tier(v) * 100 + preferred(v);
   const by = (pred: (v: VoiceInfo) => boolean) => en.filter(pred).sort((a, b) => rank(a) - rank(b));
   const lang = (v: VoiceInfo) => v.language.toLowerCase().replace('_', '-');
   const controller = (by((v) => lang(v) === 'en-gb')[0] ?? by(() => true)[0])?.identifier;

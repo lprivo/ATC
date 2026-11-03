@@ -154,10 +154,33 @@ describe('RadioDesk', () => {
 });
 
 describe('pickVoices', () => {
-  const v = (identifier: string, language: string, quality = 'Default') => ({ identifier, language, quality });
+  const v = (identifier: string, language: string, quality = 'Default', name = identifier) => ({ identifier, name, language, quality });
 
   it('a British controller and another accent for the pilot, Enhanced first', () => {
     expect(pickVoices([v('us1', 'en-US'), v('gb1', 'en-GB'), v('gb2', 'en-GB', 'Enhanced'), v('fr', 'fr-FR'), v('au', 'en-AU', 'Enhanced')])).toEqual({ controller: 'gb2', pilot: 'au' });
+  });
+
+  it('never picks a novelty voice (the croaky Albert, Grandpa, Zarvox...)', () => {
+    const picked = pickVoices([
+      v('com.apple.speech.synthesis.voice.Albert', 'en-US', 'Default', 'Albert'),
+      v('com.apple.eloquence.en-US.Grandpa', 'en-US', 'Default', 'Grandpa'),
+      v('x.zarvox', 'en-US', 'Default', 'Zarvox'),
+      v('com.apple.voice.compact.en-GB.Daniel', 'en-GB', 'Default', 'Daniel'),
+      v('com.apple.voice.compact.en-US.Samantha', 'en-US', 'Default', 'Samantha'),
+    ]);
+    expect(picked).toEqual({ controller: 'com.apple.voice.compact.en-GB.Daniel', pilot: 'com.apple.voice.compact.en-US.Samantha' });
+  });
+
+  it('prefers Premium, then Enhanced, then the natural voices by name', () => {
+    expect(
+      pickVoices([
+        v('com.apple.voice.compact.en-US.Samantha', 'en-US', 'Default', 'Samantha'),
+        v('com.apple.voice.enhanced.en-US.Evan', 'en-US', 'Enhanced', 'Evan (Enhanced)'),
+        v('com.apple.voice.premium.en-US.Zoe', 'en-US', 'Enhanced', 'Zoe (Premium)'),
+        v('com.apple.voice.compact.en-GB.Kate', 'en-GB', 'Default', 'Kate'),
+        v('com.apple.voice.compact.en-GB.Daniel', 'en-GB', 'Default', 'Daniel'),
+      ]),
+    ).toEqual({ controller: 'com.apple.voice.compact.en-GB.Daniel', pilot: 'com.apple.voice.premium.en-US.Zoe' });
   });
 
   it('falls back to any two English voices, then to the default voice', () => {

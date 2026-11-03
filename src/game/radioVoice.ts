@@ -38,7 +38,7 @@ const READBACK_GAP_MS = 450;
 const CALL_GAP_MS = 700;
 const VOICE = {
   controller: { language: 'en-GB', rate: 1.05, pitch: 1.0 },
-  pilot: { language: 'en-US', rate: 1.12, pitch: 0.92 },
+  pilot: { language: 'en-US', rate: 1.1, pitch: 1.0 },
 };
 const CLICK_VOLUME = 0.45;
 const VOICES_TIMEOUT_MS = 1500;
@@ -116,7 +116,7 @@ async function say(t: Transmission) {
   // The voice list can wait forever where there are no voices (expo-speech on the web): fall back to the default voice.
   voices ??= await Promise.race([
     Speech.getAvailableVoicesAsync().then(
-      (vs) => pickVoices(vs.map((v) => ({ identifier: v.identifier, language: v.language, quality: String(v.quality) }))),
+      (vs) => pickVoices(vs.map((v) => ({ identifier: v.identifier, name: v.name, language: v.language, quality: String(v.quality) }))),
       () => ({}),
     ),
     wait(VOICES_TIMEOUT_MS).then(() => ({})),
