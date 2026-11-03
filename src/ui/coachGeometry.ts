@@ -12,8 +12,8 @@ const PINCH_OFFSET = { x: 77, y: 70 };
 export const TOUCH_HINT_R = 23;
 
 export type CoachShape =
-  /** Scrim everywhere but this ellipse (a circle when rx = ry); `ring` draws its edge. */
-  | { kind: 'hole'; cx: number; cy: number; rx: number; ry: number; ring: boolean }
+  /** Scrim everywhere but this ellipse (a circle when rx = ry); `ring` draws its edge, `light` uses the lighter route scrim. */
+  | { kind: 'hole'; cx: number; cy: number; rx: number; ry: number; ring: boolean; light: boolean }
   /** Scrim over the radar above the sheet. */
   | { kind: 'aboveSheet'; bottom: number }
   /** No scrim: two finger hints. */
@@ -31,7 +31,7 @@ export function coachShape(spot: Spotlight, vp: Viewport, opts: { plane: Vec2 | 
     case 'plane': {
       if (!opts.plane) return null;
       const p = toScreen(vp, opts.plane);
-      return { kind: 'hole', cx: r(p.x), cy: r(p.y), rx: PLANE_SPOT_R, ry: PLANE_SPOT_R, ring: true };
+      return { kind: 'hole', cx: r(p.x), cy: r(p.y), rx: PLANE_SPOT_R, ry: PLANE_SPOT_R, ring: true, light: false };
     }
     case 'route': {
       const a = toScreen(vp, opts.runway);
@@ -43,6 +43,7 @@ export function coachShape(spot: Spotlight, vp: Viewport, opts: { plane: Vec2 | 
         rx: r(Math.abs(a.x - b.x) / 2 + ROUTE_MARGIN),
         ry: r(Math.abs(a.y - b.y) / 2 + ROUTE_MARGIN),
         ring: false,
+        light: true,
       };
     }
     case 'sheet':

@@ -102,7 +102,7 @@ Coach marks over a scripted mini-session; each waits for the real gesture (no Ne
 - **T3 · Hold and drag to 13L:** includes a legend for the draft and cleared line styles.
 - **T4 · Pinch to zoom:** *"Budapest's two runways are only 1.6 km apart (0.86 nm), a few pixels on the full sector…"*
 
-Card at bottom 56, inset 20, `panel` background, 1 pt `accent` border; step `n / 4` in caps, Condensed 28 title, Barlow 15 body. Scrim `rgba(6,12,18,.78)`.
+Card at bottom 56, inset 20, `panel` background, 1 pt `accent` border; step `n / 4` in Barlow 600 12 (+.14em), Condensed 28 title, Barlow 15 body. Scrim `rgba(6,12,18,.78)`; T3's route spotlight uses a lighter `.70`. The card never covers the bottom sheet (it sits 20 above it when that is higher than 56).
 
 ---
 
@@ -205,7 +205,7 @@ Implemented in `src/theme/themes.ts`. Tokens marked **NEW** were added to the or
 | scrim **NEW** | rgba(6,12,18,.72) | rgba(29,31,32,.45) |
 | sweep **NEW** | rgba(148,188,227,.30) | rgba(89,128,166,.22) |
 
-The tutorial uses its own, darker scrim `rgba(6,12,18,.78)` (see Tutorial).
+The tutorial uses its own, darker scrim `rgba(6,12,18,.78)`, and `rgba(6,12,18,.70)` round T3's route (see Tutorial).
 
 ### Type
 Barlow Condensed for display and numbers, Barlow for body; all numbers use tabular figures.
@@ -221,6 +221,7 @@ Barlow Condensed for display and numbers, Barlow for body; all numbers use tabul
 | type.body | Barlow 400 15/22 |
 | type.small | Barlow 500 12–13 |
 | type.caps | Barlow 600 11, +.12em |
+| type.coachCounter | Barlow 600 12, +.14em (tutorial step counter) |
 | type.radarLabel | Condensed 600 13 / line 15 × labelScale (Paper: line 2 at 600) |
 | type.radarLabel2 | Condensed 500 12 × labelScale |
 | type.fix | Condensed 500 10, +.06em |

@@ -22,7 +22,7 @@ import {
 import { haptic } from '../game/haptics';
 import type { AltUnit, DistUnit } from '../game/settings';
 import { DrawOverlay } from './DrawOverlay';
-import { snapTarget } from './drawing';
+import { CLEARED_LINE, snapTarget } from './drawing';
 import { useWebZoom } from './useWebZoom';
 import { HUD_EDGE } from './hudLayout';
 import { LABEL_METRICS, labelBaseline, textWidth, type LabelMode, type LabelSpec } from './labels';
@@ -409,7 +409,7 @@ function RouteLine({ plane: p, vp, theme }: { plane: Plane; vp: Viewport; theme:
   const b = toScreen(vp, pts[pts.length - 1]);
   return (
     <G>
-      <Polyline points={polylinePoints(vp, pts)} fill="none" stroke={color} strokeWidth={cleared ? 2.5 : 2} strokeDasharray={cleared ? undefined : '7 5'} />
+      <Polyline points={polylinePoints(vp, pts)} fill="none" stroke={color} strokeWidth={cleared ? CLEARED_LINE.width : 2} strokeDasharray={cleared ? undefined : '7 5'} />
       <Polyline points={chevron(a, b)} fill="none" stroke={color} strokeWidth={2} />
     </G>
   );

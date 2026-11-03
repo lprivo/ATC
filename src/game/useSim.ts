@@ -21,10 +21,16 @@ export interface SimOptions {
   endless?: boolean;
 }
 
-/** Start from a prepared sim instead of fresh random traffic, optionally paused (stories, fixtures). */
+/** Start from a prepared sim instead of fresh random traffic, optionally paused (stories, fixtures, the tutorial). */
 export interface SimStart {
   sim: () => Sim;
   paused?: boolean;
+  /**
+   * Restart builds the prepared sim again (unpaused) instead of a fresh random
+   * session (the tutorial plays its scene again). Without it, a restart starts
+   * a random session, as from the menu.
+   */
+  restartFromStart?: boolean;
 }
 
 /** An endless session tops up when less than this much scheduled traffic is left (sim seconds). */
@@ -89,11 +95,13 @@ export function useSim(airport: Airport, opts: SimOptions, start?: SimStart) {
     if (__DEV__) globalThis.__sim = sim;
   }, [sim]);
 
-  // Reads the latest options through the ref, so a restart always uses the current session.
-  // A prepared start (tutorial, stories) restarts from the same prepared state.
-  const prepared = useRef(start?.sim);
+  // Reads the latest options (and start) through refs, so a restart always uses the current session:
+  // a fresh random one, or the prepared start again when it asks for that (`restartFromStart`).
+  const latestStart = useRef(start);
+  latestStart.current = start;
   const restart = useCallback(() => {
-    setSim(prepared.current?.() ?? newSim(airport, live.current.opts));
+    const s = latestStart.current;
+    setSim(s?.restartFromStart ? s.sim() : newSim(airport, live.current.opts));
     setPaused(false);
     setOver(false);
   }, [airport]);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { busy, conflict, idle, lastMinute, scene } from './fixtures';
+import { busy, conflict, idle, lastMinute } from './fixtures';
+import { scene } from './scene';
 
 describe('story fixtures', () => {
   it('places planes exactly as specified, with a history behind them', () => {

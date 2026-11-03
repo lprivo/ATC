@@ -32,6 +32,11 @@ export const DRAW = {
   confirmMs: 3000,
 };
 
+/** The path being drawn: a dashed line (DrawOverlay, and the tutorial's legend). */
+export const DRAFT_LINE = { width: 2.5, dash: '2 5' };
+/** A cleared route: solid (Radar, and the tutorial's legend). */
+export const CLEARED_LINE = { width: 2.5 };
+
 const ends = (a: Airport) => a.runways.flatMap((r) => r.ends);
 
 /** Threshold ids near the finger (candidate rings while drawing). */

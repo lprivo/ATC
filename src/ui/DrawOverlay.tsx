@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { ClipPath, Circle, Defs, G, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import type { Airport, RunwayEnd, Vec2 } from '../engine/types';
 import type { Theme } from '../theme/themes';
-import { candidates, loupeFor } from './drawing';
+import { candidates, DRAFT_LINE, loupeFor } from './drawing';
 import { textWidth } from './labels';
 import { centreline, runwayLabelPos, runwayWidth } from './radarGeometry';
 import { polylinePoints, toScreen, type Viewport } from './viewport';
@@ -121,7 +121,7 @@ function Highlight({
           <Line {...pts(vp, finger, snapped.threshold)} stroke={c.snapHalo} strokeWidth={2.5} />
         </G>
       )}
-      {path.length > 1 && <Polyline points={polylinePoints(vp, path)} fill="none" stroke={c.routeDraft} strokeWidth={2.5} strokeDasharray="2 5" />}
+      {path.length > 1 && <Polyline points={polylinePoints(vp, path)} fill="none" stroke={c.routeDraft} strokeWidth={DRAFT_LINE.width} strokeDasharray={DRAFT_LINE.dash} />}
       <Circle cx={handle.x} cy={handle.y} r={z.draftHandle} fill={c.labelBg} stroke={c.routeDraft} strokeWidth={2} />
     </G>
   );

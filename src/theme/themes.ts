@@ -45,6 +45,8 @@ export interface ThemeColors {
   scrim: string;
   /** The tutorial's darker scrim around its spotlight. */
   coachScrim: string;
+  /** Lighter tutorial scrim round the route spotlight (design T3). */
+  coachScrimRoute: string;
   /** Tutorial highlights: the ring round a plane, the step counter. */
   coachMark: string;
   /** Tutorial card body text. */
@@ -106,7 +108,8 @@ export type TypeTokenName =
   | 'small'
   | 'smallTight'
   | 'caps'
-  | 'capsSmall';
+  | 'capsSmall'
+  | 'coachCounter';
 
 export type ThemeType = Record<TypeTokenName, TypeToken>;
 
@@ -159,6 +162,8 @@ const type: ThemeType = {
   smallTight: { fontFamily: FONT_FAMILY.body500, fontSize: 12, fontVariant: tabular },
   caps: { fontFamily: FONT_FAMILY.body600, fontSize: 11, letterSpacing: em(11, 0.12) },
   capsSmall: { fontFamily: FONT_FAMILY.body600, fontSize: 10, letterSpacing: em(10, 0.12) },
+  /** Tutorial step counter ("2 / 4"). */
+  coachCounter: { fontFamily: FONT_FAMILY.body600, fontSize: 12, lineHeight: 12, letterSpacing: em(12, 0.14) },
 };
 
 /** Radar (SVG) text: weight-specific family and size (before `labelScale` for data blocks). */
@@ -306,6 +311,7 @@ export const radarTheme: Theme = {
     onGood: '#0f1b26',
     scrim: 'rgba(6,12,18,0.72)',
     coachScrim: 'rgba(6,12,18,0.78)',
+    coachScrimRoute: 'rgba(6,12,18,0.70)',
     coachMark: '#b5d9fd',
     coachBody: '#c7d5e2',
     touchHint: 'rgba(238,246,255,0.16)',
@@ -349,6 +355,7 @@ export const paperTheme: Theme = {
     onGood: '#ffffff',
     scrim: 'rgba(29,31,32,0.45)',
     coachScrim: 'rgba(29,31,32,0.55)',
+    coachScrimRoute: 'rgba(29,31,32,0.49)',
     coachMark: '#2c455d',
     coachBody: '#3a3c3e',
     touchHint: 'rgba(29,31,32,0.10)',

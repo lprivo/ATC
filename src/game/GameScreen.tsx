@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 import { AccessibilityInfo, BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { airportByIcao } from '../engine/airports';
@@ -28,13 +28,18 @@ import { useSim, type SimStart } from './useSim';
 
 /** What an overlay drawn over the game (the tutorial's coach marks) can see. */
 export interface CoachState {
-  sim: Sim;
+  /** Read-only view of the game: a coach watches it; commands go through the screen. */
+  sim: Readonly<Pick<Sim, 'planes' | 'plane' | 'runwayEnd'>>;
   selectedId: string | null;
+  /** The pause menu is up (the coach stays mounted, so it keeps its place, but shouldn't draw). */
+  paused: boolean;
+  /** The landing confirm card (Swap / Confirm) is up. */
+  landingPending: boolean;
   /** The radar camera as drawn (null until it has laid out). */
   vp: Viewport | null;
   /** Height of the bottom sheet, measured. */
   sheetHeight: number;
-  /** Starts the session again (from the prepared start, if there is one). */
+  /** Starts the session again: a random session, or the prepared start again when it sets `restartFromStart`. */
   restart: () => void;
   /** Clears the selection (closes the plane's controls). */
   deselect: () => void;
@@ -56,7 +61,7 @@ export function GameScreen({
   onSessionEnd?: (stats: SimStats, endedEarly: boolean) => void;
   /** Start from a prepared state instead of a fresh random session (stories): the sim, paused or not, and a selected plane. */
   start?: SimStart & { selectedCallsign?: string };
-  /** Drawn over the game (not while paused), e.g. the tutorial's coach marks; touches pass through it unless it handles them. */
+  /** Drawn over the game, e.g. the tutorial's coach marks; touches pass through it unless it handles them. */
   coach?: (state: CoachState) => ReactNode;
 } = {}) {
   const airport = airportByIcao(session.icao) ?? LHBP;
@@ -73,8 +78,12 @@ export function GameScreen({
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.
   const [bannerHeight, setBannerHeight] = useState(56);
   const [sheetHeight, setSheetHeight] = useState(0);
-  // Only tracked for an overlay: the radar reports every camera change.
-  const [vp, setVp] = useState<Viewport | null>(null);
+  // Only for an overlay: the radar reports every camera change straight to the coach layer, so a pinch doesn't re-render the whole screen.
+  const camera = useRef<CameraFeed>({ last: null, listener: null });
+  const onViewport = useCallback((v: Viewport) => {
+    camera.current.last = v;
+    camera.current.listener?.(v);
+  }, []);
   const landing = usePendingLanding(sim);
   usePreventPageZoom();
   const sessionSec = lengthSec(session.length);
@@ -118,11 +127,12 @@ export function GameScreen({
     return () => sub.remove();
   }, [setPaused]);
 
-  const onRestart = () => {
+  const onRestart = useCallback(() => {
     // Clear the selection with the restart: plane ids start again at "1" in the new sim.
     setSelectedId(null);
     restart();
-  };
+  }, [restart]);
+  const deselect = useCallback(() => setSelectedId(null), []);
 
   const top = insets.top + 3; // design: top bar at y = 50 with a 47 safe area
   const hudBottom = top + TOP_BAR_HEIGHT + HUD_GAP;
@@ -146,7 +156,7 @@ export function GameScreen({
           units={{ dist: settings.distUnit, alt: settings.altUnit }}
           onLanding={landing.land}
           onDrawing={setDrawing}
-          onViewport={coach ? setVp : undefined}
+          onViewport={coach ? onViewport : undefined}
         />
         {/* The pause menu replaces the HUD (its own header shows the session and score). */}
         {!paused && (
@@ -197,10 +207,12 @@ export function GameScreen({
           onHeight={setSheetHeight}
           toCome={toCome}
         />
-        {coach && !paused && (
-          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-            {coach({ sim, selectedId, vp: vp && vp.w > 0 ? vp : null, sheetHeight, restart: onRestart, deselect: () => setSelectedId(null) })}
-          </View>
+        {coach && (
+          <CoachLayer
+            render={coach}
+            camera={camera}
+            state={{ sim, selectedId, paused, landingPending: !!landing.pending, sheetHeight, restart: onRestart, deselect }}
+          />
         )}
       </View>
       {paused && (
@@ -208,6 +220,30 @@ export function GameScreen({
           quitLabel={onSessionEnd ? 'End session' : undefined}
         />
       )}
+    </View>
+  );
+}
+
+/** The radar's newest camera, and the coach layer's setter for it. */
+interface CameraFeed {
+  last: Viewport | null;
+  listener: ((v: Viewport) => void) | null;
+}
+
+/** Holds the camera for the coach, so camera changes re-render only this layer. */
+function CoachLayer({ render, camera, state }: { render: (s: CoachState) => ReactNode; camera: MutableRefObject<CameraFeed>; state: Omit<CoachState, 'vp'> }) {
+  const [vp, setVp] = useState<Viewport | null>(camera.current.last);
+  useEffect(() => {
+    const feed = camera.current;
+    feed.listener = setVp;
+    setVp(feed.last); // the radar may have reported before this effect ran
+    return () => {
+      feed.listener = null;
+    };
+  }, [camera]);
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {render({ ...state, vp: vp && vp.w > 0 ? vp : null })}
     </View>
   );
 }
