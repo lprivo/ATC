@@ -17,9 +17,15 @@ Setup (once):  pip install kokoro-onnx soundfile numpy scipy
                kokoro-v1.0.onnx from the model-files-v1.1 release (it reports
                timings) and voices-v1.0.bin, from
                https://github.com/thewh1teagle/kokoro-onnx/releases
-Run:           python scripts/voices/generate.py --model DIR [--only controller,pilotUS]
+Run:           python scripts/voices/generate.py --model DIR [--only controller,pilotUS] [--threads 2]
+
+It runs at low priority on 2 threads by default (--threads to change), so the
+machine stays usable, and keeps every rendered piece in a cache
+(~/.cache/privo-atc-voices, --cache to move it): a run only renders what
+changed in the manifest (or in this script's rendering settings).
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -27,6 +33,7 @@ import sys
 
 import numpy as np
 import soundfile as sf
+import onnxruntime as rt
 from kokoro_onnx import Kokoro
 from scipy.signal import butter, resample, resample_poly, sosfiltfilt
 
@@ -40,6 +47,13 @@ PAD_START = 0.012
 PAD_END = {'m': 0.015, 'f': 0.06, 't': 0.02}  # an ending falls away, so keep more of it
 FADE = 0.008
 PUNCT = set(',.!?;:')
+# Bump to re-render everything after changing how pieces are rendered or cut.
+RENDER_VERSION = 3
+
+
+def cache_key(spec, carrier, w, speed, semis, pos):
+    settings = [RENDER_VERSION, RATE, LEVEL_DB, PAD_START, PAD_END, FADE, spec['voice'], spec['lang'], spec['speed'], spec['radio'], carrier, w, speed, semis, pos]
+    return hashlib.sha1(json.dumps(settings, sort_keys=True).encode()).hexdigest()
 
 
 def pitch_shift(x, semitones):
@@ -141,9 +155,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--model', required=True, help='folder with kokoro-v1.0.onnx (the timed export) and voices-v1.0.bin')
     ap.add_argument('--only', help='comma-separated cast ids')
+    ap.add_argument('--threads', type=int, default=2, help='CPU threads for the model (default 2)')
+    ap.add_argument('--cache', default=os.path.expanduser('~/.cache/privo-atc-voices'), help='where rendered pieces are kept between runs')
     args = ap.parse_args()
+    try:
+        os.nice(19)  # the machine's own work comes first
+    except OSError:
+        pass
+    os.makedirs(args.cache, exist_ok=True)
     m = json.load(open(MANIFEST))
-    k = Kokoro(os.path.join(args.model, 'kokoro-v1.0.onnx'), os.path.join(args.model, 'voices-v1.0.bin'))
+    opts = rt.SessionOptions()
+    opts.intra_op_num_threads = args.threads
+    opts.inter_op_num_threads = 1
+    session = rt.InferenceSession(os.path.join(args.model, 'kokoro-v1.0.onnx'), sess_options=opts, providers=['CPUExecutionProvider'])
+    k = Kokoro.from_session(session, os.path.join(args.model, 'voices-v1.0.bin'))
     if not k.has_timings:
         sys.exit('this Kokoro export has no timings: use kokoro-v1.0.onnx from the model-files-v1.1 release')
     takes = list(zip(m['takes']['speeds'], m['takes']['pitch']))
@@ -172,17 +197,25 @@ def main():
         for f in os.listdir(folder):
             os.remove(os.path.join(folder, f))
         clips = {}
+        rendered = 0
         for piece, (word, carriers, who) in pieces.items():
             if who and spec['role'] not in who:
                 continue
             for pos, options in carriers.items():
                 for t, (speed, semis) in enumerate(takes):
-                    y = cut(k, spec, options[t % len(options)], word, speed, semis, pos)
+                    carrier = options[t % len(options)]
+                    cached = os.path.join(args.cache, cache_key(spec, carrier, word, speed, semis, pos) + '.wav')
+                    if os.path.exists(cached):
+                        y, _ = sf.read(cached, dtype='float32')
+                    else:
+                        y = cut(k, spec, carrier, word, speed, semis, pos)
+                        sf.write(cached, y, RATE, subtype='PCM_16')
+                        rendered += 1
                     name = f'{piece}.{pos}{t}.wav'
                     sf.write(os.path.join(folder, name), y, RATE, subtype='PCM_16')
                     clips.setdefault(piece, []).append({'take': f'{pos}{t}', 'file': f'{cid}/{name}', 'ms': round(1000 * len(y) / RATE)})
         index[cid] = {'role': spec['role'], 'clips': clips}
-        print(f'{cid}: {len(clips)} pieces, {sum(len(v) for v in clips.values())} clips')
+        print(f'{cid}: {len(clips)} pieces, {sum(len(v) for v in clips.values())} clips ({rendered} rendered, the rest from the cache)')
 
     texts = {p: w for p, (w, _, _) in pieces.items()}
     write_index(index, texts)
