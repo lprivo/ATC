@@ -1,12 +1,14 @@
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { setMusicTrack } from '../game/audio';
 import { EntitlementProvider } from '../game/EntitlementContext';
 import { ResultsProvider } from '../game/ResultsContext';
 import { SettingsProvider } from '../game/SettingsContext';
+import { musicForRoute } from '../game/sound';
 import { useAppFonts } from '../theme/fonts';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { themes } from '../theme/themes';
@@ -44,6 +46,7 @@ function ThemedStack() {
   return (
     <>
       <StatusBar style={theme.statusBar} />
+      <MusicDirector />
       <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: theme.colors.background } }}>
         {/* No swipe-back out of a live game: leaving goes through the pause menu's confirmed Quit. */}
         <Stack.Screen name="game" options={{ gestureEnabled: false }} />
@@ -52,4 +55,11 @@ function ThemedStack() {
       </Stack>
     </>
   );
+}
+
+/** The music follows the screen: the menu track, or the in-game loop in a game (see `musicForRoute`). */
+function MusicDirector() {
+  const path = usePathname();
+  useEffect(() => setMusicTrack(musicForRoute(path)), [path]);
+  return null;
 }

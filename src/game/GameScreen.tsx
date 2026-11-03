@@ -18,7 +18,8 @@ import { Toasts } from '../ui/Toasts';
 import { TopBar } from '../ui/TopBar';
 import { usePreventPageZoom } from '../ui/useWebZoom';
 import type { Viewport } from '../ui/viewport';
-import { haptic } from './haptics';
+import { playSound } from './audio';
+import { feedback } from './feedback';
 import { LABEL_SCALE } from '../theme/themes';
 import { useSettings } from './SettingsContext';
 import { sessionClock } from './hud';
@@ -94,12 +95,15 @@ export function GameScreen({
   const lastMinute = sessionClock(sim.time, sessionSec).lastMinute;
   const announcedLastMinute = useRef(false);
   useEffect(() => {
-    if (lastMinute && !announcedLastMinute.current) AccessibilityInfo.announceForAccessibility('One minute left');
+    if (lastMinute && !announcedLastMinute.current) {
+      AccessibilityInfo.announceForAccessibility('One minute left');
+      playSound('lastMinute');
+    }
     announcedLastMinute.current = lastMinute;
   }, [lastMinute]);
   /** Selecting a plane (by tap, label or the banner's SELECT) gives a light tap. */
   const select = (id: string | null, opts?: { silent?: boolean }) => {
-    if (id && id !== selectedId && !opts?.silent) haptic('select');
+    if (id && id !== selectedId && !opts?.silent) feedback('select');
     setSelectedId(id);
   };
 
@@ -108,6 +112,7 @@ export function GameScreen({
   const endSession = (endedEarly: boolean) => {
     if (ended.current || !onSessionEnd) return;
     ended.current = true;
+    if (!endedEarly) playSound('sessionOver');
     end();
     onSessionEnd({ ...sim.stats }, endedEarly);
   };
@@ -188,7 +193,7 @@ export function GameScreen({
                 refresh();
               }}
               onConfirm={() => {
-                haptic('landingConfirmed');
+                feedback('landingConfirmed');
                 landing.done();
               }}
             />

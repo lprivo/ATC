@@ -13,6 +13,13 @@ describe('settings', () => {
     });
   });
 
+  it('music is on by default, and an older save without it keeps it on', () => {
+    expect(DEFAULT_SETTINGS.music).toBe(true);
+    expect(parseSettings(JSON.stringify({ sound: false })).music).toBe(true);
+    expect(parseSettings(JSON.stringify({ music: false })).music).toBe(false);
+    expect(parseSettings(JSON.stringify({ music: 'no' })).music).toBe(true);
+  });
+
   it('follow system: Paper in light mode, Radar in dark (or unknown) mode', () => {
     const s = { ...DEFAULT_SETTINGS, followSystem: true, theme: 'paper' };
     expect(effectiveTheme(s, 'light')).toBe('paper');

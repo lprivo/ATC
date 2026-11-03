@@ -19,7 +19,7 @@ import {
   runwayLabelPos,
   runwayWidth,
 } from './radarGeometry';
-import { haptic } from '../game/haptics';
+import { feedback } from '../game/feedback';
 import type { AltUnit, DistUnit } from '../game/settings';
 import { DrawOverlay } from './DrawOverlay';
 import { CLEARED_LINE, snapTarget } from './drawing';
@@ -148,7 +148,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
     const drawStart = g.current.points[0];
     g.current = step.state;
     if (step.state.drawing !== wasDrawing) {
-      if (step.state.drawing) haptic('drawStart');
+      if (step.state.drawing) feedback('drawStart');
       onDrawing?.(step.state.drawing);
     }
     for (const e of step.effects) {
@@ -241,7 +241,7 @@ export function Radar({ sim, selectedId, onSelect, onCommand, onLanding, onDrawi
   // A rigid tick each time the path snaps onto a runway (not when it lets go).
   const lastSnap = useRef<string | null>(null);
   useEffect(() => {
-    if (snap && snap !== lastSnap.current) haptic('snap');
+    if (snap && snap !== lastSnap.current) feedback('snap');
     lastSnap.current = snap;
   }, [snap]);
 

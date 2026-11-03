@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { nextRepeatDelay, pressStepsOnPress, stepHapticDue } from '../game/controls';
-import { haptic } from '../game/haptics';
+import { feedback } from '../game/feedback';
 import { useTheme } from '../theme/ThemeContext';
 
 interface Props {
@@ -77,7 +77,7 @@ function StepButton({
     const now = Date.now();
     if (!stepHapticDue(lastStepHaptic.current, now)) return;
     lastStepHaptic.current = now;
-    haptic('step');
+    feedback('step');
   };
 
   const stop = () => {
@@ -92,7 +92,7 @@ function StepButton({
     lastStepHaptic.current = 0; // the first step of every press always gets its haptic
     // At a limit the button only dims and gives the rigid limit haptic: no steps.
     if (atLimitRef.current) {
-      haptic('limit');
+      feedback('limit');
       return;
     }
     stepFeedback();
@@ -100,7 +100,7 @@ function StepButton({
     const t0 = Date.now();
     const loop = () => {
       if (atLimitRef.current) {
-        haptic('limit'); // reached the limit mid-hold
+        feedback('limit'); // reached the limit mid-hold
         return;
       }
       stepFeedback();
@@ -121,7 +121,7 @@ function StepButton({
         const d = pressStepsOnPress(pressIns.current, consumed.current);
         consumed.current = d.consumed;
         if (!d.step) return;
-        if (atLimitRef.current) haptic('limit');
+        if (atLimitRef.current) feedback('limit');
         else {
           stepFeedback();
           stepRef.current();

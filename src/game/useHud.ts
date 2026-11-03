@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import type { Sim } from '../engine/sim';
-import { haptic } from './haptics';
+import { playSound } from './audio';
+import { feedback } from './feedback';
+import { eventSounds } from './sound';
 import type { AltUnit, DistUnit } from './settings';
 import { conflictBanner, conflictSetKey, hasNewConflict, nextToastExpiry, pairKey, stepToastState, type ToastState } from './hud';
 
@@ -35,7 +37,7 @@ export function useHud(
   useEffect(() => {
     if (known.current.sim !== sim) known.current = { sim, pairs: new Set() };
     if (hasNewConflict(known.current.pairs, sim.conflicts)) {
-      haptic('conflict');
+      feedback('conflict');
       // Announced here, once per new pair, so pausing (which hides the banner) doesn't repeat it.
       // Announce the pair that is new, not whichever pair the banner shows first.
       const b = conflictBanner(sim, (cf) => !known.current.pairs.has(pairKey(cf)), units);
@@ -47,5 +49,16 @@ export function useHud(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sim, setKey]);
 
+  // Landings and go-arounds sound once each, as they happen (not the events a prepared sim starts with).
+  const heard = useRef({ sim, seq: lastSeq(sim) });
+  const newest = lastSeq(sim);
+  useEffect(() => {
+    if (heard.current.sim !== sim) heard.current = { sim, seq: lastSeq(sim) };
+    for (const m of eventSounds(sim.events, heard.current.seq)) playSound(m);
+    heard.current.seq = newest;
+  }, [sim, newest]);
+
   return { toasts, banner: conflictBanner(sim, undefined, units) };
 }
+
+const lastSeq = (sim: Sim) => sim.events[sim.events.length - 1]?.seq ?? 0;

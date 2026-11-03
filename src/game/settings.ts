@@ -12,7 +12,10 @@ export interface Settings {
   theme: string;
   /** Use Paper in light mode and Radar in dark mode. */
   followSystem: boolean;
+  /** Sound effects (game moments). */
   sound: boolean;
+  /** Menu and in-game music. */
+  music: boolean;
   haptics: boolean;
   /** Controls on the left mirrors the sheet and re-centre for left-handed play. */
   handedness: Handedness;
@@ -26,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'radar',
   followSystem: false,
   sound: true,
+  music: true,
   haptics: true,
   handedness: 'right',
   altUnit: 'ft',
@@ -51,6 +55,7 @@ export function parseSettings(json: string | null): Settings {
     theme: typeof r.theme === 'string' ? r.theme : DEFAULT_SETTINGS.theme,
     followSystem: bool('followSystem'),
     sound: bool('sound'),
+    music: bool('music'),
     haptics: bool('haptics'),
     handedness: pick('handedness', ['right', 'left'] as const),
     altUnit: pick('altUnit', ['ft', 'm'] as const),
