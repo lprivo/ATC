@@ -1,0 +1,150 @@
+{
+  "about": "Radio voice clips (issue #49): the cast and every piece a spoken call is stitched from. Read by scripts/voices/generate.py (which renders them with Kokoro-82M) and, through the generated src/game/voiceClips.ts, by the app. Plain data.",
+  "cast": {
+    "controller": {
+      "role": "controller",
+      "voice": "bm_george",
+      "lang": "en-gb",
+      "speed": 1.05,
+      "radio": {
+        "drive": 2.2,
+        "low": 320,
+        "high": 3200
+      }
+    },
+    "pilotUS": {
+      "role": "pilot",
+      "voice": "am_michael",
+      "lang": "en-us",
+      "speed": 1.1,
+      "radio": {
+        "drive": 3.0,
+        "low": 380,
+        "high": 2900
+      }
+    },
+    "pilotUK": {
+      "role": "pilot",
+      "voice": "bf_emma",
+      "lang": "en-gb",
+      "speed": 1.1,
+      "radio": {
+        "drive": 2.6,
+        "low": 350,
+        "high": 3000
+      }
+    }
+  },
+  "takes": {
+    "about": "Each piece is rendered at these speeds (times the voice's own, times `listSpeed` for digits, letters and words, or `stemSpeed` for phrase pieces) and pitch shifts (semitones), one take per pair, so repeats don't sound the same. Kokoro says lone words slowly; radio digits are quick.",
+    "speeds": [
+      0.96,
+      1.04
+    ],
+    "pitch": [
+      -0.4,
+      0.4
+    ],
+    "listSpeed": 1.75,
+    "stemSpeed": 1.35
+  },
+  "lists": {
+    "about": "Each rendered with a comma (m: leads on, the middle of a number) and with a full stop (f: falls, the end of a call).",
+    "digits": {
+      "0": "zero",
+      "1": "one",
+      "2": "two",
+      "3": "three",
+      "4": "four",
+      "5": "five",
+      "6": "six",
+      "7": "seven",
+      "8": "eight",
+      "9": "niner"
+    },
+    "letters": {
+      "A": "alfa",
+      "B": "bravo",
+      "C": "charlie",
+      "D": "delta",
+      "E": "echo",
+      "F": "foxtrot",
+      "G": "golf",
+      "H": "hotel",
+      "I": "india",
+      "J": "juliett",
+      "K": "kilo",
+      "L": "lima",
+      "M": "mike",
+      "N": "november",
+      "O": "oscar",
+      "P": "papa",
+      "Q": "quebec",
+      "R": "romeo",
+      "S": "sierra",
+      "T": "tango",
+      "U": "uniform",
+      "V": "victor",
+      "W": "whiskey",
+      "X": "x-ray",
+      "Y": "yankee",
+      "Z": "zulu"
+    },
+    "words": {
+      "left": "left",
+      "right": "right",
+      "centre": "center",
+      "thousand": "thousand",
+      "hundred": "hundred",
+      "feet": "feet",
+      "knots": "knots"
+    }
+  },
+  "airlines": {
+    "about": "Spoken airline callsigns, said as the start of a call ('Wizz Air,'). Must match AIRLINE_CALLSIGNS in src/engine/data/airlines.ts (tested).",
+    "WZZ": "Wizz Air",
+    "RYR": "Ryanair",
+    "DLH": "Lufthansa",
+    "AFR": "Air France",
+    "BAW": "Speedbird",
+    "EZY": "Easy",
+    "KLM": "K L M",
+    "LOT": "Pollot",
+    "AUA": "Austrian",
+    "SWR": "Swiss",
+    "THY": "Turkish",
+    "QTR": "Qatari",
+    "EWG": "Eurowings",
+    "FIN": "Finnair",
+    "TVS": "Skytravel"
+  },
+  "stems": {
+    "about": "Phrase pieces, said with a trailing comma so they lead on into what follows (or a full stop where they end a call).",
+    "turn_left_heading": "turn left heading,",
+    "turn_right_heading": "turn right heading,",
+    "fly_heading": "fly heading,",
+    "left_heading": "left heading,",
+    "right_heading": "right heading,",
+    "heading": "heading,",
+    "descend_to_altitude": "descend to altitude,",
+    "descend_altitude": "descend altitude,",
+    "descend": "descend,",
+    "climb_to_altitude": "climb to altitude,",
+    "climb": "climb,",
+    "maintain": "maintain,",
+    "flight_level": "flight level,",
+    "down_to": "down to,",
+    "up_to": "up to,",
+    "descending": "descending,",
+    "climbing": "climbing,",
+    "reduce_speed": "reduce speed,",
+    "increase_speed": "increase speed,",
+    "reduce": "reduce,",
+    "increase": "increase,",
+    "speed": "speed,",
+    "runway": "runway,",
+    "cleared_to_land_runway": "cleared to land runway,",
+    "cleared_to_land": "cleared to land.",
+    "now": "now,"
+  }
+}
