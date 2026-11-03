@@ -52,6 +52,16 @@ describe('manifest', () => {
     for (const p of ['w_knots', 'w_left', 'w_right']) expect(manifestPieces).toContain(p);
   });
 
+  it("renders each phrase piece only for the role that says it (no 'descending' from the controller)", () => {
+    const stems = manifest.stems as unknown as Record<string, { who?: string[] }>;
+    for (const role of ['controller', 'pilot'] as const) {
+      const used = new Set<string>(['s_flight_level']); // altitudes above 10,000 ft, for both
+      for (const phrases of Object.values(PHRASINGS[role])) for (const phrase of phrases) for (const p of phrase as readonly string[]) if (p.startsWith('s_')) for (const side of ['left', 'right']) used.add(p.replace('{side}', side));
+      const rendered = new Set(Object.entries(stems).filter(([k, v]) => k !== 'about' && v.who?.includes(role)).map(([k]) => `s_${k}`));
+      expect([...rendered].sort(), role).toEqual([...used].sort());
+    }
+  });
+
   it('has a clip for every airline, under the same spoken name', () => {
     for (const [code, spoken] of Object.entries(AIRLINE_CALLSIGNS)) expect((manifest.airlines as Record<string, string>)[code], code).toBe(spoken);
   });

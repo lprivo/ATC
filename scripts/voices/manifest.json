@@ -1,55 +1,53 @@
 {
-  "about": "Radio voice clips (issue #49): the cast and every piece a spoken call is stitched from. Read by scripts/voices/generate.py (which renders them with Kokoro-82M) and, through the generated src/game/voiceClips.ts, by the app. Plain data.",
+  "about": "Radio voice clips (issue #49): the cast and every piece a spoken call is stitched from, each cut out of a natural sentence (its 'carrier'). Read by scripts/voices/generate.py (Kokoro-82M) and, through the generated src/game/voiceClips.ts, by the app. Plain data.",
   "cast": {
     "controller": {
       "role": "controller",
       "voice": "bm_george",
       "lang": "en-gb",
-      "speed": 1.05,
+      "speed": 1.18,
       "radio": {
-        "drive": 2.2,
-        "low": 320,
-        "high": 3200
+        "drive": 1.6,
+        "low": 300,
+        "high": 3600
       }
     },
     "pilotUS": {
       "role": "pilot",
       "voice": "am_michael",
       "lang": "en-us",
-      "speed": 1.1,
+      "speed": 1.2,
       "radio": {
-        "drive": 3.0,
-        "low": 380,
-        "high": 2900
+        "drive": 2.0,
+        "low": 330,
+        "high": 3400
       }
     },
     "pilotUK": {
       "role": "pilot",
       "voice": "bf_emma",
       "lang": "en-gb",
-      "speed": 1.1,
+      "speed": 1.2,
       "radio": {
-        "drive": 2.6,
-        "low": 350,
-        "high": 3000
+        "drive": 1.8,
+        "low": 320,
+        "high": 3500
       }
     }
   },
   "takes": {
-    "about": "Each piece is rendered at these speeds (times the voice's own, times `listSpeed` for digits, letters and words, or `stemSpeed` for phrase pieces) and pitch shifts (semitones), one take per pair, so repeats don't sound the same. Kokoro says lone words slowly; radio digits are quick.",
+    "about": "Each piece is rendered once per take, at the voice's speed times this, and the pitch shift (semitones) after, so repeats don't sound the same. Take i uses carrier i.",
     "speeds": [
-      0.96,
-      1.04
+      0.97,
+      1.05
     ],
     "pitch": [
       -0.4,
       0.4
-    ],
-    "listSpeed": 1.75,
-    "stemSpeed": 1.35
+    ]
   },
   "lists": {
-    "about": "Each rendered with a comma (m: leads on, the middle of a number) and with a full stop (f: falls, the end of a call).",
+    "about": "Digits, letters and words, cut from inside spoken numbers: `m` takes from the middle (they lead on), `f` from the end of a sentence (they fall). {w} is the word.",
     "digits": {
       "0": "zero",
       "1": "one",
@@ -91,17 +89,82 @@
       "Z": "zulu"
     },
     "words": {
-      "left": "left",
-      "right": "right",
-      "centre": "center",
-      "thousand": "thousand",
-      "hundred": "hundred",
-      "feet": "feet",
-      "knots": "knots"
+      "thousand": {
+        "m": [
+          "four [thousand] five hundred feet.",
+          "two [thousand] three hundred feet."
+        ]
+      },
+      "hundred": {
+        "m": [
+          "three thousand five [hundred] feet.",
+          "two thousand four [hundred] feet."
+        ]
+      },
+      "feet": {
+        "m": [
+          "four thousand [feet], reduce speed.",
+          "two thousand five hundred [feet], turn left."
+        ],
+        "f": [
+          "descend four thousand [feet].",
+          "climb two thousand five hundred [feet]."
+        ]
+      },
+      "knots": {
+        "m": [
+          "one eight zero [knots], runway.",
+          "two two zero [knots], turn left."
+        ],
+        "f": [
+          "reduce one eight zero [knots].",
+          "speed two two zero [knots]."
+        ]
+      },
+      "left": {
+        "m": [
+          "runway one three [left], cleared to land.",
+          "runway three one [left], cleared."
+        ],
+        "f": [
+          "cleared to land runway one three [left].",
+          "runway three one [left]."
+        ]
+      },
+      "right": {
+        "m": [
+          "runway one three [right], cleared to land.",
+          "runway three one [right], cleared."
+        ],
+        "f": [
+          "cleared to land runway one three [right].",
+          "runway three one [right]."
+        ]
+      },
+      "centre": {
+        "m": [
+          "runway one three [center], cleared to land.",
+          "runway three one [center], cleared."
+        ],
+        "f": [
+          "cleared to land runway one three [center].",
+          "runway three one [center]."
+        ]
+      }
+    },
+    "carriers": {
+      "m": [
+        "two [{w}] one,",
+        "four [{w}] seven,"
+      ],
+      "f": [
+        "one two [{w}].",
+        "three five [{w}]."
+      ]
     }
   },
   "airlines": {
-    "about": "Spoken airline callsigns, said as the start of a call ('Wizz Air,'). Must match AIRLINE_CALLSIGNS in src/engine/data/airlines.ts (tested).",
+    "about": "Spoken airline callsigns, cut from the start of a call ('[Wizz Air] four two,'). Must match AIRLINE_CALLSIGNS in src/engine/data/airlines.ts (tested).",
     "WZZ": "Wizz Air",
     "RYR": "Ryanair",
     "DLH": "Lufthansa",
@@ -119,32 +182,267 @@
     "TVS": "Skytravel"
   },
   "stems": {
-    "about": "Phrase pieces, said with a trailing comma so they lead on into what follows (or a full stop where they end a call).",
-    "turn_left_heading": "turn left heading,",
-    "turn_right_heading": "turn right heading,",
-    "fly_heading": "fly heading,",
-    "left_heading": "left heading,",
-    "right_heading": "right heading,",
-    "heading": "heading,",
-    "descend_to_altitude": "descend to altitude,",
-    "descend_altitude": "descend altitude,",
-    "descend": "descend,",
-    "climb_to_altitude": "climb to altitude,",
-    "climb": "climb,",
-    "maintain": "maintain,",
-    "flight_level": "flight level,",
-    "down_to": "down to,",
-    "up_to": "up to,",
-    "descending": "descending,",
-    "climbing": "climbing,",
-    "reduce_speed": "reduce speed,",
-    "increase_speed": "increase speed,",
-    "reduce": "reduce,",
-    "increase": "increase,",
-    "speed": "speed,",
-    "runway": "runway,",
-    "cleared_to_land_runway": "cleared to land runway,",
-    "cleared_to_land": "cleared to land.",
-    "now": "now,"
-  }
+    "about": "Phrase pieces, each with who says it and the sentences it's cut from (the piece in [brackets]). Without `carriers`, it's said before a number: '[descend] four thousand feet.'",
+    "turn_left_heading": {
+      "text": "turn left heading",
+      "who": [
+        "controller",
+        "pilot"
+      ],
+      "carriers": [
+        "[turn left heading] four thousand feet.",
+        "[turn left heading] two one zero."
+      ]
+    },
+    "turn_right_heading": {
+      "text": "turn right heading",
+      "who": [
+        "controller",
+        "pilot"
+      ],
+      "carriers": [
+        "[turn right heading] four thousand feet.",
+        "[turn right heading] two one zero."
+      ]
+    },
+    "fly_heading": {
+      "text": "fly heading",
+      "who": [
+        "controller",
+        "pilot"
+      ],
+      "carriers": [
+        "[fly heading] four thousand feet.",
+        "[fly heading] two one zero."
+      ]
+    },
+    "left_heading": {
+      "text": "left heading",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[left heading] four thousand feet.",
+        "[left heading] two one zero."
+      ]
+    },
+    "right_heading": {
+      "text": "right heading",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[right heading] four thousand feet.",
+        "[right heading] two one zero."
+      ]
+    },
+    "heading": {
+      "text": "heading",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[heading] four thousand feet.",
+        "[heading] two one zero."
+      ]
+    },
+    "descend_to_altitude": {
+      "text": "descend to altitude",
+      "who": [
+        "controller"
+      ],
+      "carriers": [
+        "[descend to altitude] four thousand feet.",
+        "[descend to altitude] two one zero."
+      ]
+    },
+    "descend_altitude": {
+      "text": "descend altitude",
+      "who": [
+        "controller"
+      ],
+      "carriers": [
+        "[descend altitude] four thousand feet.",
+        "[descend altitude] two one zero."
+      ]
+    },
+    "descend": {
+      "text": "descend",
+      "who": [
+        "controller",
+        "pilot"
+      ],
+      "carriers": [
+        "[descend] four thousand feet.",
+        "[descend] two one zero."
+      ]
+    },
+    "climb_to_altitude": {
+      "text": "climb to altitude",
+      "who": [
+        "controller"
+      ],
+      "carriers": [
+        "[climb to altitude] four thousand feet.",
+        "[climb to altitude] two one zero."
+      ]
+    },
+    "climb": {
+      "text": "climb",
+      "who": [
+        "controller",
+        "pilot"
+      ],
+      "carriers": [
+        "[climb] four thousand feet.",
+        "[climb] two one zero."
+      ]
+    },
+    "maintain": {
+      "text": "maintain",
+      "who": [
+        "controller",
+        "pilot"
+      ],
+      "carriers": [
+        "[maintain] four thousand feet.",
+        "[maintain] two one zero."
+      ]
+    },
+    "flight_level": {
+      "text": "flight level",
+      "who": [
+        "controller",
+        "pilot"
+      ],
+      "carriers": [
+        "climb [flight level] one two zero.",
+        "descend [flight level] one one zero."
+      ]
+    },
+    "down_to": {
+      "text": "down to",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[down to] four thousand feet.",
+        "[down to] two one zero."
+      ]
+    },
+    "up_to": {
+      "text": "up to",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[up to] four thousand feet.",
+        "[up to] two one zero."
+      ]
+    },
+    "descending": {
+      "text": "descending",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[descending] four thousand feet.",
+        "[descending] two one zero."
+      ]
+    },
+    "climbing": {
+      "text": "climbing",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[climbing] four thousand feet.",
+        "[climbing] two one zero."
+      ]
+    },
+    "reduce_speed": {
+      "text": "reduce speed",
+      "who": [
+        "controller"
+      ],
+      "carriers": [
+        "[reduce speed] four thousand feet.",
+        "[reduce speed] two one zero."
+      ]
+    },
+    "increase_speed": {
+      "text": "increase speed",
+      "who": [
+        "controller"
+      ],
+      "carriers": [
+        "[increase speed] four thousand feet.",
+        "[increase speed] two one zero."
+      ]
+    },
+    "reduce": {
+      "text": "reduce",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[reduce] four thousand feet.",
+        "[reduce] two one zero."
+      ]
+    },
+    "increase": {
+      "text": "increase",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[increase] four thousand feet.",
+        "[increase] two one zero."
+      ]
+    },
+    "speed": {
+      "text": "speed",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[speed] four thousand feet.",
+        "[speed] two one zero."
+      ]
+    },
+    "runway": {
+      "text": "runway",
+      "who": [
+        "controller"
+      ],
+      "carriers": [
+        "Wizz Air niner, [runway] one three left, cleared to land.",
+        "Ryanair four, [runway] three one right, cleared to land."
+      ]
+    },
+    "cleared_to_land_runway": {
+      "text": "cleared to land runway",
+      "who": [
+        "pilot"
+      ],
+      "carriers": [
+        "[cleared to land runway] one three left, Wizz Air.",
+        "[cleared to land runway] three one right, Ryanair."
+      ]
+    },
+    "cleared_to_land": {
+      "text": "cleared to land",
+      "who": [
+        "controller"
+      ],
+      "carriers": [
+        "runway one three left, [cleared to land].",
+        "runway three one right, [cleared to land]."
+      ]
+    }
+  },
+  "airlineCarriers": [
+    "[{w}] four two,",
+    "[{w}] one five,"
+  ]
 }

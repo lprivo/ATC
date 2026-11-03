@@ -5,118 +5,71 @@ Reads scripts/voices/manifest.json and writes:
   assets/voices/<cast id>/<piece>.<take>.wav   12 kHz mono, radio-filtered
   src/game/voiceClips.ts                       the index the app plays from (generated)
 
-Every piece is rendered at a few speeds and pitch shifts (the manifest's
-`takes`), so a repeated call doesn't sound the same twice. Digits, letters and
-a few words are rendered twice: with a comma ("four,") the voice leads on, for
-the middle of a number (`m`); with a full stop ("four.") it falls, for the end
-of a call (`f`). Everything else is a phrase piece
-said on its own (`t`).
+Every piece is cut out of a natural sentence (its carrier, the piece in
+[brackets]) said at normal speed, using the model's timing of each sound, so
+words keep the shape they have in real speech. The radio filter and the level
+are set on the whole sentence before the cut, so a short word's tail isn't
+blown up. Digits, letters and words have takes from the middle of a number
+(`m`, they lead on) and from the end of a sentence (`f`, they fall); phrase
+pieces have `t` takes. Each take uses its own carrier, speed and pitch.
 
 Setup (once):  pip install kokoro-onnx soundfile numpy scipy
-               model files kokoro-v1.0.onnx and voices-v1.0.bin from
-               https://github.com/thewh1teagle/kokoro-onnx/releases (model-files-v1.0)
+               kokoro-v1.0.onnx from the model-files-v1.1 release (it reports
+               timings) and voices-v1.0.bin, from
+               https://github.com/thewh1teagle/kokoro-onnx/releases
 Run:           python scripts/voices/generate.py --model DIR [--only controller,pilotUS]
 """
 import argparse
 import json
-import math
 import os
+import re
 import sys
 
 import numpy as np
 import soundfile as sf
 from kokoro_onnx import Kokoro
-from scipy.signal import butter, resample, resample_poly, sosfilt
+from scipy.signal import butter, resample, resample_poly, sosfiltfilt
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 MANIFEST = os.path.join(ROOT, 'scripts', 'voices', 'manifest.json')
 OUT = os.path.join(ROOT, 'assets', 'voices')
 INDEX = os.path.join(ROOT, 'src', 'game', 'voiceClips.ts')
-RATE = 12000  # radio band ends at ~3 kHz: 12 kHz is plenty
-FRAME = 0.01  # seconds, for silence detection
-SILENCE_DB = -30  # below the clip's peak: the drive lifts breath and tails, so trim firmly
-PAD = 0.012  # kept round each trimmed piece
-FADE = 0.006
-
-
-def db(x):
-    return 20 * math.log10(max(x, 1e-9))
-
-
-def frames_energy(x, sr):
-    n = int(sr * FRAME)
-    k = len(x) // n
-    return np.array([np.sqrt(np.mean(x[i * n:(i + 1) * n] ** 2)) for i in range(k)]), n
-
-
-def voiced_spans(x, sr, min_gap=0.06):
-    """(start, end) sample spans of speech, split at silences of at least `min_gap` seconds."""
-    e, n = frames_energy(x, sr)
-    if len(e) == 0:
-        return []
-    thr = e.max() * 10 ** (SILENCE_DB / 20)
-    loud = e > thr
-    spans, start, last = [], None, None
-    for i, on in enumerate(loud):
-        if on:
-            if start is None:
-                start = i
-            elif (i - last - 1) * FRAME >= min_gap:
-                spans.append((start * n, (last + 1) * n))
-                start = i
-            last = i
-    if start is not None:
-        spans.append((start * n, (last + 1) * n))
-    # Drop clicks: anything shorter than 60 ms isn't a word.
-    return [(a, b) for a, b in spans if (b - a) / sr >= 0.06]
-
-
-def trim(x, sr):
-    spans = voiced_spans(x, sr, min_gap=10)  # one span: the whole utterance
-    if not spans:
-        return x
-    a, b = spans[0][0], spans[-1][1]
-    pad = int(sr * PAD)
-    return x[max(0, a - pad):min(len(x), b + pad)]
-
-
-def fade(x, sr):
-    n = min(int(sr * FADE), len(x) // 2)
-    if n:
-        ramp = np.linspace(0, 1, n)
-        x[:n] *= ramp
-        x[-n:] *= ramp[::-1]
-    return x
+RATE = 12000  # the radio band ends below 4 kHz: 12 kHz is plenty
+LEVEL_DB = -18  # RMS of each whole sentence
+PAD_START = 0.012
+PAD_END = {'m': 0.015, 'f': 0.06, 't': 0.02}  # an ending falls away, so keep more of it
+FADE = 0.008
+PUNCT = set(',.!?;:')
 
 
 def pitch_shift(x, semitones):
-    """Resampling shift: pitch and tempo move together (a few per cent), which is the point: no two takes alike."""
+    """Resampling shift: pitch and tempo move together, a few per cent."""
     if not semitones:
         return x
-    factor = 2 ** (semitones / 12)
-    return resample(x, max(1, int(len(x) / factor)))
+    return resample(x, max(1, int(len(x) / 2 ** (semitones / 12))))
 
 
 def radio(x, sr, spec):
-    """Narrow band-pass, a little drive (soft clipping) and an even level: a voice over a VHF radio."""
-    sos = butter(4, [spec['low'], spec['high']], btype='bandpass', fs=sr, output='sos')
-    y = sosfilt(sos, x)
+    """Band-pass and a little drive (soft clipping): a voice over a VHF radio. Zero-phase, so cuts line up with the timings."""
+    sos = butter(2, [spec['low'], spec['high']], btype='bandpass', fs=sr, output='sos')
+    y = sosfiltfilt(sos, x)
     peak = np.max(np.abs(y)) or 1.0
     d = spec['drive']
-    y = np.tanh(d * y / peak) / np.tanh(d)
-    return y
+    return np.tanh(d * y / peak) / np.tanh(d)
 
 
-def finish(x, sr, spec):
-    y = radio(x, sr, spec)
-    y = resample_poly(y, RATE, sr)
-    y = trim(y, RATE)
-    rms = np.sqrt(np.mean(y ** 2)) or 1.0
-    y = y * (10 ** (-16 / 20) / rms)  # even loudness across pieces
-    peak = np.max(np.abs(y))
-    if peak > 0.95:
-        y = y * (0.95 / peak)
-    return fade(y.astype(np.float32), RATE)
+def trim_edges(x, pos, floor_db=-30):
+    """Drops near-silence at either end (a word's timing can include the pause after it), keeping a little air."""
+    n = int(RATE * 0.005)
+    if len(x) < 4 * n:
+        return x
+    env = np.array([np.sqrt(np.mean(x[i:i + n] ** 2)) for i in range(0, len(x) - n + 1, n)])
+    loud = np.nonzero(env > env.max() * 10 ** (floor_db / 20))[0]
+    if not len(loud):
+        return x
+    a = max(0, loud[0] * n - int(RATE * PAD_START))
+    b = min(len(x), (loud[-1] + 1) * n + int(RATE * PAD_END[pos]))
+    return x[a:b]
 
 
 def style(k, spec):
@@ -126,31 +79,91 @@ def style(k, spec):
     return v
 
 
-def render(k, spec, text, speed, **kw):
-    # Kokoro takes 0.5–2.0.
-    audio, sr = k.create(text, voice=style(k, spec), speed=min(2.0, max(0.5, spec['speed'] * speed)), lang=spec['lang'], **kw)
-    return np.asarray(audio, dtype=np.float32), sr
+def words_in_time(timings):
+    """Word spans (start, end) in seconds from the phoneme timings: words are split at spaces; punctuation isn't speech."""
+    words, cur = [], None
+    for t in timings:
+        if t.phoneme == ' ':
+            if cur:
+                words.append(cur)
+            cur = None
+        elif t.phoneme in PUNCT:
+            continue
+        else:
+            cur = [t.start, t.end] if cur is None else [cur[0], t.end]
+    if cur:
+        words.append(cur)
+    return words
+
+
+def parse_carrier(carrier, w=''):
+    """'two [{w}] one,' → ('two six one,', index of the first target word, number of target words)."""
+    c = carrier.replace('{w}', w)
+    m = re.search(r'\[([^\]]+)\]', c)
+    if not m:
+        sys.exit(f'carrier without a [piece]: {carrier}')
+    before = c[:m.start()].split()
+    target = m.group(1).split()
+    return c.replace('[', '').replace(']', ''), len(before), len(target)
+
+
+def cut(k, spec, carrier, w, speed, semis, pos):
+    text, first, count = parse_carrier(carrier, w)
+    # Kokoro takes speeds of 0.5–2.0.
+    audio, sr, timings = k.create_timed(text, voice=style(k, spec), speed=min(2.0, max(0.5, spec['speed'] * speed)), lang=spec['lang'])
+    audio = np.asarray(audio, dtype=np.float32)
+    spans = words_in_time(timings)
+    words = [x for x in text.split() if x.strip(''.join(PUNCT))]
+    if len(spans) != len(words):
+        sys.exit(f'{spec["voice"]}: "{text}" has {len(words)} words but the timings split it into {len(spans)}')
+    # The whole sentence through the radio, at an even level, then the cut.
+    y = radio(audio, sr, spec['radio'])
+    y = resample_poly(y, RATE, sr)
+    y = y * (10 ** (LEVEL_DB / 20) / (np.sqrt(np.mean(y ** 2)) or 1.0))
+    a = spans[first][0] - PAD_START
+    b = spans[first + count - 1][1] + PAD_END[pos]
+    if first + count < len(spans):
+        b = min(b, spans[first + count][0])  # never into the next word
+    piece = trim_edges(y[max(0, int(a * RATE)):int(b * RATE)].copy(), pos)
+    piece = pitch_shift(piece, semis)
+    n = min(int(RATE * FADE), len(piece) // 2)
+    if n:
+        ramp = np.linspace(0, 1, n)
+        piece[:n] *= ramp
+        piece[-n:] *= ramp[::-1]
+    peak = np.max(np.abs(piece))
+    if peak > 0.97:
+        piece *= 0.97 / peak
+    return piece.astype(np.float32)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--model', required=True, help='folder with kokoro-v1.0.onnx and voices-v1.0.bin')
+    ap.add_argument('--model', required=True, help='folder with kokoro-v1.0.onnx (the timed export) and voices-v1.0.bin')
     ap.add_argument('--only', help='comma-separated cast ids')
     args = ap.parse_args()
     m = json.load(open(MANIFEST))
     k = Kokoro(os.path.join(args.model, 'kokoro-v1.0.onnx'), os.path.join(args.model, 'voices-v1.0.bin'))
+    if not k.has_timings:
+        sys.exit('this Kokoro export has no timings: use kokoro-v1.0.onnx from the model-files-v1.1 release')
     takes = list(zip(m['takes']['speeds'], m['takes']['pitch']))
     cast = {cid: c for cid, c in m['cast'].items() if not args.only or cid in args.only.split(',')}
+    lists = m['lists']
 
-    lists = {}
-    for d, w in m['lists']['digits'].items():
-        lists[f'd{d}'] = w
-    for l, w in m['lists']['letters'].items():
-        lists[f'l{l}'] = w
-    for key, w in m['lists']['words'].items():
-        lists[f'w_{key}'] = w
-    singles = {f'a_{code}': f'{name},' for code, name in m['airlines'].items() if code != 'about'}
-    singles.update({f's_{key}': text for key, text in m['stems'].items() if key != 'about'})
+    # piece id → (word, {pos: [carriers]}, who)
+    pieces = {}
+    for d, w in lists['digits'].items():
+        pieces[f'd{d}'] = (w, lists['carriers'], None)
+    for l, w in lists['letters'].items():
+        pieces[f'l{l}'] = (w, lists['carriers'], None)
+    for key, carriers in lists['words'].items():
+        pieces[f'w_{key}'] = (key, carriers, None)
+    for code, name in m['airlines'].items():
+        if code != 'about':
+            pieces[f'a_{code}'] = (name, {'t': m['airlineCarriers']}, None)
+    for key, st in m['stems'].items():
+        if key != 'about':
+            pieces[f's_{key}'] = (st['text'], {'t': st['carriers']}, st['who'])
 
     index = {}
     for cid, spec in cast.items():
@@ -159,30 +172,23 @@ def main():
         for f in os.listdir(folder):
             os.remove(os.path.join(folder, f))
         clips = {}
-
-        def save(piece, take, y):
-            name = f'{piece}.{take}.wav'
-            sf.write(os.path.join(folder, name), y, RATE, subtype='PCM_16')
-            clips.setdefault(piece, []).append({'take': take, 'file': f'{cid}/{name}', 'ms': round(1000 * len(y) / RATE)})
-
-        for piece, word in lists.items():
-            for t, (speed, semis) in enumerate(takes):
-                for pos, text in (('m', f'{word},'), ('f', f'{word}.')):
-                    audio, sr = render(k, spec, text, speed * m['takes']['listSpeed'])
-                    save(piece, f'{pos}{t}', finish(pitch_shift(audio, semis), sr, spec['radio']))
-        for piece, text in singles.items():
-            for t, (speed, semis) in enumerate(takes):
-                audio, sr = render(k, spec, text, speed * m['takes']['stemSpeed'])
-                save(piece, f't{t}', finish(pitch_shift(audio, semis), sr, spec['radio']))
+        for piece, (word, carriers, who) in pieces.items():
+            if who and spec['role'] not in who:
+                continue
+            for pos, options in carriers.items():
+                for t, (speed, semis) in enumerate(takes):
+                    y = cut(k, spec, options[t % len(options)], word, speed, semis, pos)
+                    name = f'{piece}.{pos}{t}.wav'
+                    sf.write(os.path.join(folder, name), y, RATE, subtype='PCM_16')
+                    clips.setdefault(piece, []).append({'take': f'{pos}{t}', 'file': f'{cid}/{name}', 'ms': round(1000 * len(y) / RATE)})
         index[cid] = {'role': spec['role'], 'clips': clips}
-        total = sum(len(v) for v in clips.values())
-        print(f'{cid}: {len(clips)} pieces, {total} clips')
+        print(f'{cid}: {len(clips)} pieces, {sum(len(v) for v in clips.values())} clips')
 
-    texts = {**lists, **singles}
-    write_index(m, index, texts)
+    texts = {p: w for p, (w, _, _) in pieces.items()}
+    write_index(index, texts)
 
 
-def write_index(m, index, texts):
+def write_index(index, texts):
     lines = [
         '// GENERATED by scripts/voices/generate.py from scripts/voices/manifest.json: do not edit.',
         '// Radio voice clips (issue #49), rendered with Kokoro-82M (Apache-2.0). Each piece has takes:',
@@ -192,20 +198,14 @@ def write_index(m, index, texts):
         'export const VOICE_CLIPS: VoiceClips = {',
     ]
     for cid, v in index.items():
-        lines.append(f'  {cid}: {{')
-        lines.append(f"    role: '{v['role']}',")
-        lines.append('    clips: {')
+        lines += [f'  {cid}: {{', f"    role: '{v['role']}',", '    clips: {']
         for piece, takes in sorted(v['clips'].items()):
             items = ', '.join(f"{{ take: '{t['take']}', ms: {t['ms']}, file: require('../../assets/voices/{t['file']}') }}" for t in takes)
             lines.append(f'      {json.dumps(piece)}: [{items}],')
-        lines.append('    },')
-        lines.append('  },')
-    lines.append('};')
-    lines.append('')
-    lines.append('/** What each piece says (for captions and the listening page). */')
-    lines.append('export const VOICE_TEXT: Record<string, string> = {')
+        lines += ['    },', '  },']
+    lines += ['};', '', '/** What each piece says (for captions and the listening page). */', 'export const VOICE_TEXT: Record<string, string> = {']
     for piece, text in sorted(texts.items()):
-        lines.append(f'  {json.dumps(piece)}: {json.dumps(text.rstrip(",."))},')
+        lines.append(f'  {json.dumps(piece)}: {json.dumps(text)},')
     lines.append('};')
     open(INDEX, 'w').write('\n'.join(lines) + '\n')
 
