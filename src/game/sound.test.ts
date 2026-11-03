@@ -44,6 +44,13 @@ describe('music', () => {
     expect(musicForRoute('/settings?x=1')).toBe('menu');
   });
 
+  it('in a game, plays the Zen loop, or nothing in the radio room (no background yet)', () => {
+    expect(musicForRoute('/game', 'zen')).toBe('zen');
+    expect(musicForRoute('/game', 'radio')).toBeNull();
+    expect(musicForRoute('/tutorial', 'radio')).toBeNull();
+    expect(musicForRoute('/menu', 'radio')).toBe('menu');
+  });
+
   it('crossfades equal-power from the old track to the new one', () => {
     expect(crossfade(0, 1000)).toEqual({ out: 1, in: 0 });
     const mid = crossfade(500, 1000);

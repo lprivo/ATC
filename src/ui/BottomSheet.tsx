@@ -6,6 +6,7 @@ import type { Plane } from '../engine/types';
 import { atLimit, isFollowingRoute, nextAltitude, nextHeading, nextSpeed, statusChip, trend } from '../game/controls';
 import { useTheme } from '../theme/ThemeContext';
 import { trafficLine } from '../game/hud';
+import { radioCommand } from '../game/radioVoice';
 import { altLabel, formatAltitude, type AltUnit, type Handedness } from '../game/settings';
 import { pad3 } from './format';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CloseIcon } from './icons';
@@ -154,8 +155,10 @@ function Expanded({
   const chip = statusChip(p, sim.time);
   const chipColor = chip ? { danger: c.danger, good: c.good, info: c.route }[chip.tone] : c.text;
   const airline = airlineOf(p.callsign);
-  const command = (fn: () => void) => {
+  /** Applies a stepper command, and tells the radio the plane's new target. */
+  const command = (fn: () => void, kind: 'heading' | 'altitude' | 'speed') => {
     fn();
+    radioCommand(p.id, { kind, value: p.target[kind] });
     onCommand();
   };
   const following = isFollowingRoute(p);
@@ -192,7 +195,7 @@ function Expanded({
           now={`now ${pad3(p.heading)} ${trend('heading', p)}`.trim()}
           dec={{ icon: <ChevronLeft color={iconColor} />, a11y: 'Turn left 5 degrees' }}
           inc={{ icon: <ChevronRight color={iconColor} />, a11y: 'Turn right 5 degrees' }}
-          onStep={(d) => command(() => sim.setHeading(p.id, nextHeading(p, d)))}
+          onStep={(d) => command(() => sim.setHeading(p.id, nextHeading(p, d)), 'heading')}
         />
         <Stepper
           testID="step-alt"
@@ -201,7 +204,7 @@ function Expanded({
           now={`now ${formatAltitude(p.altitude, altUnit)} ${trend('altitude', p)}`.trim()}
           dec={{ icon: <ChevronDown color={iconColor} />, a11y: altUnit === 'm' ? 'Descend about 300 metres' : 'Descend 1,000 feet', atLimit: atLimit('altitude', p, -1) }}
           inc={{ icon: <ChevronUp color={iconColor} />, a11y: altUnit === 'm' ? 'Climb about 300 metres' : 'Climb 1,000 feet', atLimit: atLimit('altitude', p, 1) }}
-          onStep={(d) => command(() => sim.setAltitude(p.id, nextAltitude(p, d)))}
+          onStep={(d) => command(() => sim.setAltitude(p.id, nextAltitude(p, d)), 'altitude')}
         />
         <Stepper
           testID="step-spd"
@@ -210,7 +213,7 @@ function Expanded({
           now={`now ${Math.round(p.speed)} ${trend('speed', p)}`.trim()}
           dec={{ icon: <ChevronDown color={iconColor} />, a11y: 'Slow down 10 knots', atLimit: atLimit('speed', p, -1) }}
           inc={{ icon: <ChevronUp color={iconColor} />, a11y: 'Speed up 10 knots', atLimit: atLimit('speed', p, 1) }}
-          onStep={(d) => command(() => sim.setSpeed(p.id, nextSpeed(p, d)))}
+          onStep={(d) => command(() => sim.setSpeed(p.id, nextSpeed(p, d)), 'speed')}
         />
       </View>
     </View>

@@ -121,6 +121,37 @@ def zen_loop():
     return buf
 
 
+import random
+
+_rng = random.Random(49)
+
+
+def noise(n):
+    return [_rng.uniform(-1, 1) for _ in range(n)]
+
+
+def bandpass(xs, centre, q=0.9):
+    """RBJ biquad band-pass (0 dB peak), a radio's narrow voice band."""
+    w = 2 * math.pi * centre / RATE
+    alpha = math.sin(w) / (2 * q)
+    b0, b2 = alpha, -alpha
+    a0, a1, a2 = 1 + alpha, -2 * math.cos(w), 1 - alpha
+    y1 = y2 = x1 = x2 = 0.0
+    out = []
+    for x in xs:
+        y = (b0 * x + b2 * x2 - a1 * y1 - a2 * y2) / a0
+        out.append(y)
+        x2, x1, y2, y1 = x1, x, y1, y
+    return out
+
+
+def squelch(dur, vol):
+    """A burst of band-limited static that cuts off sharply: the radio keying up or down."""
+    n = int(RATE * dur)
+    hiss = bandpass(noise(n), 2200, 0.7)
+    return [vol * h * min(1.0, k / 40) * (1 - k / n) ** 0.5 for k, h in enumerate(hiss)]
+
+
 # Hz for a few notes.
 N = {'A2': 110.0, 'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.0, 'A3': 220.0, 'B3': 246.94,
      'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'G4': 392.0, 'A4': 440.0, 'C5': 523.25, 'E5': 659.25, 'G5': 783.99}
@@ -141,3 +172,7 @@ write('sessionOver', seq(tone(N['C4'], 0.15, 0.3), tone(N['E4'], 0.15, 0.3), ton
 # ---- music loops -------------------------------------------------------------
 write('menu', pad_loop([[N['A2'], N['E3'], N['C4']], [N['F3'], N['A3'], N['C4']], [N['C3'], N['G3'], N['E4']], [N['G3'], N['B3'], N['D4']]], 4.0))
 write('zen', zen_loop(), normalise=0.5)  # about as loud as the menu track
+
+# ---- radio ---------------------------------------------------------------------
+write('radioOn', squelch(0.06, 0.5))
+write('radioOff', squelch(0.16, 0.45))

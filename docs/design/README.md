@@ -83,7 +83,7 @@ Book-style inner screen of about 7.8" at 4:3, rotated so the hinge is horizontal
 
 ### Settings (S4)
 - **THEME:** Radar / Paper preview cards, toggle `Follow system light/dark`.
-- **FEEL:** Sound effects, Music (added with #49, not in the canvas) and Haptics toggles (square, 52×30); `Radio voice` (`Spoken instructions + pilot readbacks`, inert, `COMING SOON`); `Controls on` Left | Right (mirrors the sheet and re-centre).
+- **FEEL:** Sound effects, Music (added with #49, not in the canvas) and Haptics toggles (square, 52×30); `In a game` Zen | Radio (added with #49); `Radio voice` (`Spoken instructions + pilot readbacks`, live since #49); `Controls on` Left | Right (mirrors the sheet and re-centre).
 - **DISPLAY:** Altitude ft | m; Distance nm | km; Plane labels Auto | Full | Min; Label size S | M | L (`labelScale` 0.92 / 1 / 1.15).
 
 ### Pause menu (S5) and stat explainer (S5b)
@@ -168,7 +168,7 @@ Never fire a haptic for ambient events, or for landings the player didn't touch.
 - `stats`: landed, sep, ga, exits. The score is derived from these.
 - `ui`: selectedId, sheet (peek | compact | expanded), view {ox, oy, k}, simSpeed (1 | 2 | 4 | 8), paused, theme, pendingClearance {id, t}, toasts[], drawState {pts, snap, cands, loupe}.
 - `entitlement`: free | full. Gates the airports and the session parameters.
-- `settings`: theme, followSystem, sound, music, haptics, handedness, altUnit, distUnit, labelMode, labelScale; radioVoice reserved.
+- `settings`: theme, followSystem, sound, music, inGameAudio, radioVoice, haptics, handedness, altUnit, distUnit, labelMode, labelScale.
 
 ## Design tokens
 

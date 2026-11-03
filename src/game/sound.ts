@@ -18,7 +18,21 @@ export type SoundMoment =
   | 'sessionOver';
 
 /** An effect file in assets/audio (see `audioAssets.ts`). */
-export type EffectId = 'select' | 'step' | 'limit' | 'drawStart' | 'snap' | 'cleared' | 'conflict' | 'landed' | 'goAround' | 'lastMinute' | 'sessionOver';
+export type EffectId =
+  | 'select'
+  | 'step'
+  | 'limit'
+  | 'drawStart'
+  | 'snap'
+  | 'cleared'
+  | 'conflict'
+  | 'landed'
+  | 'goAround'
+  | 'lastMinute'
+  | 'sessionOver'
+  /** The radio keying up and down around a spoken call. */
+  | 'radioOn'
+  | 'radioOff';
 
 export interface EffectSpec {
   id: EffectId;
@@ -55,19 +69,32 @@ export function eventSounds(events: readonly SimEvent[], lastSeq: number): Sound
 
 // ---- music ------------------------------------------------------------------------
 
-/** A music loop in assets/audio. */
+/** A music loop in assets/audio: the menu track, or the calm in-game loop. */
 export type MusicTrack = 'menu' | 'zen';
+
+/**
+ * What plays in a session (Settings): the calm Zen loop, or the radio room.
+ * The radio room has no background yet (the placeholder sounded like rain):
+ * a quiet room, with the spoken calls if Radio voice is on.
+ */
+export type InGameAudio = 'zen' | 'radio';
 
 /** Music volume (0–1): under the effects. */
 export const MUSIC_VOLUME = 0.45;
 /** A change of track fades out and in over this long. */
 export const MUSIC_FADE_MS = 1200;
 
-/** Routes with a live game play the in-game loop; everything else (splash, menu, settings, summary) the menu track. */
-export function musicForRoute(pathname: string): MusicTrack {
-  const route = pathname.split('?')[0].replace(/\/+$/, '');
-  return route === '/game' || route === '/tutorial' ? 'zen' : 'menu';
+/** Routes with a live game play the in-game choice (the Zen loop, or nothing in the radio room); everything else (splash, menu, settings, summary) the menu track. */
+export function musicForRoute(pathname: string, inGame: InGameAudio = 'zen'): MusicTrack | null {
+  if (!inGameRoute(pathname)) return 'menu';
+  return inGame === 'zen' ? 'zen' : null;
 }
+
+/** The game and the tutorial: a live session on screen. */
+export const inGameRoute = (pathname: string) => {
+  const route = pathname.split('?')[0].replace(/\/+$/, '');
+  return route === '/game' || route === '/tutorial';
+};
 
 /** Volume of the outgoing and incoming tracks `elapsedMs` into a fade (equal-power, so the mix doesn't dip in the middle). */
 export function crossfade(elapsedMs: number, fadeMs = MUSIC_FADE_MS): { out: number; in: number } {

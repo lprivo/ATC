@@ -13,7 +13,7 @@ import { shellColumn } from '../ui/shellLayout';
 
 /**
  * Design S4: THEME (Radar / Paper preview cards, follow system), FEEL (sound
- * effects, music, haptics, an inert Radio voice, controls side) and DISPLAY (units, labels,
+ * effects, music, the in-game background, haptics, radio voice, controls side) and DISPLAY (units, labels,
  * label size). Every change is saved on the device straight away.
  */
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
@@ -55,14 +55,26 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
           <Row label="Sound effects">
             <Toggle value={settings.sound} onChange={set('sound')} label="Sound effects" testID="toggle-sound" />
           </Row>
-          <Row label="Music" sub="Menus and a calm loop in game">
+          <Row label="Music" sub="Menus, and the background in a game">
             <Toggle value={settings.music} onChange={set('music')} label="Music" testID="toggle-music" />
+          </Row>
+          <Row label="In a game" sub="Calm music, or a quiet radio room">
+            <Segmented
+              options={[
+                { value: 'zen', label: 'Zen', testID: 'ingame-zen' },
+                { value: 'radio', label: 'Radio', testID: 'ingame-radio' },
+              ]}
+              label="Background in a game"
+              value={settings.inGameAudio}
+              onChange={set('inGameAudio')}
+              segmentWidth={64}
+            />
           </Row>
           <Row label="Haptics">
             <Toggle value={settings.haptics} onChange={set('haptics')} label="Haptics" testID="toggle-haptics" />
           </Row>
-          <Row label="Radio voice" sub="Spoken instructions + pilot readbacks" soon>
-            <Toggle value={false} onChange={() => {}} label="Radio voice, coming soon" disabled />
+          <Row label="Radio voice" sub="Spoken instructions + pilot readbacks">
+            <Toggle value={settings.radioVoice} onChange={set('radioVoice')} label="Radio voice" testID="toggle-radio-voice" />
           </Row>
           <Row label="Controls on" sub="Mirrors the sheet and re-centre for left-handed play">
             <Segmented

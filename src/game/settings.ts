@@ -2,6 +2,7 @@
 // so it can be tested and later overlaid by remote config.
 import type { LabelSize } from '../theme/themes';
 import type { LabelMode } from '../ui/labels';
+import type { InGameAudio } from './sound';
 
 export type Handedness = 'right' | 'left';
 export type AltUnit = 'ft' | 'm';
@@ -14,8 +15,12 @@ export interface Settings {
   followSystem: boolean;
   /** Sound effects (game moments). */
   sound: boolean;
-  /** Menu and in-game music. */
+  /** Menu music and the in-game background. */
   music: boolean;
+  /** In a session: the calm Zen loop, or the radio room. */
+  inGameAudio: InGameAudio;
+  /** Spoken calls and pilot readbacks for the player's commands. */
+  radioVoice: boolean;
   haptics: boolean;
   /** Controls on the left mirrors the sheet and re-centre for left-handed play. */
   handedness: Handedness;
@@ -30,6 +35,8 @@ export const DEFAULT_SETTINGS: Settings = {
   followSystem: false,
   sound: true,
   music: true,
+  inGameAudio: 'zen',
+  radioVoice: true,
   haptics: true,
   handedness: 'right',
   altUnit: 'ft',
@@ -56,6 +63,8 @@ export function parseSettings(json: string | null): Settings {
     followSystem: bool('followSystem'),
     sound: bool('sound'),
     music: bool('music'),
+    inGameAudio: pick('inGameAudio', ['zen', 'radio'] as const),
+    radioVoice: bool('radioVoice'),
     haptics: bool('haptics'),
     handedness: pick('handedness', ['right', 'left'] as const),
     altUnit: pick('altUnit', ['ft', 'm'] as const),

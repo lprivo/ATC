@@ -51,19 +51,25 @@ export const setEffectsEnabled = (on: boolean) => {
   effectsOn = on;
 };
 
-/** Plays the effect for a game moment (from the start, if it's still playing). */
+/** Plays the effect for a game moment (from the start, if it's still playing). Off with the Sound effects setting. */
 export function playSound(moment: SoundMoment) {
-  if (!effectsOn || !appActive) return;
+  if (!effectsOn) return;
   const spec = SOUND_FOR[moment];
+  playEffect(spec.id, spec.volume);
+}
+
+/** Plays an effect whatever the Sound effects setting (the radio's own clicks follow the Radio voice setting). */
+export function playEffect(id: EffectId, volume: number) {
+  if (!appActive) return;
   safe(() => {
     start();
-    let p = effects.get(spec.id);
+    let p = effects.get(id);
     if (!p) {
-      p = createAudioPlayer(EFFECT_FILES[spec.id]);
-      effects.set(spec.id, p);
+      p = createAudioPlayer(EFFECT_FILES[id]);
+      effects.set(id, p);
     }
     const player = p;
-    player.volume = spec.volume;
+    player.volume = volume;
     if (player.currentTime > 0) player.seekTo(0).then(() => player.play(), () => {});
     else player.play();
   });
@@ -74,6 +80,9 @@ export function playSound(moment: SoundMoment) {
 /** The track playing (or fading in), and the one fading out. */
 let music: { track: MusicTrack; player: AudioPlayer } | null = null;
 let fade: { outgoing: AudioPlayer | null; timer: ReturnType<typeof setInterval> } | null = null;
+/** Music sits lower under a radio call. */
+let duck = 1;
+const DUCKED = 0.35;
 const FADE_TICK_MS = 50;
 
 export function setMusicEnabled(on: boolean) {
@@ -114,7 +123,7 @@ function applyMusic() {
       const v = crossfade(Date.now() - began, MUSIC_FADE_MS);
       safe(() => {
         if (outgoing) outgoing.volume = outFrom * v.out;
-        if (incoming) incoming.volume = MUSIC_VOLUME * v.in;
+        if (incoming) incoming.volume = MUSIC_VOLUME * duck * v.in;
       });
       if (v.in >= 1) {
         clearInterval(timer);
@@ -124,6 +133,13 @@ function applyMusic() {
     }, FADE_TICK_MS);
     fade = { outgoing, timer };
   });
+}
+
+/** Lowers the music under a radio call (and back). */
+export function duckMusic(on: boolean) {
+  duck = on ? DUCKED : 1;
+  // A fade in progress picks the new level up on its next tick.
+  if (music && !fade) safe(() => (music!.player.volume = MUSIC_VOLUME * duck));
 }
 
 function stop(p: AudioPlayer) {

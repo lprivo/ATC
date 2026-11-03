@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { setMusicTrack } from '../game/audio';
 import { EntitlementProvider } from '../game/EntitlementContext';
 import { ResultsProvider } from '../game/ResultsContext';
-import { SettingsProvider } from '../game/SettingsContext';
+import { SettingsProvider, useSettings } from '../game/SettingsContext';
 import { musicForRoute } from '../game/sound';
 import { useAppFonts } from '../theme/fonts';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
@@ -57,9 +57,10 @@ function ThemedStack() {
   );
 }
 
-/** The music follows the screen: the menu track, or the in-game loop in a game (see `musicForRoute`). */
+/** The music follows the screen: the menu track, or in a game the Zen loop or the radio room (see `musicForRoute`). */
 function MusicDirector() {
   const path = usePathname();
-  useEffect(() => setMusicTrack(musicForRoute(path)), [path]);
+  const { settings } = useSettings();
+  useEffect(() => setMusicTrack(musicForRoute(path, settings.inGameAudio)), [path, settings.inGameAudio]);
   return null;
 }

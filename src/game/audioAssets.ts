@@ -15,6 +15,8 @@ export const EFFECT_FILES: Record<EffectId, number> = {
   goAround: require('../../assets/audio/goAround.wav'),
   lastMinute: require('../../assets/audio/lastMinute.wav'),
   sessionOver: require('../../assets/audio/sessionOver.wav'),
+  radioOn: require('../../assets/audio/radioOn.wav'),
+  radioOff: require('../../assets/audio/radioOff.wav'),
 };
 
 export const MUSIC_FILES: Record<MusicTrack, number> = {

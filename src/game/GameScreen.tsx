@@ -25,6 +25,7 @@ import { useSettings } from './SettingsContext';
 import { sessionClock } from './hud';
 import { useHud } from './useHud';
 import { usePendingLanding } from './usePendingLanding';
+import { resetRadio, setRadioActive, setRadioPlanes } from './radioVoice';
 import { useSim, type SimStart } from './useSim';
 
 /** What an overlay drawn over the game (the tutorial's coach marks) can see. */
@@ -106,6 +107,16 @@ export function GameScreen({
     if (id && id !== selectedId && !opts?.silent) feedback('select');
     setSelectedId(id);
   };
+
+  // The radio talks during a live session at ×1 or ×2 (at ×4 and ×8 the calls would fall behind), and forgets a session it leaves.
+  useEffect(() => {
+    setRadioPlanes((id) => sim.plane(id));
+    return () => resetRadio();
+  }, [sim]);
+  useEffect(() => {
+    setRadioActive(!paused && timeScale <= 2);
+    return () => setRadioActive(false);
+  }, [paused, timeScale]);
 
   // A session ends at its length or on Quit: freeze the sim and hand over the final stats (once).
   const ended = useRef(false);

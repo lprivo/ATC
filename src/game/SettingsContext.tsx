@@ -4,6 +4,7 @@ import { memoryKv } from '../storage/memory';
 import type { KV } from '../storage/types';
 import { setEffectsEnabled, setMusicEnabled } from './audio';
 import { setHapticsEnabled } from './haptics';
+import { setRadioEnabled } from './radioVoice';
 import { parseSettings, type Settings } from './settings';
 
 const KEY = 'settings.v1';
@@ -44,6 +45,7 @@ function applyFeel(s: Settings) {
   setHapticsEnabled(s.haptics);
   setEffectsEnabled(s.sound);
   setMusicEnabled(s.music);
+  setRadioEnabled(s.radioVoice);
 }
 
 export function useSettings() {

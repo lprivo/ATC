@@ -20,6 +20,12 @@ describe('settings', () => {
     expect(parseSettings(JSON.stringify({ music: 'no' })).music).toBe(true);
   });
 
+  it('Zen in a game and the radio voice by default; a bad value falls back', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({ inGameAudio: 'zen', radioVoice: true });
+    expect(parseSettings(JSON.stringify({ inGameAudio: 'zen', radioVoice: false }))).toMatchObject({ inGameAudio: 'zen', radioVoice: false });
+    expect(parseSettings(JSON.stringify({ inGameAudio: 'loud' })).inGameAudio).toBe('zen');
+  });
+
   it('follow system: Paper in light mode, Radar in dark (or unknown) mode', () => {
     const s = { ...DEFAULT_SETTINGS, followSystem: true, theme: 'paper' };
     expect(effectiveTheme(s, 'light')).toBe('paper');
