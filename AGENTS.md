@@ -26,10 +26,10 @@ Run `npm test` and `npm run typecheck` before declaring any task done. (There is
 
 ## Storybook
 
-- Every screen and component, in each of its states, has stories (`*.stories.tsx` next to it). Config is in `.rnstorybook/`: `preview.tsx` wraps every story in the app's real providers and fonts, and `parameters.app` sets the story's theme, free/full version, settings, best scores and last result, without touching the device.
+- Every screen and component, in each of its states, has stories (`*.stories.tsx` next to it). Config is in `.rnstorybook/` (`storybook.requires.ts` is generated when Storybook starts; commit it as regenerated, don't edit it): `preview.tsx` wraps every story in the app's real providers and fonts, and `parameters.app` sets the story's theme, free/full version, settings, best scores and last result, without touching the device (the providers save to an in-memory store, `memoryKv`).
 - **A new screen or a new state of one gets a story.** Game-screen states come from prepared sims in `src/game/fixtures.ts` (`scene()` places planes exactly; add a named scene for a new state). Sample results and best scores are in `src/stories/data.ts`.
 - Screens take what a story needs as props (`progress` on the splash, `active` on screens with animations, `start` on the game screen) or from the providers. Route files in `src/app/` do the router work (e.g. `useIsFocused`), so screens and components render without a navigator.
-- `npm run storybook` swaps the app's entry point for Storybook (`STORYBOOK_ENABLED=true`, see `metro.config.js`). Without it, builds contain no Storybook code. In the browser, `?STORYBOOK_STORY_ID=<id>` opens a story directly; the id is the title and the export name in kebab case, e.g. `game-game-screen--conflict`.
+- `npm run storybook` swaps the app's entry point for Storybook (`STORYBOOK_ENABLED=true`, see `metro.config.js`). Without it, builds contain no Storybook JavaScript; Storybook-only native modules (the controls addon's date picker and slider) are kept out of app builds with `expo.autolinking.exclude` in `package.json`, because Storybook runs in Expo Go. Its packages are devDependencies; keep it that way. (Gesture Handler, Reanimated and Worklets are app dependencies at the SDK's versions: Expo Router and Expo's modules use them too.) In the browser, `?STORYBOOK_STORY_ID=<id>` opens a story directly; the id is the title and the export name in kebab case, e.g. `game-game-screen--conflict`.
 
 ## Navigation & Routing
 

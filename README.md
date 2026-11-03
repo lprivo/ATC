@@ -27,7 +27,7 @@ npm run typecheck
 npm run storybook       # opens Storybook instead of the game: scan the QR code with Expo Go, or press w for the browser
 ```
 
-It covers the splash at each stage, the menu, airports and session setup in the free and full versions, the unlock offer, best scores, settings, every kind of summary, the game screen in each design state (idle, plane selected, separation lost, busy, paused, last minute, endless), and the components. Each comes in the Radar and Paper themes where it matters. Pick a story from the ☰ list at the bottom. In the browser, `?STORYBOOK_STORY_ID=game-game-screen--conflict` opens one directly.
+It covers the splash at each stage, the menu, airports and session setup in the free and full versions, the unlock offer, best scores, settings, every kind of summary, the game screen in the A1, A2, A4 and A5 design states plus paused, last minute and endless (route drawing, the compact sheet and the stat explainer are still to come, #44), and the components. Each comes in the Radar and Paper themes where it matters. Pick a story from the ☰ list at the bottom. In the browser, `?STORYBOOK_STORY_ID=game-game-screen--conflict` opens one directly.
 
 ## Code layout
 

@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { kv } from '../storage/kv';
+import { memoryKv } from '../storage/memory';
+import type { KV } from '../storage/types';
 import { setHapticsEnabled } from './haptics';
 import { parseSettings, type Settings } from './settings';
 
@@ -13,14 +15,15 @@ interface SettingsCtx {
 const Ctx = createContext<SettingsCtx | null>(null);
 
 /**
- * Player settings, loaded synchronously from the device on start and saved on
- * every change. With `initial` (stories, tests) it starts from those settings
- * instead and never reads or writes the device.
+ * Player settings, loaded synchronously from `storage` (the device by default)
+ * on start and saved there on every change. `initial` (stories, tests) starts
+ * from those settings instead, and unless a `storage` is given too, saves to
+ * an in-memory store: starting values never reach the device.
  */
-export function SettingsProvider({ children, initial }: { children: ReactNode; initial?: Partial<Settings> }) {
-  const persist = initial === undefined;
+export function SettingsProvider({ children, initial, storage: given }: { children: ReactNode; initial?: Partial<Settings>; storage?: KV }) {
+  const [storage] = useState<KV>(() => given ?? (initial ? memoryKv() : kv));
   const [settings, setSettings] = useState<Settings>(() => {
-    const s = persist ? parseSettings(kv.get(KEY)) : { ...parseSettings(null), ...initial };
+    const s = initial ? { ...parseSettings(null), ...initial } : parseSettings(storage.get(KEY));
     setHapticsEnabled(s.haptics); // before the first frame
     return s;
   });
@@ -28,8 +31,8 @@ export function SettingsProvider({ children, initial }: { children: ReactNode; i
   const loaded = useRef(settings);
   useEffect(() => {
     setHapticsEnabled(settings.haptics);
-    if (persist && settings !== loaded.current) kv.set(KEY, JSON.stringify(settings));
-  }, [settings, persist]);
+    if (settings !== loaded.current) storage.set(KEY, JSON.stringify(settings));
+  }, [settings, storage]);
   const update = useCallback((patch: Partial<Settings>) => setSettings((s) => ({ ...s, ...patch })), []);
   const value = useMemo(() => ({ settings, update }), [settings, update]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

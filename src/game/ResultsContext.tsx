@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { SimStats } from '../engine/types';
 import { kv } from '../storage/kv';
+import { memoryKv } from '../storage/memory';
+import type { KV } from '../storage/types';
 import { score } from '../engine/scoring';
 import { parseBests, resolveResult, type Best, type BestScores } from './bestScores';
 import type { Session } from './session';
@@ -31,13 +33,24 @@ interface ResultsCtx {
 const Ctx = createContext<ResultsCtx | null>(null);
 
 /**
- * Best scores (saved on the device) and the last finished session. With
- * `initialBests` / `initialLast` (stories, tests) it starts from those instead
- * and never reads or writes the device.
+ * Best scores (saved in `storage`, the device by default) and the last
+ * finished session. `initialBests` / `initialLast` (stories, tests) start
+ * from those instead, and unless a `storage` is given too, new bests go to an
+ * in-memory store: starting values never reach the device.
  */
-export function ResultsProvider({ children, initialBests, initialLast = null }: { children: ReactNode; initialBests?: BestScores; initialLast?: SessionResult | null }) {
-  const persist = initialBests === undefined;
-  const [bests, setBests] = useState<BestScores>(() => (persist ? parseBests(kv.get(KEY)) : initialBests));
+export function ResultsProvider({
+  children,
+  initialBests,
+  initialLast = null,
+  storage: given,
+}: {
+  children: ReactNode;
+  initialBests?: BestScores;
+  initialLast?: SessionResult | null;
+  storage?: KV;
+}) {
+  const [storage] = useState<KV>(() => given ?? (initialBests || initialLast ? memoryKv() : kv));
+  const [bests, setBests] = useState<BestScores>(() => initialBests ?? parseBests(storage.get(KEY)));
   const [last, setLast] = useState<SessionResult | null>(initialLast);
   // finish reads the latest table through a ref, never a stale closure.
   const bestsRef = useRef(bests);
@@ -51,12 +64,12 @@ export function ResultsProvider({ children, initialBests, initialLast = null }: 
         if (r.isNewBest) {
           bestsRef.current = r.bests;
           setBests(r.bests);
-          if (persist) kv.set(KEY, JSON.stringify(r.bests));
+          storage.set(KEY, JSON.stringify(r.bests));
         }
         setLast({ session, stats: { ...stats }, score: total, isNewBest: r.isNewBest, previousBest: r.previousBest, endedEarly, counted: r.counted });
       },
     }),
-    [bests, last, persist],
+    [bests, last, storage],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

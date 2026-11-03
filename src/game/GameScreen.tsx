@@ -38,7 +38,7 @@ export function GameScreen({
    */
   onSessionEnd?: (stats: SimStats, endedEarly: boolean) => void;
   /** Start from a prepared state instead of a fresh random session (stories): the sim, paused or not, and a selected plane. */
-  start?: SimStart & { selectedId?: string | null };
+  start?: SimStart & { selectedCallsign?: string };
 } = {}) {
   const airport = airportByIcao(session.icao) ?? LHBP;
   const { theme } = useTheme();
@@ -48,7 +48,7 @@ export function GameScreen({
     durationSec: trafficHorizonSec(session.length),
     endless: session.length === 'endless',
   }, start);
-  const [selectedId, setSelectedId] = useState<string | null>(start?.selectedId ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => sim.planes.find((p) => p.callsign === start?.selectedCallsign)?.id ?? null);
   const { settings } = useSettings();
   const { toasts, banner } = useHud(sim, { paused, timeScale, setTimeScale, refresh, distUnit: settings.distUnit, altUnit: settings.altUnit });
   // Design height until the banner has measured itself, so its first frame doesn't overlap the toasts.

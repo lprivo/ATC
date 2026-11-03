@@ -28,20 +28,18 @@ const STILL_PHASE = 0.125;
  * the radar, so it reaches every corner at every angle.
  *
  * It only turns while `active` (its screen is the one showing: the menu stays
- * mounted under the game), and stands still when Reduce Motion is on. `rings={false}` when
- * something else under it already draws them (the menu's demo radar).
+ * mounted under the game), and stands still when Reduce Motion is on. When it
+ * starts again it carries on from where it stopped, rather than from 12 o'clock.
  */
 export function RadarBackdrop({
   centreY = 0.5,
   scale = 8,
   opacity = 0.85,
-  rings = true,
   active = true,
 }: {
   centreY?: number;
   scale?: number;
   opacity?: number;
-  rings?: boolean;
   /** Whether its screen is the one showing (the route passes `useIsFocused()`); the sweep stops when not. */
   active?: boolean;
 }) {
@@ -50,17 +48,32 @@ export function RadarBackdrop({
   const [size, setSize] = useState({ w: 0, h: 0 });
   const spin = useRef(new Animated.Value(0)).current;
   const reduceMotion = useReduceMotion();
-  const running = active && !reduceMotion;
+  const running = active && reduceMotion === false;
   useEffect(() => {
     if (!running) {
-      if (reduceMotion) spin.setValue(STILL_PHASE);
+      if (reduceMotion === true) {
+        spin.stopAnimation();
+        spin.flattenOffset();
+        spin.setValue(STILL_PHASE);
+      }
       return;
     }
-    spin.setValue(0);
-    const loop = Animated.loop(Animated.timing(spin, { toValue: 1, duration: SWEEP_MS, easing: Easing.linear, useNativeDriver: NATIVE_DRIVER }));
-    loop.start();
-    return () => loop.stop();
+    let loop: Animated.CompositeAnimation | null = null;
+    let cancelled = false;
+    // Start from the current angle (offset), so a stop and restart doesn't jump the sweep back to north.
+    spin.stopAnimation((v) => {
+      if (cancelled) return;
+      spin.setOffset(v % 1);
+      spin.setValue(0);
+      loop = Animated.loop(Animated.timing(spin, { toValue: 1, duration: SWEEP_MS, easing: Easing.linear, useNativeDriver: NATIVE_DRIVER }));
+      loop.start();
+    });
+    return () => {
+      cancelled = true;
+      loop?.stop();
+    };
   }, [running, reduceMotion, spin]);
+  // Linear beyond 1 (the default), as the offset can take it up to 2 turns: 1.25 is 450°, the same as 90°.
   const rotate = useMemo(() => spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }), [spin]);
   const onLayout = (e: LayoutChangeEvent) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
   const cx = size.w / 2;
@@ -72,13 +85,11 @@ export function RadarBackdrop({
     <View style={[StyleSheet.absoluteFill, styles.clip, { opacity }]} onLayout={onLayout} pointerEvents="none">
       {size.w > 0 && (
         <>
-          {rings && (
-            <Svg width={size.w} height={size.h} style={StyleSheet.absoluteFill}>
-              {RANGE_RINGS_NM.map((r) => (
-                <Circle key={r} cx={cx} cy={cy} r={r * scale} stroke={c.rangeRing} strokeWidth={1} fill="none" />
-              ))}
-            </Svg>
-          )}
+          <Svg width={size.w} height={size.h} style={StyleSheet.absoluteFill}>
+            {RANGE_RINGS_NM.map((r) => (
+              <Circle key={r} cx={cx} cy={cy} r={r * scale} stroke={c.rangeRing} strokeWidth={1} fill="none" />
+            ))}
+          </Svg>
           {/* A 2R square centred on the radar rotates about its own centre. */}
           <Animated.View style={{ position: 'absolute', left: cx - R, top: cy - R, width: 2 * R, height: 2 * R, transform: [{ rotate }] }}>
             <Image source={SWEEP_IMAGE} style={{ position: 'absolute', width: 2 * R, height: 2 * R, tintColor: sweep.rgb, opacity: sweep.alpha }} />

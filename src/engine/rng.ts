@@ -19,3 +19,6 @@ export function createRng(seed: number) {
 }
 
 export type Rng = ReturnType<typeof createRng>;
+
+/** A fresh random seed, for anything that doesn't need to be repeatable. */
+export const randomSeed = () => Math.floor(Math.random() * 1e9);

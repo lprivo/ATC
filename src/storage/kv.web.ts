@@ -1,6 +1,8 @@
 // On-device key-value storage (web): localStorage. (expo-sqlite on web needs
 // wasm and cross-origin-isolation headers, which a plain web preview lacks.)
-export const kv = {
+import type { KV } from './types';
+
+export const kv: KV = {
   get: (key: string): string | null => {
     try {
       return globalThis.localStorage?.getItem(key) ?? null;

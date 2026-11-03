@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { randomSeed } from '../engine/rng';
 import { Sim } from '../engine/sim';
 import { generateRandomTraffic } from '../engine/traffic';
 import type { Airport } from '../engine/types';
+import { useFrameLoop } from '../ui/useFrameLoop';
 
 export const TIME_SCALES = [1, 2, 4, 8];
 const RENDER_INTERVAL_MS = 1000 / 30;
@@ -44,14 +46,15 @@ export function topUpTraffic(sim: Sim, opts: SimOptions, seed: number) {
   return true;
 }
 
-function newSim(airport: Airport, opts: SimOptions, seed = Math.floor(Math.random() * 1e9)) {
+function newSim(airport: Airport, opts: SimOptions, seed = randomSeed()) {
   const traffic = generateRandomTraffic(airport, { seed, durationSec: opts.durationSec, meanIntervalSec: opts.meanIntervalSec });
   return new Sim(airport, traffic);
 }
 
 /**
- * Owns the Sim instance and drives it from requestAnimationFrame. The sim is
- * mutated in place; a state bump ~30x/s re-renders the screen while running.
+ * Owns the Sim instance and drives it from requestAnimationFrame (useFrameLoop).
+ * The sim is mutated in place; ~30x/s it steps and a state bump re-renders the
+ * screen while running.
  * While paused nothing re-renders on its own, so callers that change the sim
  * (dials, drawn routes) call `refresh()` afterwards.
  */
@@ -71,27 +74,16 @@ export function useSim(airport: Airport, opts: SimOptions, start?: SimStart) {
 
   const refresh = useCallback(() => setFrame((f) => f + 1), []);
 
-  useEffect(() => {
-    let raf = 0;
-    let last = performance.now();
-    let lastRender = 0;
-    const loop = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000); // cap so a background tab doesn't jump
-      last = now;
+  useFrameLoop(
+    (dt) => {
       const { sim, paused, over, timeScale, drawing, opts } = live.current;
-      if (!paused && !over) {
-        sim.step(dt * timeScale * (drawing ? 0.5 : 1));
-        topUpTraffic(sim, opts, Math.floor(Math.random() * 1e9));
-        if (now - lastRender >= RENDER_INTERVAL_MS) {
-          lastRender = now;
-          refresh();
-        }
-      }
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [refresh]);
+      if (paused || over) return;
+      sim.step(dt * timeScale * (drawing ? 0.5 : 1));
+      topUpTraffic(sim, opts, randomSeed());
+      refresh();
+    },
+    { everyMs: RENDER_INTERVAL_MS },
+  );
 
   useEffect(() => {
     if (__DEV__) globalThis.__sim = sim;

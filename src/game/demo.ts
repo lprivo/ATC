@@ -1,8 +1,8 @@
 // The main menu's living background (#40): a random playable airport whose
 // arrivals fly themselves in and land. Pure (no React / React Native imports),
 // so it is unit tested; the menu only steps it and draws it.
-import { add, dirOf } from '../engine/math';
-import { createRng } from '../engine/rng';
+import { add, angleDiff, dirOf } from '../engine/math';
+import { createRng, type Rng } from '../engine/rng';
 import { Sim } from '../engine/sim';
 import { generateRandomTraffic } from '../engine/traffic';
 import type { Airport, RunwayEnd, TrafficEntry, Vec2 } from '../engine/types';
@@ -23,22 +23,26 @@ export const DEMO = {
   /** Each runway's stream at its own altitude. */
   altitudeFt: [4000, 5000],
   speedKt: 220,
+  /** Runway ends within this many degrees of each other land the same way (parallels). */
+  parallelDeg: 20,
+  /** Each refill of the arrivals pool: an hour of random flights, about one a minute. */
+  pool: { durationSec: 3600, meanIntervalSec: 60 },
 };
 
 /** A random airport from the playable layouts. */
-export function pickDemoAirport(airports: readonly Airport[], rand: () => number): Airport {
+export function pickDemoAirport(airports: readonly Airport[], rng: Pick<Rng, 'pick'>): Airport {
   if (airports.length === 0) throw new Error('pickDemoAirport: no airports');
-  return airports[Math.min(airports.length - 1, Math.floor(rand() * airports.length))];
+  return rng.pick(airports);
 }
 
 /**
  * The runway ends in use: one landing direction, chosen at random, with every
  * end facing that way (both of a pair of parallels).
  */
-export function landingEnds(airport: Airport, rand: () => number): RunwayEnd[] {
+export function landingEnds(airport: Airport, rng: Pick<Rng, 'pick'>): RunwayEnd[] {
   const all = airport.runways.flatMap((r) => r.ends);
-  const lead = all[Math.min(all.length - 1, Math.floor(rand() * all.length))];
-  return all.filter((e) => Math.abs(((e.heading - lead.heading + 540) % 360) - 180) < 20);
+  const lead = rng.pick(all);
+  return all.filter((e) => Math.abs(angleDiff(lead.heading, e.heading)) < DEMO.parallelDeg);
 }
 
 export interface Demo {
@@ -58,7 +62,7 @@ export function createDemo(airport: Airport, seed: number): Demo {
   // Scenery: no conflict flags or scoring (the sequencing keeps planes apart; demo.test.ts checks it).
   const demo: Demo = {
     sim: new Sim(airport, [], { separation: false }),
-    ends: landingEnds(airport, rng.next),
+    ends: landingEnds(airport, rng),
     nextSpawn: 0,
     seed,
     pool: [],
@@ -133,7 +137,7 @@ function releaseArrival(demo: Demo) {
   if (sim.time < demo.nextSpawn || sim.remainingTraffic > 0 || sim.planes.length >= DEMO.maxPlanes) return;
   if (!sim.planes.every((p) => p.clearedRunway && p.route.length <= 1)) return;
   if (demo.pool.length === 0) {
-    demo.pool = generateRandomTraffic(sim.airport, { seed: demo.seed++, durationSec: 3600, meanIntervalSec: 60, exclude: sim.callsignsInUse });
+    demo.pool = generateRandomTraffic(sim.airport, { seed: demo.seed++, ...DEMO.pool, exclude: sim.callsignsInUse });
     if (demo.pool.length === 0) return;
   }
   const next = demo.pool.shift()!;

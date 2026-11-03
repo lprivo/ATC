@@ -30,6 +30,10 @@ export interface SceneOptions {
 
 const HISTORY_EVERY_SEC = 2;
 const HISTORY_SAMPLES = 60;
+/** Every plane spawns at the same entry point; each at its own level up here, so they aren't in conflict while stacked there. */
+const SPAWN_FT = 30000;
+/** Arrivals still to come: one every two minutes after the scene's time. */
+const TO_COME = { everySec: 120, altitude: 9000, speed: 250 };
 
 /**
  * A sim with exactly these planes in the air, each with a straight flown
@@ -41,9 +45,10 @@ export function scene(planes: PlaneSpec[], opts: SceneOptions = {}): Sim {
   const airport = opts.airport ?? LHBP;
   const entry = airport.entries[0].name;
   const now = opts.time ?? 0;
-  const arrivals: TrafficEntry[] = planes.map((p) => ({ time: 0, callsign: p.callsign, aircraftType: p.type ?? 'A320', kind: 'arrival', entry, altitude: p.altitude, speed: p.speed }));
+  const arrivals: TrafficEntry[] = planes.map((p, i) => ({ time: 0, callsign: p.callsign, aircraftType: p.type ?? 'A320', kind: 'arrival', entry, altitude: SPAWN_FT + i * 1000, speed: p.speed }));
   const sim = new Sim(airport, arrivals);
   sim.step(0.01); // spawns them
+  sim.time = now;
   planes.forEach((spec, i) => {
     const p = sim.planes[i];
     p.pos = { ...spec.pos };
@@ -54,16 +59,21 @@ export function scene(planes: PlaneSpec[], opts: SceneOptions = {}): Sim {
     const back = dirOf(spec.heading);
     const step = (spec.speed / 3600) * HISTORY_EVERY_SEC;
     p.trail = Array.from({ length: HISTORY_SAMPLES }, (_, k) => add(spec.pos, back, -step * (HISTORY_SAMPLES - k)));
-    if (spec.clearedTo) sim.setRoute(p.id, [airport.runways.flatMap((r) => r.ends).find((e) => e.id === spec.clearedTo)!.threshold], spec.clearedTo);
+    if (spec.clearedTo) {
+      const end = sim.runwayEnd(spec.clearedTo);
+      if (!end) throw new Error(`scene: ${airport.icao} has no runway end ${spec.clearedTo}`);
+      sim.setRoute(p.id, [end.threshold], end.id);
+    }
   });
-  sim.time = now;
+  // Setting the scene up isn't part of it: no "cleared to land" toast for a plane that starts out cleared.
+  sim.events = [];
   if (opts.toCome) {
     sim.appendTraffic(
-      Array.from({ length: opts.toCome }, (_, k) => ({ time: now + 120 * (k + 1), callsign: `FIX${100 + k}`, aircraftType: 'A320', kind: 'arrival' as const, entry, altitude: 9000, speed: 250 })),
+      Array.from({ length: opts.toCome }, (_, k) => ({ time: now + TO_COME.everySec * (k + 1), callsign: `FIX${100 + k}`, aircraftType: 'A320', kind: 'arrival' as const, entry, altitude: TO_COME.altitude, speed: TO_COME.speed })),
     );
   }
   Object.assign(sim.stats, opts.stats);
-  sim.step(0.001); // flag conflicts for the placed positions
+  sim.step(0.001); // flags conflicts (and logs separation lost) for the placed positions, at the scene's time
   return sim;
 }
 
@@ -104,5 +114,6 @@ export const busy = (opts: SceneOptions = {}) => {
   );
 };
 
-/** Near the end of a 30-minute session: 40 s left, nothing more to come. */
-export const lastMinute = () => idle({ time: 30 * 60 - 40, toCome: 0, stats: { landed: 9 } });
+/** Near the end of a 30-minute session: 40 s left, nothing more to come, separation lost once. */
+export const lastMinute = () => idle({ time: 30 * 60 - 40, toCome: 0, stats: { landed: 9, separationViolations: 1 } });
+

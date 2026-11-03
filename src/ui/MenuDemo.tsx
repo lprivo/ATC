@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg from 'react-native-svg';
 import { AIRPORTS } from '../engine/airports';
+import { createRng, randomSeed } from '../engine/rng';
 import { createDemo, pickDemoAirport, stepDemo } from '../game/demo';
 import { useTheme } from '../theme/ThemeContext';
 import { DataBlock, PlaneGlyph, StaticMap } from './Radar';
+import { useFrameLoop } from './useFrameLoop';
 import { useLabelLayout } from './useLabelLayout';
 import { useReduceMotion } from './useReduceMotion';
 import type { Viewport } from './viewport';
 
 /** The demo runs this many times faster than real time, so something is always happening. */
 const DEMO_SPEED = 4;
-/** Redraw rate: a background doesn't need the game's 30 fps. */
+/** Step and redraw rate: a background doesn't need the game's 30 fps. */
 const RENDER_MS = 1000 / 15;
 /** How much of the demo shows through: dimmed, so it reads as a background, not the game. */
 const DEMO_OPACITY = 0.4;
@@ -33,34 +35,27 @@ export function MenuDemo({
   scale: number;
   /** Whether the menu is the screen showing (the route passes `useIsFocused()`); the demo pauses when not. */
   active?: boolean;
-  /** Fixed seed for a repeatable demo (stories); random by default. */
+  /** Fixed seed for a repeatable demo (stories): the same airport and traffic every time; random by default. */
   seed?: number;
 }) {
   const { theme } = useTheme();
-  const [demo] = useState(() => createDemo(pickDemoAirport(Object.values(AIRPORTS), Math.random), seed ?? Math.floor(Math.random() * 1e9)));
+  const [demo] = useState(() => {
+    // One seed for the whole demo: the airport, then the demo's own seed (landing direction, traffic) drawn from it.
+    const rng = createRng(seed ?? randomSeed());
+    return createDemo(pickDemoAirport(Object.values(AIRPORTS), rng), rng.int(0, 1e9));
+  });
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [, setFrame] = useState(0);
   const reduceMotion = useReduceMotion();
-  const running = active && !reduceMotion;
+  const running = active && reduceMotion === false;
 
-  useEffect(() => {
-    if (!running) return;
-    let raf = 0;
-    let last = performance.now();
-    let lastRender = 0;
-    const loop = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000); // a background tab doesn't jump
-      last = now;
+  useFrameLoop(
+    (dt) => {
       stepDemo(demo, dt * DEMO_SPEED);
-      if (now - lastRender >= RENDER_MS) {
-        lastRender = now;
-        setFrame((f) => f + 1);
-      }
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [running, demo]);
+      setFrame((f) => f + 1);
+    },
+    { running, everyMs: RENDER_MS },
+  );
 
   // Stable between frames, so the memoised map isn't redrawn 15 times a second.
   const vp: Viewport = useMemo(() => ({ w: size.w, h: size.h, ox: size.w / 2, oy: size.h * centreY, scale }), [size.w, size.h, centreY, scale]);
