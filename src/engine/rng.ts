@@ -1,0 +1,24 @@
+/** Small seeded PRNG (mulberry32) so traffic and tests are reproducible. */
+export function createRng(seed: number) {
+  let a = seed >>> 0;
+  const next = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return {
+    next,
+    int: (min: number, maxInclusive: number) => min + Math.floor(next() * (maxInclusive - min + 1)),
+    pick: <T>(items: readonly T[]): T => {
+      if (items.length === 0) throw new Error('rng.pick: empty list');
+      return items[Math.floor(next() * items.length)];
+    },
+  };
+}
+
+export type Rng = ReturnType<typeof createRng>;
+
+/** A fresh random seed, for anything that doesn't need to be repeatable. */
+export const randomSeed = () => Math.floor(Math.random() * 1e9);

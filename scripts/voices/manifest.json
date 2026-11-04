@@ -1,0 +1,245 @@
+{
+  "about": "Radio voice clips (issue #49): the cast, and the phrases a spoken call is made of, each recorded whole inside a natural sentence (its 'carrier'). Read by scripts/voices/generate.py (Kokoro-82M) and, through the generated src/game/voiceClips.ts, by the app. Plain data.",
+  "cast": {
+    "controller": {
+      "role": "controller",
+      "voice": "bm_george",
+      "lang": "en-gb",
+      "speed": 1.18,
+      "radio": {
+        "drive": 1.6,
+        "low": 300,
+        "high": 3600
+      }
+    },
+    "pilotUS": {
+      "role": "pilot",
+      "voice": "am_michael",
+      "lang": "en-us",
+      "speed": 1.2,
+      "radio": {
+        "drive": 2.0,
+        "low": 330,
+        "high": 3400
+      },
+      "fillers": [
+        "uh",
+        "um"
+      ]
+    },
+    "pilotUK": {
+      "role": "pilot",
+      "voice": "bf_emma",
+      "lang": "en-gb",
+      "speed": 1.2,
+      "radio": {
+        "drive": 1.8,
+        "low": 320,
+        "high": 3500
+      },
+      "fillers": [
+        "er",
+        "erm"
+      ]
+    }
+  },
+  "takes": {
+    "about": "Hesitations are rendered once per take, at the voice's speed times this (and the fillers' speed), and the pitch shift (semitones) after, so repeats don't sound the same. Take i uses carrier i.",
+    "speeds": [
+      0.97,
+      1.05
+    ],
+    "pitch": [
+      -0.4,
+      0.4
+    ]
+  },
+  "lists": {
+    "about": "How digits and letters are said in callsigns, headings, altitudes and speeds.",
+    "digits": {
+      "0": "zero",
+      "1": "one",
+      "2": "two",
+      "3": "three",
+      "4": "four",
+      "5": "five",
+      "6": "six",
+      "7": "seven",
+      "8": "eight",
+      "9": "niner"
+    },
+    "letters": {
+      "A": "alfa",
+      "B": "bravo",
+      "C": "charlie",
+      "D": "delta",
+      "E": "echo",
+      "F": "foxtrot",
+      "G": "golf",
+      "H": "hotel",
+      "I": "india",
+      "J": "juliett",
+      "K": "kilo",
+      "L": "lima",
+      "M": "mike",
+      "N": "november",
+      "O": "oscar",
+      "P": "papa",
+      "Q": "quebec",
+      "R": "romeo",
+      "S": "sierra",
+      "T": "tango",
+      "U": "uniform",
+      "V": "victor",
+      "W": "whiskey",
+      "X": "x-ray",
+      "Y": "yankee",
+      "Z": "zulu"
+    }
+  },
+  "airlines": {
+    "about": "Spoken airline callsigns, cut from the start of a call ('[Wizz Air] four two,'). Must match AIRLINE_CALLSIGNS in src/engine/data/airlines.ts (tested).",
+    "WZZ": "Wizz Air",
+    "RYR": "Ryanair",
+    "DLH": "Lufthansa",
+    "AFR": "Air France",
+    "BAW": "Speedbird",
+    "EZY": "Easy",
+    "KLM": "K L M",
+    "LOT": "Pollot",
+    "AUA": "Austrian",
+    "SWR": "Swiss",
+    "THY": "Turkish",
+    "QTR": "Qatari",
+    "EWG": "Eurowings",
+    "FIN": "Finnair",
+    "TVS": "Skytravel"
+  },
+  "phrasings": {
+    "about": "How each instruction is said, by who says it (plain data, read by the app and the generator). {side} {hdg} {alt} {spd} {rwy} are filled in; '|' marks where a phrase is split into separately recorded chunks (only between a heading stem and its number, where a slight break sounds natural). One phrasing is picked per call, never the same as last time when there's a choice.",
+    "controller": {
+      "turn": [
+        "turn {side} heading | {hdg}"
+      ],
+      "fly": [
+        "fly heading | {hdg}"
+      ],
+      "descend": [
+        "descend to altitude {alt}",
+        "descend altitude {alt}",
+        "descend {alt}"
+      ],
+      "descendFL": [
+        "descend {alt}"
+      ],
+      "climb": [
+        "climb to altitude {alt}",
+        "climb {alt}"
+      ],
+      "climbFL": [
+        "climb {alt}"
+      ],
+      "maintainAlt": [
+        "maintain {alt}"
+      ],
+      "reduce": [
+        "reduce speed {spd}"
+      ],
+      "increase": [
+        "increase speed {spd}"
+      ],
+      "maintainSpd": [
+        "maintain {spd}"
+      ],
+      "land": [
+        "runway {rwy}, cleared to land"
+      ]
+    },
+    "pilot": {
+      "turn": [
+        "{side} heading | {hdg}",
+        "turn {side} heading | {hdg}"
+      ],
+      "fly": [
+        "heading | {hdg}",
+        "fly heading | {hdg}"
+      ],
+      "descend": [
+        "descend {alt}",
+        "down to {alt}",
+        "descending {alt}"
+      ],
+      "descendFL": [
+        "descend {alt}",
+        "descending {alt}"
+      ],
+      "climb": [
+        "climb {alt}",
+        "up to {alt}",
+        "climbing {alt}"
+      ],
+      "climbFL": [
+        "climb {alt}",
+        "climbing {alt}"
+      ],
+      "maintainAlt": [
+        "maintain {alt}"
+      ],
+      "reduce": [
+        "reduce {spd}",
+        "speed {spd}"
+      ],
+      "increase": [
+        "increase {spd}",
+        "speed {spd}"
+      ],
+      "maintainSpd": [
+        "maintain {spd}"
+      ],
+      "land": [
+        "cleared to land runway {rwy}"
+      ]
+    }
+  },
+  "values": {
+    "about": "Every value a command can have, so each phrase can be recorded whole. Must match the steppers (src/game/controls.ts) and the airports' runway ends (tested).",
+    "headingStep": 5,
+    "altitude": {
+      "min": 2000,
+      "max": 15000,
+      "step": 1000
+    },
+    "speed": {
+      "min": 140,
+      "max": 300,
+      "step": 10
+    },
+    "transitionFt": 10000,
+    "runways": [
+      "13L",
+      "31R",
+      "13R",
+      "31L"
+    ]
+  },
+  "phraseContext": {
+    "about": "What a chunk is said with when it's recorded, so it has the intonation it has in a real call. A chunk that continues ('m') is followed by more; one that ends a call ('f') by a full stop.",
+    "controllerBefore": "Wizz Air niner,",
+    "controllerAfter": "reduce speed one eight zero knots.",
+    "pilotAfter": "Wizz Air niner zero zero three.",
+    "callsignController": "descend four thousand feet.",
+    "callsignPilot": "descend four thousand feet,"
+  },
+  "fillers": {
+    "about": "Hesitations: a few clips per voice (the cast's `fillers`), dropped at a pause in some calls. Said slowly, cut from a sentence like any piece. `chance` is per call, by role; at most one per call.",
+    "speed": 0.7,
+    "carriers": [
+      "descend, [{w}], four thousand feet.",
+      "roger, [{w}], heading two one zero."
+    ],
+    "chance": {
+      "pilot": 0.25,
+      "controller": 0
+    }
+  }
+}
