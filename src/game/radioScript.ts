@@ -1,122 +1,85 @@
-// Turns a radio call into a sequence of recorded pieces (issue #49): which
-// phrasing, which take of each piece, and the small gaps between them, so the
-// same instruction never sounds quite the same twice. Pure (no React / React
-// Native / expo imports); the phrasings are plain data. `clipPlayer.ts` plays
-// the result.
+// Turns a radio call into recorded clips (issue #49). A call is a few phrase
+// chunks, each recorded whole in the context of a real call (the callsign;
+// "descend to altitude four thousand feet"; "turn left heading" + "zero four
+// zero"), joined where a speaker pauses anyway, sometimes with a hesitation.
+// The phrasings and value ranges are plain data in scripts/voices/manifest.json,
+// shared with the generator, which builds chunk ids from the same words. Pure
+// (no React / React Native / expo imports); `clipPlayer.ts` plays the result.
+import manifest from '../../scripts/voices/manifest.json';
 import { angleDiff } from '../engine/math';
-import type { CallChanges, PlaneNow } from './radio';
+import type { CallChanges, PlaneNow, RadioCall } from './radio';
 import type { VoiceClips } from './voiceTypes';
 
-// ---- phrasings (plain data) ------------------------------------------------------------
+export type Role = 'controller' | 'pilot';
+export type PhraseKind = keyof (typeof manifest.phrasings)['controller'];
+/** How each instruction is said, by role (manifest data). */
+export const PHRASINGS = manifest.phrasings as unknown as Record<Role, Record<PhraseKind, string[]>>;
+export const VALUES = manifest.values;
 
-/**
- * Each instruction's phrasings, as lists of pieces and slots, by who says it.
- * `{hdg}` `{alt}` `{spd}` `{rwy}` expand to spoken numbers; `{side}` is left or
- * right. One phrasing is picked per call, never the one used last time when
- * there's a choice.
- */
-export const PHRASINGS = {
-  controller: {
-    turn: [['s_turn_{side}_heading', '{hdg}']],
-    fly: [['s_fly_heading', '{hdg}']],
-    descend: [['s_descend_to_altitude', '{alt}'], ['s_descend_altitude', '{alt}'], ['s_descend', '{alt}']],
-    descendFL: [['s_descend', '{alt}']],
-    climb: [['s_climb_to_altitude', '{alt}'], ['s_climb', '{alt}']],
-    climbFL: [['s_climb', '{alt}']],
-    maintainAlt: [['s_maintain', '{alt}']],
-    reduce: [['s_reduce_speed', '{spd}']],
-    increase: [['s_increase_speed', '{spd}']],
-    maintainSpd: [['s_maintain', '{spd}']],
-    land: [['s_runway', '{rwy}', 's_cleared_to_land']],
-  },
-  pilot: {
-    turn: [['s_{side}_heading', '{hdg}'], ['s_turn_{side}_heading', '{hdg}']],
-    fly: [['s_heading', '{hdg}'], ['s_fly_heading', '{hdg}']],
-    descend: [['s_descend', '{alt}'], ['s_down_to', '{alt}'], ['s_descending', '{alt}']],
-    descendFL: [['s_descend', '{alt}'], ['s_descending', '{alt}']],
-    climb: [['s_climb', '{alt}'], ['s_up_to', '{alt}'], ['s_climbing', '{alt}']],
-    climbFL: [['s_climb', '{alt}'], ['s_climbing', '{alt}']],
-    maintainAlt: [['s_maintain', '{alt}']],
-    reduce: [['s_reduce', '{spd}'], ['s_speed', '{spd}']],
-    increase: [['s_increase', '{spd}'], ['s_speed', '{spd}']],
-    maintainSpd: [['s_maintain', '{spd}']],
-    land: [['s_cleared_to_land_runway', '{rwy}']],
-  },
-} as const satisfies Record<'controller' | 'pilot', Record<string, readonly (readonly string[])[]>>;
+/** Pauses (ms) before a chunk: after the callsign, between instructions, between a heading stem and its number, around a hesitation. */
+export const GAPS = { afterCallsign: 140, betweenInstructions: 170, inPhrase: 10, beforeFiller: 60, afterFiller: 260 };
+/** How often a call has a hesitation ("uh", "er"), by role: at most one per call (manifest data). */
+export const FILLER_CHANCE = manifest.fillers.chance as Record<Role, number>;
 
-export type PhraseKind = keyof (typeof PHRASINGS)['controller'];
+// ---- spoken words (as the generator builds them) --------------------------------------------
 
-/** Pauses (ms) before a piece: after the callsign, between instructions, after a phrase stem, inside a number (a slight overlap: the pieces are trimmed with a little air round them). */
-export const GAPS = { afterCallsign: 140, betweenInstructions: 170, afterStem: 30, inNumber: -20 };
-/** Above this, altitudes are flight levels. */
-export const TRANSITION_FT = 10000;
+const DIGIT: Record<string, string> = manifest.lists.digits;
+const LETTER: Record<string, string> = manifest.lists.letters;
+const AIRLINE = manifest.airlines as unknown as Record<string, string>;
 
-// ---- one call, as instructions -------------------------------------------------------------
+export const digitWords = (s: string) => [...s].filter((c) => c >= '0' && c <= '9').map((c) => DIGIT[c]).join(' ');
+export const headingWords = (h: number) => digitWords(String(Math.round(h) % 360 || 360).padStart(3, '0'));
+export function altitudeWords(ft: number): string {
+  const r = Math.round(ft / 100) * 100;
+  if (r > VALUES.transitionFt) return `flight level ${digitWords(String(Math.round(r / 100)).padStart(3, '0'))}`;
+  const th = Math.floor(r / 1000);
+  const hu = Math.round((r % 1000) / 100);
+  return [th ? `${digitWords(String(th))} thousand` : '', hu ? `${DIGIT[hu]} hundred` : '', 'feet'].filter(Boolean).join(' ');
+}
+export const speedWords = (kt: number) => `${digitWords(String(Math.round(kt)))} knots`;
+export function runwayWords(id: string): string {
+  const m = /^(\d{1,2})([LRC]?)$/.exec(id.toUpperCase());
+  if (!m) return id;
+  const side = { L: 'left', R: 'right', C: 'center', '': '' }[m[2] as 'L'];
+  return [digitWords(m[1].padStart(2, '0')), side].filter(Boolean).join(' ');
+}
+export function callsignWords(callsign: string): string {
+  const cs = callsign.toUpperCase();
+  const airline = cs.length > 3 ? AIRLINE[cs.slice(0, 3)] : undefined;
+  const rest = airline ? cs.slice(3) : cs;
+  return [airline, ...[...rest].map((ch) => DIGIT[ch] ?? LETTER[ch])].filter(Boolean).join(' ');
+}
+
+/** A chunk's clip id, from its words (the generator does the same). */
+export const chunkId = (text: string) => `x_${text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')}`;
+
+// ---- a call as chunks -------------------------------------------------------------------------
 
 export interface Instruction {
   kind: PhraseKind;
-  side?: 'left' | 'right';
-  /** Spoken numbers, as piece ids (digits and words). */
-  slots: Partial<Record<'hdg' | 'alt' | 'spd' | 'rwy', string[]>>;
-}
-
-const digitPieces = (s: string) => [...s].filter((ch) => ch >= '0' && ch <= '9').map((d) => `d${d}`);
-
-/** "four thousand feet", "three thousand five hundred feet", "flight level one two zero" as pieces. */
-export function altitudePieces(ft: number): string[] {
-  const r = Math.round(ft / 100) * 100;
-  if (r > TRANSITION_FT) return ['s_flight_level', ...digitPieces(String(Math.round(r / 100)).padStart(3, '0'))];
-  const th = Math.floor(r / 1000);
-  const hu = Math.round((r % 1000) / 100);
-  return [...(th ? [...digitPieces(String(th)), 'w_thousand'] : []), ...(hu ? [`d${hu}`, 'w_hundred'] : []), 'w_feet'];
-}
-
-const SIDE_WORD: Record<string, string> = { L: 'w_left', R: 'w_right', C: 'w_centre' };
-export function runwayPieces(id: string): string[] {
-  const m = /^(\d{1,2})([LRC]?)$/.exec(id.toUpperCase());
-  if (!m) return [];
-  return [...digitPieces(m[1].padStart(2, '0')), ...(m[2] ? [SIDE_WORD[m[2]]] : [])];
+  values: Partial<Record<'side' | 'hdg' | 'alt' | 'spd' | 'rwy', string>>;
 }
 
 /** The instructions for a call's changes, in the order heading, altitude, speed, landing. */
 export function instructionsFor(c: CallChanges, now: PlaneNow): Instruction[] {
   const out: Instruction[] = [];
   if (c.heading !== undefined) {
-    const hdg = digitPieces(String(Math.round(c.heading) % 360 || 360).padStart(3, '0'));
+    const hdg = headingWords(c.heading);
     const turn = angleDiff(now.heading, c.heading);
-    out.push(Math.abs(turn) < 3 ? { kind: 'fly', slots: { hdg } } : { kind: 'turn', side: turn > 0 ? 'right' : 'left', slots: { hdg } });
+    out.push(Math.abs(turn) < 3 ? { kind: 'fly', values: { hdg } } : { kind: 'turn', values: { side: turn > 0 ? 'right' : 'left', hdg } });
   }
   if (c.altitude !== undefined) {
-    const fl = Math.round(c.altitude / 100) * 100 > TRANSITION_FT;
-    const verb = c.altitude < now.altitude - 50 ? 'descend' : c.altitude > now.altitude + 50 ? 'climb' : 'maintainAlt';
-    const kind: PhraseKind = verb === 'maintainAlt' ? verb : fl ? `${verb}FL` : verb;
-    out.push({ kind, slots: { alt: altitudePieces(c.altitude) } });
+    const fl = Math.round(c.altitude / 100) * 100 > VALUES.transitionFt;
+    const verb = c.altitude < now.altitude - 50 ? 'descend' : c.altitude > now.altitude + 50 ? 'climb' : null;
+    const kind: PhraseKind = verb ? (fl ? `${verb}FL` : verb) : 'maintainAlt';
+    out.push({ kind, values: { alt: altitudeWords(c.altitude) } });
   }
   if (c.speed !== undefined) {
     const kind: PhraseKind = c.speed < now.speed - 2 ? 'reduce' : c.speed > now.speed + 2 ? 'increase' : 'maintainSpd';
-    out.push({ kind, slots: { spd: [...digitPieces(String(Math.round(c.speed))), 'w_knots'] } });
+    out.push({ kind, values: { spd: speedWords(c.speed) } });
   }
-  if (c.land !== undefined) out.push({ kind: 'land', slots: { rwy: runwayPieces(c.land) } });
+  if (c.land !== undefined) out.push({ kind: 'land', values: { rwy: runwayWords(c.land) } });
   return out;
-}
-
-/** "WZZ9003" → airline piece and digits; an airline without a clip is spelled out. */
-export function callsignPieces(callsign: string, has: (piece: string) => boolean): string[] {
-  const cs = callsign.toUpperCase();
-  const airline = `a_${cs.slice(0, 3)}`;
-  const spell = (s: string) => [...s].map((ch) => (ch >= '0' && ch <= '9' ? `d${ch}` : `l${ch}`)).filter((p) => /^(d\d|l[A-Z])$/.test(p));
-  return has(airline) ? [airline, ...spell(cs.slice(3))] : spell(cs);
-}
-
-// ---- pieces → clips ---------------------------------------------------------------------------
-
-export interface Segment {
-  piece: string;
-  take: string;
-  file: number;
-  ms: number;
-  /** Silence before this piece. */
-  gapMs: number;
 }
 
 /** Remembers the last phrasing and take used, so the next call picks another. */
@@ -139,62 +102,99 @@ export class RadioMemory {
   }
 }
 
-/** Every piece id a phrasing or slot can produce (for the completeness test). */
-export const piecesOf = (phrase: readonly string[], side: 'left' | 'right' = 'left') =>
-  phrase.filter((p) => !p.startsWith('{') || p === '{side}').map((p) => p.replace('{side}', side));
+export interface Chunk {
+  /** What's said; empty for a hesitation. */
+  text: string;
+  /** A hesitation: one of the voice's `h_` clips ("uh", "er"). */
+  filler?: true;
+  /** Silence before it. */
+  gapMs: number;
+}
 
 /**
- * One utterance as clips: the controller's "callsign, instructions" or the
- * pilot's "instructions, callsign". Lists (digits, letters, words) use a
- * leading-on take, the last piece a falling one; phrase stems any take.
- * Pieces without a clip are skipped (the completeness test keeps that from
- * happening).
+ * The chunks of one utterance: the controller's "callsign, instructions" or
+ * the pilot's "instructions, callsign". Some calls (`FILLER_CHANCE`, or
+ * `fillerChance`) get one hesitation at a pause: at the start, or between
+ * two chunks ("descend four thousand feet, uh, Wizz Air niner zero zero three").
  */
-export function compose(opts: {
-  role: 'controller' | 'pilot';
-  voice: string;
-  clips: VoiceClips;
-  callsign: string;
-  instructions: Instruction[];
-  memory: RadioMemory;
-  rng: () => number;
-  /** Plane id, so phrasing variety is tracked per plane. */
-  planeId: string;
-}): Segment[] {
-  const { role, voice, clips, memory, rng } = opts;
-  const cast = clips[voice];
-  if (!cast) return [];
-  const has = (p: string) => !!cast.clips[p];
-  const parts: { pieces: string[]; gapBefore: number }[] = [];
-  const cs = callsignPieces(opts.callsign, has);
-  if (role === 'controller') parts.push({ pieces: cs, gapBefore: 0 });
-  opts.instructions.forEach((ins, i) => {
+export function chunksFor(role: Role, callsign: string, instructions: Instruction[], memory: RadioMemory, rng: () => number, planeId: string, fillerChance = FILLER_CHANCE[role]): Chunk[] {
+  const out: Chunk[] = [];
+  const cs = callsignWords(callsign);
+  if (role === 'controller') out.push({ text: cs, gapMs: 0 });
+  instructions.forEach((ins, i) => {
     const options = PHRASINGS[role][ins.kind];
-    const phrase = options[memory.phrase(`${opts.planeId}:${role}:${ins.kind}`, options.length, rng)];
-    const pieces = phrase.flatMap((p) => {
-      const slot = /^\{(hdg|alt|spd|rwy)\}$/.exec(p);
-      return slot ? (ins.slots[slot[1] as 'hdg'] ?? []) : [p.replace('{side}', ins.side ?? 'left')];
+    let phrase = options[memory.phrase(`${planeId}:${role}:${ins.kind}`, options.length, rng)];
+    for (const [k, v] of Object.entries(ins.values)) phrase = phrase.replace(`{${k}}`, v);
+    phrase.split('|').forEach((part, j) => {
+      const gapMs = j > 0 ? GAPS.inPhrase : out.length === 0 ? 0 : i === 0 && role === 'controller' ? GAPS.afterCallsign : GAPS.betweenInstructions;
+      out.push({ text: part.trim(), gapMs });
     });
-    parts.push({ pieces, gapBefore: i === 0 ? (role === 'controller' ? GAPS.afterCallsign : 0) : GAPS.betweenInstructions });
   });
-  if (role === 'pilot') parts.push({ pieces: cs, gapBefore: GAPS.betweenInstructions });
-
-  const flat = parts.flatMap((part) => part.pieces.map((piece, j) => ({ piece, gap: j === 0 ? part.gapBefore : -1 })));
-  const out: Segment[] = [];
-  flat.forEach(({ piece, gap }, i) => {
-    const takes = cast.clips[piece];
-    if (!takes) return;
-    const last = i === flat.length - 1;
-    const wanted = piece.startsWith('s_') || piece.startsWith('a_') ? 't' : last ? 'f' : 'm';
-    const pool = takes.filter((t) => t.take.startsWith(wanted));
-    const usable = pool.length ? pool : takes;
-    const name = memory.take(`${voice}:${piece}:${wanted}`, usable.map((t) => t.take), rng);
-    const take = usable.find((t) => t.take === name)!;
-    const prev = flat[i - 1]?.piece ?? '';
-    const gapMs = gap >= 0 ? gap : prev.startsWith('s_') || prev.startsWith('a_') ? GAPS.afterStem : GAPS.inNumber;
-    out.push({ piece, take: take.take, file: take.file, ms: take.ms, gapMs: out.length === 0 ? 0 : gapMs });
-  });
+  if (role === 'pilot') out.push({ text: cs, gapMs: GAPS.betweenInstructions });
+  if (out.length && rng() < fillerChance) {
+    const at = Math.floor(rng() * out.length);
+    const next = out[at];
+    out.splice(at, 1, { text: '', filler: true, gapMs: at ? GAPS.beforeFiller : 0 }, { ...next, gapMs: GAPS.afterFiller });
+  }
   return out;
+}
+
+// ---- chunks → clips ----------------------------------------------------------------------------
+
+export interface Segment {
+  /** Clip id: a phrase chunk (`x_…`) or a hesitation (`h_…`). */
+  piece: string;
+  take: string;
+  file: number;
+  ms: number;
+  /** Silence before this clip. */
+  gapMs: number;
+}
+
+/**
+ * The clips for an utterance's chunks, in one voice: each chunk's whole
+ * recording, the take that continues (`m`) or, for the last chunk, the one
+ * that ends a call (`f`); a hesitation is one of the voice's own (`h_`).
+ * Null when a chunk has no recording (a callsign outside the flight lists):
+ * the call isn't said rather than said in part.
+ */
+export function toSegments(opts: { voice: string; clips: VoiceClips; chunks: Chunk[]; memory: RadioMemory; rng: () => number }): Segment[] | null {
+  const cast = opts.clips[opts.voice];
+  if (!cast) return null;
+  const out: Segment[] = [];
+  for (const [i, chunk] of opts.chunks.entries()) {
+    if (chunk.filler) {
+      const fillers = Object.keys(cast.clips).filter((id) => id.startsWith('h_'));
+      if (fillers.length) push(out, opts, opts.memory.take(`${opts.voice}:filler`, fillers, opts.rng), 'h', chunk.gapMs);
+      continue;
+    }
+    if (!push(out, opts, chunkId(chunk.text), i === opts.chunks.length - 1 ? 'f' : 'm', chunk.gapMs)) return null;
+  }
+  return out;
+}
+
+function push(out: Segment[], opts: { voice: string; clips: VoiceClips; memory: RadioMemory; rng: () => number }, piece: string, wanted: string, gapMs: number): boolean {
+  const takes = opts.clips[opts.voice].clips[piece];
+  if (!takes?.length) return false;
+  const pool = takes.filter((t) => t.take.startsWith(wanted));
+  const usable = pool.length ? pool : takes;
+  const name = opts.memory.take(`${opts.voice}:${piece}:${wanted}`, usable.map((t) => t.take), opts.rng);
+  const take = usable.find((t) => t.take === name)!;
+  out.push({ piece, take: take.take, file: take.file, ms: take.ms, gapMs: out.length ? gapMs : 0 });
+  return true;
+}
+
+/** A desk call as the controller's transmission and the pilot's readback (null if either can't be said, or there's nothing to say). */
+export function scriptCall(call: RadioCall, clips: VoiceClips, memory: RadioMemory, rng: () => number, fillerChance?: Partial<Record<Role, number>>): { controller: Segment[]; pilot: Segment[] } | null {
+  const ins = instructionsFor(call.changes, call.plane);
+  const ctl = controllerOf(clips);
+  const pilot = pilotFor(call.plane.callsign, clips);
+  if (!ins.length || !ctl || !pilot) return null;
+  const say = (role: Role, voice: string) =>
+    toSegments({ voice, clips, chunks: chunksFor(role, call.plane.callsign, ins, memory, rng, call.planeId, fillerChance?.[role]), memory, rng });
+  const controller = say('controller', ctl);
+  const readback = say('pilot', pilot);
+  return controller && readback ? { controller, pilot: readback } : null;
 }
 
 /** The pilot voice for a plane: picked from the callsign, so a plane keeps its pilot. */

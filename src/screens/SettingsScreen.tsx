@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { playSound } from '../game/audio';
+import { previewRadio } from '../game/radioVoice';
 import { useSettings } from '../game/SettingsContext';
 import type { Settings } from '../game/settings';
 import { useTheme } from '../theme/ThemeContext';
@@ -8,12 +10,14 @@ import type { Theme } from '../theme/themes';
 import { ComingSoonTag } from '../ui/ComingSoonTag';
 import { BackIcon } from '../ui/icons';
 import { Segmented } from '../ui/Segmented';
+import { Slider } from '../ui/Slider';
 import { Toggle } from '../ui/Toggle';
 import { shellColumn } from '../ui/shellLayout';
 
 /**
- * Design S4: THEME (Radar / Paper preview cards, follow system), FEEL (sound
- * effects, music, the in-game background, haptics, radio voice, controls side) and DISPLAY (units, labels,
+ * Design S4: THEME (Radar / Paper preview cards, follow system), SOUND (sound
+ * effects, music and radio voice, each with a volume slider; the in-game
+ * background), FEEL (haptics, controls side) and DISPLAY (units, labels,
  * label size). Every change is saved on the device straight away.
  */
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
@@ -51,11 +55,14 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
           </Row>
         </Group>
 
-        <Group title="FEEL">
-          <Row label="Sound effects">
+        <Group title="SOUND">
+          <Row
+            label="Sound effects"
+            below={<Slider value={settings.soundVolume} onChange={set('soundVolume')} onRelease={() => playSound('select')} disabled={!settings.sound} label="Sound effects volume" testID="volume-sound" />}
+          >
             <Toggle value={settings.sound} onChange={set('sound')} label="Sound effects" testID="toggle-sound" />
           </Row>
-          <Row label="Music" sub="Menus, and the background in a game">
+          <Row label="Music" sub="Menus, and the background in a game" below={<Slider value={settings.musicVolume} onChange={set('musicVolume')} disabled={!settings.music} label="Music volume" testID="volume-music" />}>
             <Toggle value={settings.music} onChange={set('music')} label="Music" testID="toggle-music" />
           </Row>
           <Row label="In a game" sub="Calm music, or a quiet radio room">
@@ -70,11 +77,18 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
               segmentWidth={64}
             />
           </Row>
+          <Row
+            label="Radio voice"
+            sub="Spoken instructions + pilot readbacks"
+            below={<Slider value={settings.radioVolume} onChange={set('radioVolume')} onRelease={previewRadio} disabled={!settings.radioVoice} label="Radio voice volume" testID="volume-radio" />}
+          >
+            <Toggle value={settings.radioVoice} onChange={set('radioVoice')} label="Radio voice" testID="toggle-radio-voice" />
+          </Row>
+        </Group>
+
+        <Group title="FEEL">
           <Row label="Haptics">
             <Toggle value={settings.haptics} onChange={set('haptics')} label="Haptics" testID="toggle-haptics" />
-          </Row>
-          <Row label="Radio voice" sub="Spoken instructions + pilot readbacks">
-            <Toggle value={settings.radioVoice} onChange={set('radioVoice')} label="Radio voice" testID="toggle-radio-voice" />
           </Row>
           <Row label="Controls on" sub="Mirrors the sheet and re-centre for left-handed play">
             <Segmented
@@ -140,12 +154,13 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Row({ label, sub, soon, children }: { label: string; sub?: string; soon?: boolean; children: ReactNode }) {
+/** A setting: its name (and a line about it) with the control on the right; `below` goes underneath, full width (a volume slider). */
+function Row({ label, sub, soon, below, children }: { label: string; sub?: string; soon?: boolean; below?: ReactNode; children: ReactNode }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const t = theme.type;
-  return (
-    <View style={[styles.row, { borderBottomColor: c.panelBorder, borderBottomWidth: theme.hairline }]}>
+  const line = (
+    <>
       <View style={styles.rowText}>
         <View style={styles.rowTitle}>
           <Text style={[t.bodyStrong, { color: soon ? c.textDim : c.text }]}>{label}</Text>
@@ -154,6 +169,14 @@ function Row({ label, sub, soon, children }: { label: string; sub?: string; soon
         {sub && <Text style={[t.smallTight, { color: c.textDim }]}>{sub}</Text>}
       </View>
       {children}
+    </>
+  );
+  const border = { borderBottomColor: c.panelBorder, borderBottomWidth: theme.hairline };
+  if (!below) return <View style={[styles.row, border]}>{line}</View>;
+  return (
+    <View style={[styles.rowStack, border]}>
+      <View style={[styles.row, styles.rowInner]}>{line}</View>
+      {below}
     </View>
   );
 }
@@ -204,6 +227,8 @@ const styles = StyleSheet.create({
   callsign: { position: 'absolute', left: 58, top: 20 },
   cardFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   row: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  rowStack: { paddingBottom: 8 },
+  rowInner: { paddingBottom: 0 },
   rowText: { flex: 1, gap: 2 },
   rowTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 });

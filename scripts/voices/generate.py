@@ -2,16 +2,24 @@
 """Renders the radio voice clips (issue #49) with Kokoro-82M (Apache-2.0).
 
 Reads scripts/voices/manifest.json and writes:
-  assets/voices/<cast id>/<piece>.<take>.wav   12 kHz mono, radio-filtered
+  assets/voices/<cast id>/<clip>.<take>.m4a    radio-filtered, AAC
+  assets/voices/index.json                     what was rendered (for tests)
   src/game/voiceClips.ts                       the index the app plays from (generated)
 
-Every piece is cut out of a natural sentence (its carrier, the piece in
+Two kinds of clip:
+- Phrase chunks (`x_...`): every callsign in src/engine/data/flights.json and
+  every instruction the phrasings can make, with every value the steppers
+  allow, each recorded whole in the context of a real call. A call is a few
+  of these, joined where a speaker pauses anyway. `m0` continues (more
+  follows), `f0` ends a call.
+- Hesitations (`h_uh`, `h_er`…): a few per voice (the cast's `fillers`),
+  said slowly, `h0` and `h1` with different speeds and pitch.
+
+Every clip is cut out of a natural sentence (its carrier, the clip in
 [brackets]) said at normal speed, using the model's timing of each sound, so
-words keep the shape they have in real speech. The radio filter and the level
-are set on the whole sentence before the cut, so a short word's tail isn't
-blown up. Digits, letters and words have takes from the middle of a number
-(`m`, they lead on) and from the end of a sentence (`f`, they fall); phrase
-pieces have `t` takes. Each take uses its own carrier, speed and pitch.
+it keeps the shape it has in real speech. The radio filter and the level are
+set on the whole sentence before the cut, so a short clip's tail isn't blown
+up.
 
 Setup (once):  pip install kokoro-onnx soundfile numpy scipy
                kokoro-v1.0.onnx from the model-files-v1.1 release (it reports
@@ -29,6 +37,8 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 
 import numpy as np
@@ -175,22 +185,8 @@ def main():
     cast = {cid: c for cid, c in m['cast'].items() if not args.only or cid in args.only.split(',')}
     lists = m['lists']
 
-    # piece id → (word, {pos: [carriers]}, who)
-    pieces = {}
-    for d, w in lists['digits'].items():
-        pieces[f'd{d}'] = (w, lists['carriers'], None)
-    for l, w in lists['letters'].items():
-        pieces[f'l{l}'] = (w, lists['carriers'], None)
-    for key, carriers in lists['words'].items():
-        pieces[f'w_{key}'] = (key, carriers, None)
-    for code, name in m['airlines'].items():
-        if code != 'about':
-            pieces[f'a_{code}'] = (name, {'t': m['airlineCarriers']}, None)
-    for key, st in m['stems'].items():
-        if key != 'about':
-            pieces[f's_{key}'] = (st['text'], {'t': st['carriers']}, st['who'])
-
     index = {}
+    texts = {}
     for cid, spec in cast.items():
         folder = os.path.join(OUT, cid)
         os.makedirs(folder, exist_ok=True)
@@ -198,34 +194,183 @@ def main():
             os.remove(os.path.join(folder, f))
         clips = {}
         rendered = 0
-        for piece, (word, carriers, who) in pieces.items():
-            if who and spec['role'] not in who:
-                continue
-            for pos, options in carriers.items():
-                for t, (speed, semis) in enumerate(takes):
-                    carrier = options[t % len(options)]
-                    cached = os.path.join(args.cache, cache_key(spec, carrier, word, speed, semis, pos) + '.wav')
-                    if os.path.exists(cached):
-                        y, _ = sf.read(cached, dtype='float32')
-                    else:
-                        y = cut(k, spec, carrier, word, speed, semis, pos)
-                        sf.write(cached, y, RATE, subtype='PCM_16')
-                        rendered += 1
-                    name = f'{piece}.{pos}{t}.wav'
-                    sf.write(os.path.join(folder, name), y, RATE, subtype='PCM_16')
-                    clips.setdefault(piece, []).append({'take': f'{pos}{t}', 'file': f'{cid}/{name}', 'ms': round(1000 * len(y) / RATE)})
+        # Hesitations ("uh", "er"): this voice's own, said slowly, `h` takes.
+        for word in spec.get('fillers', []):
+            for n, carrier in enumerate(m['fillers']['carriers']):
+                speed, semis = takes[n % len(takes)]
+                speed *= m['fillers']['speed']
+                cached = os.path.join(args.cache, cache_key(spec, carrier, word, speed, semis, 't') + '.wav')
+                if os.path.exists(cached):
+                    y, _ = sf.read(cached, dtype='float32')
+                else:
+                    y = cut(k, spec, carrier, word, speed, semis, 't')
+                    sf.write(cached, y, RATE, subtype='PCM_16')
+                    rendered += 1
+                piece = f'h_{word}'
+                texts[piece] = word
+                name = f'{piece}.h{n}.wav'
+                sf.write(os.path.join(folder, name), y, RATE, subtype='PCM_16')
+                clips.setdefault(piece, []).append({'take': f'h{n}', 'file': f'{cid}/{name}', 'ms': round(1000 * len(y) / RATE)})
         index[cid] = {'role': spec['role'], 'clips': clips}
-        print(f'{cid}: {len(clips)} pieces, {sum(len(v) for v in clips.values())} clips ({rendered} rendered, the rest from the cache)')
+        print(f'{cid}: {len(clips)} hesitations ({rendered} rendered, the rest from the cache)')
 
-    texts = {p: w for p, (w, _, _) in pieces.items()}
+    chunks = phrase_chunks(m)
+    for cid, spec in cast.items():
+        folder = os.path.join(OUT, cid)
+        clips = index[cid]['clips']
+        rendered = 0
+        role_chunks = chunks[spec['role']]
+        for cnt, (chunk_id, c) in enumerate(sorted(role_chunks.items())):
+            texts[chunk_id] = c['text']
+            for pos, carrier in sorted(c['carriers'].items()):
+                cached = os.path.join(args.cache, cache_key(spec, carrier, '', 1.0, 0.0, pos) + '.wav')
+                if os.path.exists(cached):
+                    y, _ = sf.read(cached, dtype='float32')
+                else:
+                    y = cut(k, spec, carrier, '', 1.0, 0.0, pos)
+                    sf.write(cached, y, RATE, subtype='PCM_16')
+                    rendered += 1
+                name = f'{chunk_id}.{pos}0.wav'
+                sf.write(os.path.join(folder, name), y, RATE, subtype='PCM_16')
+                clips.setdefault(chunk_id, []).append({'take': f'{pos}0', 'file': f'{cid}/{name}', 'ms': round(1000 * len(y) / RATE)})
+            if cnt % 50 == 0:
+                print(f'  {cid}: {cnt}/{len(role_chunks)} phrases', flush=True)
+        print(f'{cid}: {len(role_chunks)} phrases ({rendered} rendered, the rest from the cache)', flush=True)
+        encode(folder, clips, args.cache)
     write_index(index, texts)
+
+
+def encode(folder, clips, cache):
+    """WAV → AAC (m4a), cached by content; the index then points at the m4a files."""
+    exe = ffmpeg()
+    for takes in clips.values():
+        for t in takes:
+            wav = os.path.join(OUT, t['file'])
+            data = open(wav, 'rb').read()
+            cached = os.path.join(cache, 'm4a-' + hashlib.sha1(data).hexdigest() + '.m4a')
+            if not os.path.exists(cached):
+                subprocess.run([exe, '-v', 'error', '-y', '-threads', '1', '-i', wav, '-ar', '16000', '-ac', '1', '-c:a', 'aac', '-b:a', '24k', cached], check=True)
+            m4a = wav[:-4] + '.m4a'
+            shutil.copy(cached, m4a)
+            os.remove(wav)
+            t['file'] = t['file'][:-4] + '.m4a'
+
+
+def ffmpeg():
+    exe = shutil.which('ffmpeg')
+    if exe:
+        return exe
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except ImportError:
+        sys.exit('needs ffmpeg (brew install ffmpeg, or pip install imageio-ffmpeg)')
+
+
+# ---- phrase chunks ----------------------------------------------------------------------
+
+def slug(text):
+    return 'x_' + re.sub(r'[^a-z0-9]+', '_', text.lower()).strip('_')
+
+
+class Words:
+    """Spoken numbers and names, exactly as the app builds them (src/game/radioScript.ts)."""
+
+    def __init__(self, m):
+        self.d = m['lists']['digits']
+        self.l = m['lists']['letters']
+        self.airlines = {k: v for k, v in m['airlines'].items() if k != 'about'}
+        self.transition = m['values']['transitionFt']
+
+    def digits(self, s):
+        return ' '.join(self.d[ch] for ch in s if ch.isdigit())
+
+    def heading(self, h):
+        return self.digits(str(h % 360 or 360).zfill(3))
+
+    def altitude(self, ft):
+        r = round(ft / 100) * 100
+        if r > self.transition:
+            return 'flight level ' + self.digits(str(round(r / 100)).zfill(3))
+        th, hu = r // 1000, round((r % 1000) / 100)
+        parts = []
+        if th:
+            parts.append(f'{self.digits(str(th))} thousand')
+        if hu:
+            parts.append(f'{self.d[str(hu)]} hundred')
+        return ' '.join(parts + ['feet'])
+
+    def speed(self, kt):
+        return f'{self.digits(str(kt))} knots'
+
+    def runway(self, rid):
+        mm = re.match(r'^(\d{1,2})([LRC]?)$', rid)
+        side = {'L': 'left', 'R': 'right', 'C': 'center', '': ''}[mm.group(2)]
+        return ' '.join(x for x in [self.digits(mm.group(1).zfill(2)), side] if x)
+
+    def callsign(self, cs):
+        airline = self.airlines.get(cs[:3])
+        rest = cs[3:] if airline else cs
+        words = [self.d[ch] if ch.isdigit() else self.l[ch] for ch in rest]
+        return ' '.join(([airline] if airline else []) + words)
+
+
+def phrase_chunks(m):
+    """Role → chunk id → {text, carriers: {pos: carrier}}: every chunk a call can need, with the sentence it's recorded in."""
+    w = Words(m)
+    v = m['values']
+    ctx = m['phraseContext']
+    headings = list(range(v['headingStep'], 361, v['headingStep']))
+    alts = list(range(v['altitude']['min'], v['altitude']['max'] + 1, v['altitude']['step']))
+    spds = list(range(v['speed']['min'], v['speed']['max'] + 1, v['speed']['step']))
+    low = [a for a in alts if a <= v['transitionFt']]
+    high = [a for a in alts if a > v['transitionFt']]
+    domain = {
+        'turn': [{'side': s, 'hdg': w.heading(h)} for s in ('left', 'right') for h in headings],
+        'fly': [{'hdg': w.heading(h)} for h in headings],
+        'descend': [{'alt': w.altitude(a)} for a in low], 'climb': [{'alt': w.altitude(a)} for a in low],
+        'descendFL': [{'alt': w.altitude(a)} for a in high], 'climbFL': [{'alt': w.altitude(a)} for a in high],
+        'maintainAlt': [{'alt': w.altitude(a)} for a in alts],
+        'reduce': [{'spd': w.speed(x)} for x in spds], 'increase': [{'spd': w.speed(x)} for x in spds], 'maintainSpd': [{'spd': w.speed(x)} for x in spds],
+        'land': [{'rwy': w.runway(r)} for r in v['runways']],
+    }
+    flights = json.load(open(os.path.join(ROOT, 'src', 'engine', 'data', 'flights.json')))
+    callsigns = [w.callsign(code + n) for code, ns in flights.items() if code != 'about' and code in w.airlines for n in ns]
+    out = {'controller': {}, 'pilot': {}}
+
+    def add(role, text, pos, carrier):
+        c = out[role].setdefault(slug(text), {'text': text, 'carriers': {}})
+        c['carriers'].setdefault(pos, carrier)
+
+    for cs in callsigns:
+        add('controller', cs, 'm', f"[{cs}], {ctx['callsignController']}")
+        add('pilot', cs, 'f', f"{ctx['callsignPilot']} [{cs}].")
+    for role in ('controller', 'pilot'):
+        for kind, templates in m['phrasings'][role].items():
+            for tpl in templates:
+                for values in domain[kind]:
+                    filled = tpl
+                    for key, val in values.items():
+                        filled = filled.replace('{' + key + '}', val)
+                    parts = [x.strip() for x in filled.split('|')]
+                    for i, part in enumerate(parts):
+                        last = i == len(parts) - 1
+                        before = parts[i - 1] if i else (ctx['controllerBefore'] if role == 'controller' else '')
+                        follow = parts[i + 1] if not last else None
+                        if role == 'controller':
+                            add(role, part, 'm', f"{before} [{part}] {follow}." if follow else f"{before} [{part}], {ctx['controllerAfter']}")
+                            if last:
+                                add(role, part, 'f', f'{before} [{part}].')
+                        else:
+                            add(role, part, 'm', f"{before} [{part}] {follow}, {ctx['pilotAfter']}" if follow else f"{before} [{part}], {ctx['pilotAfter']}")
+    return out
 
 
 def write_index(index, texts):
     lines = [
         '// GENERATED by scripts/voices/generate.py from scripts/voices/manifest.json: do not edit.',
-        '// Radio voice clips (issue #49), rendered with Kokoro-82M (Apache-2.0). Each piece has takes:',
-        '// m (middle of a number) and f (end of a call) for digits, letters and words; t for phrase pieces.',
+        '// Radio voice clips (issue #49), rendered with Kokoro-82M (Apache-2.0). Each clip has takes:',
+        '// m0 (continues) and f0 (ends a call) for phrases; h0, h1 for hesitations.',
         "import type { VoiceClips } from './voiceTypes';",
         '',
         'export const VOICE_CLIPS: VoiceClips = {',
@@ -241,6 +386,8 @@ def write_index(index, texts):
         lines.append(f'  {json.dumps(piece)}: {json.dumps(text)},')
     lines.append('};')
     open(INDEX, 'w').write('\n'.join(lines) + '\n')
+    plain = {cid: {'role': v['role'], 'clips': {p: [t['take'] for t in ts] for p, ts in sorted(v['clips'].items())}} for cid, v in index.items()}
+    json.dump(plain, open(os.path.join(OUT, 'index.json'), 'w'), indent=1, sort_keys=True)
 
 
 if __name__ == '__main__':

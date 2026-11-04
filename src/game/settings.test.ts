@@ -26,6 +26,12 @@ describe('settings', () => {
     expect(parseSettings(JSON.stringify({ inGameAudio: 'loud' })).inGameAudio).toBe('zen');
   });
 
+  it('volumes: full by default; kept between 0 and 1; a bad value falls back', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({ soundVolume: 1, musicVolume: 1, radioVolume: 1 });
+    expect(parseSettings(JSON.stringify({ soundVolume: 0.4, musicVolume: 3, radioVolume: -1 }))).toMatchObject({ soundVolume: 0.4, musicVolume: 1, radioVolume: 0 });
+    expect(parseSettings(JSON.stringify({ musicVolume: 'loud', radioVolume: null }))).toMatchObject({ musicVolume: 1, radioVolume: 1 });
+  });
+
   it('follow system: Paper in light mode, Radar in dark (or unknown) mode', () => {
     const s = { ...DEFAULT_SETTINGS, followSystem: true, theme: 'paper' };
     expect(effectiveTheme(s, 'light')).toBe('paper');

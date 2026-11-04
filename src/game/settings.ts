@@ -21,6 +21,10 @@ export interface Settings {
   inGameAudio: InGameAudio;
   /** Spoken calls and pilot readbacks for the player's commands. */
   radioVoice: boolean;
+  /** Volumes, 0–1, on top of the game's own mix: sound effects, music, and the radio (calls, readbacks and their clicks). */
+  soundVolume: number;
+  musicVolume: number;
+  radioVolume: number;
   haptics: boolean;
   /** Controls on the left mirrors the sheet and re-centre for left-handed play. */
   handedness: Handedness;
@@ -37,6 +41,9 @@ export const DEFAULT_SETTINGS: Settings = {
   music: true,
   inGameAudio: 'zen',
   radioVoice: true,
+  soundVolume: 1,
+  musicVolume: 1,
+  radioVolume: 1,
   haptics: true,
   handedness: 'right',
   altUnit: 'ft',
@@ -57,6 +64,7 @@ export function parseSettings(json: string | null): Settings {
   if (typeof raw !== 'object' || raw === null) return DEFAULT_SETTINGS;
   const r = raw as Record<string, unknown>;
   const pick = <T,>(key: keyof Settings, ok: readonly T[]): T => (ok.includes(r[key] as T) ? (r[key] as T) : (DEFAULT_SETTINGS[key] as T));
+  const volume = (key: keyof Settings): number => (typeof r[key] === 'number' && Number.isFinite(r[key]) ? Math.min(1, Math.max(0, r[key] as number)) : (DEFAULT_SETTINGS[key] as number));
   const bool = (key: keyof Settings): boolean => (typeof r[key] === 'boolean' ? (r[key] as boolean) : (DEFAULT_SETTINGS[key] as boolean));
   return {
     theme: typeof r.theme === 'string' ? r.theme : DEFAULT_SETTINGS.theme,
@@ -65,6 +73,9 @@ export function parseSettings(json: string | null): Settings {
     music: bool('music'),
     inGameAudio: pick('inGameAudio', ['zen', 'radio'] as const),
     radioVoice: bool('radioVoice'),
+    soundVolume: volume('soundVolume'),
+    musicVolume: volume('musicVolume'),
+    radioVolume: volume('radioVolume'),
     haptics: bool('haptics'),
     handedness: pick('handedness', ['right', 'left'] as const),
     altUnit: pick('altUnit', ['ft', 'm'] as const),

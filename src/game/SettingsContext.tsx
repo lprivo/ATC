@@ -2,9 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { kv } from '../storage/kv';
 import { memoryKv } from '../storage/memory';
 import type { KV } from '../storage/types';
-import { setEffectsEnabled, setMusicEnabled } from './audio';
+import { setEffectsEnabled, setEffectsVolume, setMusicEnabled, setMusicVolume } from './audio';
 import { setHapticsEnabled } from './haptics';
-import { setRadioEnabled } from './radioVoice';
+import { setRadioEnabled, setRadioVolume } from './radioVoice';
 import { parseSettings, type Settings } from './settings';
 
 const KEY = 'settings.v1';
@@ -46,6 +46,9 @@ function applyFeel(s: Settings) {
   setEffectsEnabled(s.sound);
   setMusicEnabled(s.music);
   setRadioEnabled(s.radioVoice);
+  setEffectsVolume(s.soundVolume);
+  setMusicVolume(s.musicVolume);
+  setRadioVolume(s.radioVolume);
 }
 
 export function useSettings() {

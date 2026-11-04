@@ -20,6 +20,7 @@ export const SessionFull: Story = { name: 'Session setup · full', render: () =>
 export const BestScoresEmpty: Story = { name: 'Best scores · none yet', render: () => <BestScoresScreen onBack={noop} /> };
 export const BestScoresSome: Story = { name: 'Best scores · some', render: () => <BestScoresScreen onBack={noop} />, parameters: { app: { bests: SOME_BESTS } } };
 export const Settings: Story = { name: 'Settings · Radar', render: () => <SettingsScreen onBack={noop} /> };
+export const SettingsQuiet: Story = { name: 'Settings · music off, sounds turned down', render: () => <SettingsScreen onBack={noop} />, parameters: { app: { settings: { music: false, soundVolume: 0.4, radioVolume: 0.7 } } } };
 export const SettingsPaper: Story = { name: 'Settings · Paper, metric, left-handed', render: () => <SettingsScreen onBack={noop} />, parameters: { app: { theme: 'paper', settings: { altUnit: 'm', distUnit: 'km', handedness: 'left' } } } };
 export const SummaryFirst: Story = { name: 'Summary · first session', render: () => <SummaryScreen result={RESULTS.firstEver} onMenu={noop} onPlayAgain={noop} /> };
 export const SummaryNewBest: Story = { name: 'Summary · new best', render: () => <SummaryScreen result={RESULTS.newBest} onMenu={noop} onPlayAgain={noop} /> };

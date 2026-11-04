@@ -1,13 +1,15 @@
-import * as Speech from 'expo-speech';
 import { AccessibilityInfo, Platform } from 'react-native';
-import { duckMusic, playEffect } from './audio';
-import { pickVoices, RadioDesk, type PlaneNow, type RadioCommand, type Transmission } from './radio';
+import { duckMusic } from './audio';
+import { playTransmission, randomRate } from './clipPlayer';
+import { RadioDesk, type PlaneNow, type RadioCall, type RadioCommand } from './radio';
+import { RadioMemory, scriptCall } from './radioScript';
+import { VOICE_CLIPS } from './voiceClips';
 
 /**
  * The radio voice (issue #49): the controller's call for the player's
- * commands, then the pilot's readback, each opened and closed by a squelch
- * click, in two of the phone's own voices (expo-speech, offline). Module
- * state, like the other audio: commands are noted where they're given
+ * commands, then the pilot's readback, played from the recorded phrases
+ * (`voiceClips.ts`), each opened and closed by a squelch click. Module state,
+ * like the other audio: commands are noted where they're given
  * (`radioCommand`), and the game screen says when the radio may talk
  * (`setRadioActive`: in a session, not paused, at ×1 or ×2) and how to look a
  * plane up (`setRadioPlanes`).
@@ -19,31 +21,27 @@ import { pickVoices, RadioDesk, type PlaneNow, type RadioCommand, type Transmiss
  */
 
 let enabled = true;
+/** The player's radio volume (Settings), 0–1: the voices and their clicks. */
+let volume = 1;
 let active = false;
 let screenReader = false;
 let lookup: (id: string) => PlaneNow | undefined = () => undefined;
 const desk = new RadioDesk();
-const queue: Transmission[] = [];
+const memory = new RadioMemory();
+const queue: RadioCall[] = [];
 let speaking = false;
-/** Bumped by a reset, so a call already under way stops at its next step. */
+/** Bumped by a reset, so a call already under way stops. */
 let generation = 0;
 let ticker: ReturnType<typeof setInterval> | null = null;
-let voices: { controller?: string; pilot?: string } | null = null;
 
 /** Calls waiting to be said; more than this and the oldest are dropped (the player has moved on). */
 const MAX_QUEUE = 3;
 const TICK_MS = 200;
-/** Between the controller's call and the pilot's readback, and between calls. */
-const READBACK_GAP_MS = 450;
+/** The pilot answers after a moment: somewhere in this range (ms). */
+const READBACK_GAP_MS = [350, 800] as const;
+/** Between calls. */
 const CALL_GAP_MS = 700;
-const VOICE = {
-  controller: { language: 'en-GB', rate: 1.05, pitch: 1.0 },
-  pilot: { language: 'en-US', rate: 1.1, pitch: 1.0 },
-};
 const CLICK_VOLUME = 0.45;
-const VOICES_TIMEOUT_MS = 1500;
-/** A call that never reports it's done (no speech engine) is given up after about this long. */
-const speechLimitMs = (text: string) => 3000 + text.length * 90;
 
 // Quiet while VoiceOver / TalkBack is on. Native only: react-native-web always reports a screen reader.
 if (Platform.OS !== 'web') {
@@ -66,6 +64,20 @@ export function setRadioEnabled(on: boolean) {
   enabled = on;
   if (!on) reset();
 }
+
+export function setRadioVolume(v: number) {
+  volume = v;
+}
+
+/** A short call at the current volume, for the volume setting (not while a call is under way). */
+export function previewRadio() {
+  if (!enabled || speaking) return;
+  const script = scriptCall({ planeId: 'preview', changes: { altitude: 4000 }, plane: PREVIEW_PLANE }, VOICE_CLIPS, memory, Math.random, { controller: 0 });
+  if (!script) return;
+  speaking = true;
+  void playTransmission(script.controller, { rate: randomRate(), volume, clickVolume: CLICK_VOLUME * volume }).finally(() => (speaking = false));
+}
+const PREVIEW_PLANE: PlaneNow = { callsign: 'WZZ9003', heading: 80, altitude: 6000, speed: 230 };
 
 /** The radio may talk now (in a session, not paused, not fast-forwarding). */
 export function setRadioActive(on: boolean) {
@@ -97,69 +109,38 @@ function reset() {
   generation++;
   desk.clear();
   queue.length = 0;
-  safe(() => Speech.stop());
   speaking = false;
   duckMusic(false);
 }
 
 function tick() {
   if (!enabled || !active) return;
-  for (const t of desk.due(Date.now(), lookup)) queue.push(t);
+  for (const c of desk.due(Date.now(), lookup)) queue.push(c);
   while (queue.length > MAX_QUEUE) queue.shift();
-  if (!speaking && queue.length && !screenReader) say(queue.shift()!);
+  if (!speaking && queue.length && !screenReader) void say(queue.shift()!);
 }
 
-async function say(t: Transmission) {
+async function say(call: RadioCall) {
+  const script = scriptCall(call, VOICE_CLIPS, memory, Math.random);
+  if (!script) return;
   const g = generation;
+  const stopped = () => g !== generation;
   speaking = true;
   duckMusic(true);
-  // The voice list can wait forever where there are no voices (expo-speech on the web): fall back to the default voice.
-  voices ??= await Promise.race([
-    Speech.getAvailableVoicesAsync().then(
-      (vs) => pickVoices(vs.map((v) => ({ identifier: v.identifier, name: v.name, language: v.language, quality: String(v.quality) }))),
-      () => ({}),
-    ),
-    wait(VOICES_TIMEOUT_MS).then(() => ({})),
-  ]);
-  if (g !== generation) return;
-  await transmit(t.controller, { ...VOICE.controller, voice: voices.controller });
-  await wait(READBACK_GAP_MS);
-  if (g !== generation) return;
-  await transmit(t.readback, { ...VOICE.pilot, voice: voices.pilot });
-  await wait(CALL_GAP_MS);
-  if (g !== generation) return;
+  try {
+    await playTransmission(script.controller, { rate: randomRate(), volume, clickVolume: CLICK_VOLUME * volume, stopped });
+    if (stopped()) return;
+    await wait(READBACK_GAP_MS[0] + Math.random() * (READBACK_GAP_MS[1] - READBACK_GAP_MS[0]));
+    if (stopped()) return;
+    await playTransmission(script.pilot, { rate: randomRate(), volume, clickVolume: CLICK_VOLUME * volume, stopped });
+    if (stopped()) return;
+    await wait(CALL_GAP_MS);
+  } catch {
+    // Best effort: the radio is flavour.
+  }
+  if (stopped()) return;
   speaking = false;
   if (!queue.length) duckMusic(false);
 }
 
-/** One transmission: key up (click), speak, key down (squelch tail). Resolves once, however it ends. */
-function transmit(text: string, opts: Speech.SpeechOptions): Promise<void> {
-  return new Promise((resolve) => {
-    let over = false;
-    const finish = (click: boolean) => {
-      if (over) return;
-      over = true;
-      clearTimeout(limit);
-      if (click) playEffect('radioOff', CLICK_VOLUME);
-      resolve();
-    };
-    const limit = setTimeout(() => finish(true), speechLimitMs(text));
-    playEffect('radioOn', CLICK_VOLUME);
-    // Only pass a voice that was found: asking for one makes expo-speech wait for the voice list.
-    const { voice, ...rest } = opts;
-    safe(
-      () => Speech.speak(text, { ...rest, ...(voice ? { voice } : {}), onDone: () => finish(true), onStopped: () => finish(false), onError: () => finish(true) }),
-      () => finish(true),
-    );
-  });
-}
-
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-function safe(f: () => void, onError?: () => void) {
-  try {
-    f();
-  } catch {
-    onError?.();
-  }
-}

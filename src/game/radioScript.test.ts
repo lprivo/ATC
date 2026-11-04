@@ -1,151 +1,232 @@
 import { describe, expect, it } from 'vitest';
+import rendered from '../../assets/voices/index.json';
 import manifest from '../../scripts/voices/manifest.json';
+import { AIRPORTS } from '../engine/airports';
 import { AIRLINE_CALLSIGNS } from '../engine/data/airlines';
+import FLIGHTS from '../engine/data/flights.json';
+import { DIAL_STEP, STEP_LIMITS } from './controls';
 import type { PlaneNow } from './radio';
-import { altitudePieces, callsignPieces, compose, instructionsFor, PHRASINGS, pilotFor, RadioMemory, runwayPieces, type Instruction } from './radioScript';
+import {
+  altitudeWords,
+  callsignWords,
+  chunkId,
+  chunksFor,
+  FILLER_CHANCE,
+  GAPS,
+  instructionsFor,
+  PHRASINGS,
+  pilotFor,
+  RadioMemory,
+  scriptCall,
+  runwayWords,
+  speedWords,
+  toSegments,
+  VALUES,
+  type Role,
+} from './radioScript';
 import type { VoiceClips } from './voiceTypes';
 
 const wzz: PlaneNow = { callsign: 'WZZ9003', heading: 80, altitude: 6000, speed: 230 };
-
-/** Every piece the manifest renders, by id (as generate.py names them). */
-const manifestPieces = new Set([
-  ...Object.keys(manifest.lists.digits).map((d) => `d${d}`),
-  ...Object.keys(manifest.lists.letters).map((l) => `l${l}`),
-  ...Object.keys(manifest.lists.words).map((w) => `w_${w}`),
-  ...Object.keys(manifest.airlines).filter((k) => k !== 'about').map((a) => `a_${a}`),
-  ...Object.keys(manifest.stems).filter((k) => k !== 'about').map((s) => `s_${s}`),
-]);
-
-/** A fake clip set: every manifest piece, two takes of each kind, 100 ms long. */
-const fakeClips = (roles: Record<string, 'controller' | 'pilot'>): VoiceClips =>
-  Object.fromEntries(
-    Object.entries(roles).map(([id, role]) => [
-      id,
-      {
-        role,
-        clips: Object.fromEntries(
-          [...manifestPieces].map((p) => [p, (p.startsWith('s_') || p.startsWith('a_') ? ['t0', 't1'] : ['m0', 'm1', 'f0', 'f1']).map((take) => ({ take, ms: 100, file: 0 }))]),
-        ),
-      },
-    ]),
-  );
-const clips = fakeClips({ ctl: 'controller', p1: 'pilot', p2: 'pilot' });
+const flights = FLIGHTS as unknown as Record<string, string[]>;
 const seq = (seed = 1) => {
   let s = seed;
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
 };
-const pieces = (segs: { piece: string }[]) => segs.map((s) => s.piece);
+const index = rendered as unknown as Record<string, { role: Role; clips: Record<string, string[]> }>;
 
-describe('manifest', () => {
-  it('has every piece any phrasing can say', () => {
-    for (const role of ['controller', 'pilot'] as const) {
-      for (const phrases of Object.values(PHRASINGS[role])) {
-        for (const phrase of phrases) {
-          for (const side of ['left', 'right']) {
-            for (const p of (phrase as readonly string[]).filter((x) => !x.startsWith('{') || x.includes('{side}'))) expect(manifestPieces, p).toContain(p.replace('{side}', side));
+describe('manifest and data', () => {
+  it('value ranges match the steppers, and cover every runway end', () => {
+    expect(VALUES.headingStep).toBe(DIAL_STEP.heading);
+    expect(VALUES.altitude).toEqual({ ...STEP_LIMITS.altitude, step: DIAL_STEP.altitude });
+    expect(VALUES.speed).toEqual({ ...STEP_LIMITS.speed, step: DIAL_STEP.speed });
+    for (const a of Object.values(AIRPORTS)) for (const r of a.runways) for (const e of r.ends) expect(VALUES.runways).toContain(e.id);
+  });
+
+  it('spoken airline names match the airline data, and every airline an airport flies has flight numbers', () => {
+    for (const [code, spoken] of Object.entries(AIRLINE_CALLSIGNS)) expect((manifest.airlines as Record<string, string>)[code], code).toBe(spoken);
+    for (const a of Object.values(AIRPORTS)) for (const code of a.airlines) expect(flights[code]?.length, code).toBeGreaterThan(5);
+  });
+});
+
+describe('spoken words', () => {
+  it('as the generator builds them', () => {
+    expect(callsignWords('WZZ9003')).toBe('Wizz Air niner zero zero three');
+    expect(callsignWords('RYR41HB')).toBe('Ryanair four one hotel bravo');
+    expect(callsignWords('XYZ1')).toBe('x-ray yankee zulu one');
+    expect(altitudeWords(4000)).toBe('four thousand feet');
+    expect(altitudeWords(3500)).toBe('three thousand five hundred feet');
+    expect(altitudeWords(10000)).toBe('one zero thousand feet');
+    expect(altitudeWords(12000)).toBe('flight level one two zero');
+    expect(speedWords(180)).toBe('one eight zero knots');
+    expect(runwayWords('13L')).toBe('one three left');
+    expect(chunkId('Runway one three left, cleared to land')).toBe('x_runway_one_three_left_cleared_to_land');
+  });
+});
+
+describe('chunksFor', () => {
+  it('controller: the callsign, then each instruction (a heading as stem + number)', () => {
+    const ins = instructionsFor({ heading: 40, altitude: 4000 }, wzz);
+    const chunks = chunksFor('controller', 'WZZ9003', ins, new RadioMemory(), seq(), '1', 0);
+    expect(chunks[0]).toEqual({ text: 'Wizz Air niner zero zero three', gapMs: 0 });
+    expect(chunks[1].text).toBe('turn left heading');
+    expect(chunks[1].gapMs).toBeGreaterThan(100);
+    expect(chunks[2].text).toBe('zero four zero');
+    expect(chunks[2].gapMs).toBeLessThan(30);
+    expect(['descend to altitude four thousand feet', 'descend altitude four thousand feet', 'descend four thousand feet']).toContain(chunks[3].text);
+  });
+
+  it('pilot: the readback, then the callsign', () => {
+    const chunks = chunksFor('pilot', 'WZZ9003', instructionsFor({ land: '13L' }, wzz), new RadioMemory(), seq(), '1', 0);
+    expect(chunks.map((c) => c.text)).toEqual(['cleared to land runway one three left', 'Wizz Air niner zero zero three']);
+  });
+
+  it('some calls get one hesitation at a pause, never at the end; the controller none by default', () => {
+    const ins = instructionsFor({ heading: 40, altitude: 4000 }, wzz);
+    const rng = seq(5);
+    const spots = new Set<number>();
+    for (let i = 0; i < 40; i++) {
+      const chunks = chunksFor('pilot', 'WZZ9003', ins, new RadioMemory(), rng, '1', 1);
+      const at = chunks.findIndex((c) => c.filler);
+      expect(chunks.filter((c) => c.filler)).toHaveLength(1);
+      expect(at).toBeLessThan(chunks.length - 1);
+      expect(chunks[at + 1].gapMs).toBe(GAPS.afterFiller);
+      spots.add(at);
+    }
+    expect(spots.size).toBeGreaterThan(2);
+    expect(FILLER_CHANCE.controller).toBe(0);
+    const rng2 = seq(7);
+    expect(Array.from({ length: 40 }, () => chunksFor('controller', 'WZZ9003', ins, new RadioMemory(), rng2, '1').some((c) => c.filler)).some(Boolean)).toBe(false);
+    const pilotCalls = Array.from({ length: 200 }, () => chunksFor('pilot', 'WZZ9003', ins, new RadioMemory(), rng2, '1').some((c) => c.filler));
+    const share = pilotCalls.filter(Boolean).length / pilotCalls.length;
+    expect(share).toBeGreaterThan(FILLER_CHANCE.pilot / 2);
+    expect(share).toBeLessThan(FILLER_CHANCE.pilot * 2);
+  });
+
+  it('never the same phrasing twice in a row for a plane', () => {
+    const memory = new RadioMemory();
+    const rng = seq(3);
+    let last = '';
+    for (let i = 0; i < 15; i++) {
+      const text = chunksFor('pilot', 'WZZ9003', instructionsFor({ altitude: 4000 }, wzz), memory, rng, '1', 0)[0].text;
+      expect(text).not.toBe(last);
+      last = text;
+    }
+  });
+});
+
+describe('recorded coverage (assets/voices/index.json)', () => {
+  const headings = Array.from({ length: 360 / VALUES.headingStep }, (_, i) => (i + 1) * VALUES.headingStep);
+  const range = (r: { min: number; max: number; step: number }) => Array.from({ length: (r.max - r.min) / r.step + 1 }, (_, i) => r.min + i * r.step);
+
+  it('every voice has every callsign in the flight lists as one phrase', () => {
+    for (const [voice, v] of Object.entries(index)) {
+      for (const [code, ns] of Object.entries(flights)) {
+        if (code === 'about' || !AIRLINE_CALLSIGNS[code]) continue;
+        for (const n of ns) expect(v.clips[chunkId(callsignWords(code + n))], `${voice} ${code}${n}`).toContain(v.role === 'controller' ? 'm0' : 'f0');
+      }
+      const spec = (manifest.cast as Record<string, { fillers?: string[] }>)[voice];
+      for (const f of spec.fillers ?? []) expect(v.clips[`h_${f}`], `${voice} h_${f}`).toEqual(['h0', 'h1']);
+      if (FILLER_CHANCE[v.role] > 0) expect(spec.fillers?.length, `${voice} hesitations`).toBeGreaterThan(0);
+    }
+  });
+
+  it('every voice has every phrasing of every value the steppers allow, continuing and (controller) ending', () => {
+    const planes: PlaneNow[] = [
+      { ...wzz, heading: 180, altitude: 8000, speed: 220 },
+      { ...wzz, heading: 0, altitude: 16000, speed: 320 },
+      { ...wzz, heading: 180, altitude: 1000, speed: 100 },
+    ];
+    const commands = [
+      ...headings.map((heading) => ({ heading })),
+      ...range(VALUES.altitude).map((altitude) => ({ altitude })),
+      ...range(VALUES.speed).map((speed) => ({ speed })),
+      ...VALUES.runways.map((land) => ({ land })),
+    ];
+    for (const [voice, v] of Object.entries(index)) {
+      for (const plane of planes) {
+        for (const cmd of commands) {
+          for (const ins of instructionsFor(cmd, plane)) {
+            for (const phrase of PHRASINGS[v.role][ins.kind]) {
+              let filled = phrase;
+              for (const [k, val] of Object.entries(ins.values)) filled = filled.replace(`{${k}}`, val);
+              const parts = filled.split('|').map((p) => p.trim());
+              parts.forEach((part, i) => {
+                const takes = v.clips[chunkId(part)];
+                expect(takes, `${voice}: ${part}`).toBeDefined();
+                expect(takes).toContain('m0');
+                if (v.role === 'controller' && i === parts.length - 1) expect(takes, `${voice}: ${part} (ending)`).toContain('f0');
+              });
+            }
           }
         }
       }
     }
-    for (const ft of [2000, 3500, 10000, 12000, 24000]) for (const p of altitudePieces(ft)) expect(manifestPieces).toContain(p);
-    for (const p of runwayPieces('31C')) expect(manifestPieces).toContain(p);
-    for (const p of ['w_knots', 'w_left', 'w_right']) expect(manifestPieces).toContain(p);
-  });
-
-  it("renders each phrase piece only for the role that says it (no 'descending' from the controller)", () => {
-    const stems = manifest.stems as unknown as Record<string, { who?: string[] }>;
-    for (const role of ['controller', 'pilot'] as const) {
-      const used = new Set<string>(['s_flight_level']); // altitudes above 10,000 ft, for both
-      for (const phrases of Object.values(PHRASINGS[role])) for (const phrase of phrases) for (const p of phrase as readonly string[]) if (p.startsWith('s_')) for (const side of ['left', 'right']) used.add(p.replace('{side}', side));
-      const rendered = new Set(Object.entries(stems).filter(([k, v]) => k !== 'about' && v.who?.includes(role)).map(([k]) => `s_${k}`));
-      expect([...rendered].sort(), role).toEqual([...used].sort());
-    }
-  });
-
-  it('has a clip for every airline, under the same spoken name', () => {
-    for (const [code, spoken] of Object.entries(AIRLINE_CALLSIGNS)) expect((manifest.airlines as Record<string, string>)[code], code).toBe(spoken);
   });
 });
 
-describe('spoken numbers as pieces', () => {
-  it('altitudes in feet, and flight levels above 10,000 ft', () => {
-    expect(altitudePieces(4000)).toEqual(['d4', 'w_thousand', 'w_feet']);
-    expect(altitudePieces(3500)).toEqual(['d3', 'w_thousand', 'd5', 'w_hundred', 'w_feet']);
-    expect(altitudePieces(10000)).toEqual(['d1', 'd0', 'w_thousand', 'w_feet']);
-    expect(altitudePieces(12000)).toEqual(['s_flight_level', 'd1', 'd2', 'd0']);
-  });
+describe('toSegments', () => {
+  const take = (t: string) => ({ take: t, ms: 500, file: 0 });
+  const clips: VoiceClips = {
+    ctl: {
+      role: 'controller',
+      clips: {
+        x_wizz_air_niner_zero_zero_three: [take('m0')],
+        x_descend_four_thousand_feet: [take('m0'), take('f0')],
+      },
+    },
+  };
 
-  it('runways and callsigns', () => {
-    expect(runwayPieces('13L')).toEqual(['d1', 'd3', 'w_left']);
-    expect(runwayPieces('9')).toEqual(['d0', 'd9']);
-    expect(callsignPieces('RYR41HB', () => true)).toEqual(['a_RYR', 'd4', 'd1', 'lH', 'lB']);
-    expect(callsignPieces('FIX1', (p) => p !== 'a_FIX')).toEqual(['lF', 'lI', 'lX', 'd1']);
-  });
-});
-
-describe('instructionsFor', () => {
-  it('turn side from the current heading, climb or descend, flight levels, speed and landing, in order', () => {
-    const ins = instructionsFor({ land: '13L', speed: 180, altitude: 12000, heading: 40 }, wzz);
-    expect(ins.map((i) => [i.kind, i.side])).toEqual([
-      ['turn', 'left'],
-      ['climbFL', undefined],
-      ['reduce', undefined],
-      ['land', undefined],
+  it('plays whole chunks: continuing takes, the last one ending', () => {
+    const segs = toSegments({ voice: 'ctl', clips, chunks: [{ text: 'Wizz Air niner zero zero three', gapMs: 0 }, { text: 'descend four thousand feet', gapMs: 140 }], memory: new RadioMemory(), rng: seq() });
+    expect(segs!.map((s) => [s.piece, s.take, s.gapMs])).toEqual([
+      ['x_wizz_air_niner_zero_zero_three', 'm0', 0],
+      ['x_descend_four_thousand_feet', 'f0', 140],
     ]);
-    expect(instructionsFor({ altitude: 4000 }, wzz)[0].kind).toBe('descend');
-    expect(instructionsFor({ heading: 81 }, wzz)[0].kind).toBe('fly');
+  });
+
+  it("a hesitation plays one of the voice's own, not the same twice running; a voice without any skips it", () => {
+    const withFillers: VoiceClips = { p: { role: 'pilot', clips: { ...clips.ctl.clips, h_uh: [take('h0'), take('h1')], h_um: [take('h0')] } } };
+    const chunks = [{ text: '', filler: true as const, gapMs: 0 }, { text: 'descend four thousand feet', gapMs: GAPS.afterFiller }, { text: 'Wizz Air niner zero zero three', gapMs: 170 }];
+    const memory = new RadioMemory();
+    const firsts = Array.from({ length: 6 }, () => toSegments({ voice: 'p', clips: withFillers, chunks, memory, rng: seq() })![0]);
+    expect(firsts.every((s) => s.piece.startsWith('h_'))).toBe(true);
+    firsts.slice(1).forEach((s, i) => expect(s.piece).not.toBe(firsts[i].piece));
+    const plain = toSegments({ voice: 'ctl', clips, chunks, memory: new RadioMemory(), rng: seq() });
+    expect(plain!.map((s) => [s.piece, s.gapMs])).toEqual([
+      ['x_descend_four_thousand_feet', 0],
+      ['x_wizz_air_niner_zero_zero_three', 170],
+    ]);
+  });
+
+  it("a chunk without a recording: the utterance isn't said (null), rather than said in part", () => {
+    expect(toSegments({ voice: 'ctl', clips, chunks: [{ text: 'Ryanair four one hotel bravo', gapMs: 0 }, { text: 'descend four thousand feet', gapMs: 140 }], memory: new RadioMemory(), rng: seq() })).toBeNull();
+    expect(toSegments({ voice: 'nobody', clips, chunks: [{ text: 'descend four thousand feet', gapMs: 0 }], memory: new RadioMemory(), rng: seq() })).toBeNull();
   });
 });
 
-describe('compose', () => {
-  const descend: Instruction[] = instructionsFor({ altitude: 4000 }, wzz);
+describe('scriptCall', () => {
+  /** The rendered cast, as the app's index has it. */
+  const cast: VoiceClips = Object.fromEntries(
+    Object.entries(index).map(([voice, v]) => [voice, { role: v.role, clips: Object.fromEntries(Object.entries(v.clips).map(([id, ts]) => [id, ts.map((t) => ({ take: t, ms: 500, file: 0 }))])) }]),
+  );
 
-  it('controller: callsign first, then the instruction; the last digit or word falls', () => {
-    const segs = compose({ role: 'controller', voice: 'ctl', clips, callsign: 'WZZ9003', instructions: descend, memory: new RadioMemory(), rng: seq(), planeId: '1' });
-    const ps = pieces(segs);
-    expect(ps.slice(0, 5)).toEqual(['a_WZZ', 'd9', 'd0', 'd0', 'd3']);
-    expect(ps.slice(-3)).toEqual(['d4', 'w_thousand', 'w_feet']);
-    expect(['s_descend_to_altitude', 's_descend_altitude', 's_descend']).toContain(ps[5]);
-    expect(segs[segs.length - 1].take).toMatch(/^f/);
-    expect(segs[3].take).toMatch(/^m/); // inside the callsign
-    expect(segs[0].gapMs).toBe(0);
-    expect(segs[5].gapMs).toBeGreaterThan(100); // a pause after the callsign
+  it("a desk call as the controller's transmission and the pilot's readback, from the recordings", () => {
+    const script = scriptCall({ planeId: '1', changes: { altitude: 4000 }, plane: wzz }, cast, new RadioMemory(), seq(), { pilot: 0 });
+    expect(script!.controller[0].piece).toBe('x_wizz_air_niner_zero_zero_three');
+    expect(script!.controller[1].take).toBe('f0');
+    expect(script!.pilot[script!.pilot.length - 1]).toMatchObject({ piece: 'x_wizz_air_niner_zero_zero_three', take: 'f0' });
   });
 
-  it('pilot: the readback first, the callsign last, falling at its end', () => {
-    const segs = compose({ role: 'pilot', voice: 'p1', clips, callsign: 'WZZ9003', instructions: descend, memory: new RadioMemory(), rng: seq(), planeId: '1' });
-    const ps = pieces(segs);
-    expect(ps.slice(-5)).toEqual(['a_WZZ', 'd9', 'd0', 'd0', 'd3']);
-    expect(segs[segs.length - 1].take).toMatch(/^f/);
-    expect(['s_descend', 's_down_to', 's_descending']).toContain(ps[0]);
-  });
-
-  it('never the same phrasing twice in a row for a plane, nor the same take of a piece', () => {
-    const memory = new RadioMemory();
-    const rng = seq(7);
-    let lastStem = '';
-    let lastTake = '';
-    for (let i = 0; i < 20; i++) {
-      const segs = compose({ role: 'pilot', voice: 'p1', clips, callsign: 'WZZ9003', instructions: descend, memory, rng, planeId: '1' });
-      expect(segs[0].piece).not.toBe(lastStem);
-      const four = segs.find((s) => s.piece === 'd4')!;
-      expect(four.take).not.toBe(lastTake);
-      lastStem = segs[0].piece;
-      lastTake = four.take;
-    }
-  });
-
-  it('several instructions get a pause between them', () => {
-    const segs = compose({ role: 'controller', voice: 'ctl', clips, callsign: 'WZZ9003', instructions: instructionsFor({ heading: 40, altitude: 4000 }, wzz), memory: new RadioMemory(), rng: seq(), planeId: '1' });
-    const second = segs.findIndex((s) => s.piece.startsWith('s_descend'));
-    expect(segs[second].gapMs).toBeGreaterThan(100);
+  it('null for a callsign without a recording, or nothing to say', () => {
+    expect(scriptCall({ planeId: '1', changes: { altitude: 4000 }, plane: { ...wzz, callsign: 'WZZ4' } }, cast, new RadioMemory(), seq())).toBeNull();
+    expect(scriptCall({ planeId: '1', changes: {}, plane: wzz }, cast, new RadioMemory(), seq())).toBeNull();
   });
 });
 
 describe('pilotFor', () => {
   it('gives a plane the same pilot every time, and spreads planes over the pilots', () => {
-    expect(pilotFor('WZZ9003', clips)).toBe(pilotFor('WZZ9003', clips));
-    const used = new Set(['WZZ9003', 'RYR41HB', 'BAW99', 'LOT537', 'DLH1340', 'EZY512'].map((c) => pilotFor(c, clips)));
-    expect(used).toEqual(new Set(['p1', 'p2']));
+    const cast: VoiceClips = { ctl: { role: 'controller', clips: {} }, p1: { role: 'pilot', clips: {} }, p2: { role: 'pilot', clips: {} } };
+    expect(pilotFor('WZZ9003', cast)).toBe(pilotFor('WZZ9003', cast));
+    expect(new Set(['WZZ9003', 'RYR41HB', 'BAW99', 'LOT537', 'DLH1340', 'EZY512'].map((c) => pilotFor(c, cast)))).toEqual(new Set(['p1', 'p2']));
   });
 });

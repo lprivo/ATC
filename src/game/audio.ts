@@ -1,4 +1,4 @@
-import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync, setIsAudioActiveAsync, type AudioPlayer } from 'expo-audio';
 import { AppState } from 'react-native';
 import { EFFECT_FILES, MUSIC_FILES } from './audioAssets';
 import { crossfade, MUSIC_FADE_MS, MUSIC_VOLUME, SOUND_FOR, type EffectId, type MusicTrack, type SoundMoment } from './sound';
@@ -17,9 +17,14 @@ import { crossfade, MUSIC_FADE_MS, MUSIC_VOLUME, SOUND_FOR, type EffectId, type 
 
 let effectsOn = true;
 let musicOn = true;
+/** The player's volumes (Settings), on top of the game's own mix. */
+let effectsVolume = 1;
+let musicVolume = 1;
 let wantedTrack: MusicTrack | null = null;
 let appActive = true;
 let started = false;
+/** Audio was switched off for the background (`setIsAudioActiveAsync(false)`). */
+let audioOff = false;
 
 function start() {
   if (started) return;
@@ -27,13 +32,34 @@ function start() {
   setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers', shouldPlayInBackground: false }).catch(() => {});
   AppState.addEventListener('change', (s) => {
     appActive = s === 'active';
-    if (music) {
-      if (appActive && music.player.paused) safe(() => music!.player.play());
-      if (!appActive) safe(() => music!.player.pause());
+    if (!appActive && music) safe(() => music!.player.pause());
+    // The players keep the audio session on while the app is open (`KEEP_SESSION`); let it go in the background
+    // only (not for a moment's 'inactive': launch, Control Centre, a notification). Coming back, resume once audio
+    // is on again: until then expo-audio ignores play().
+    if (s === 'background') {
+      audioOff = true;
+      setIsAudioActiveAsync(false).catch(() => {});
     }
-    if (appActive) applyMusic();
+    if (!appActive) return;
+    const resume = () => {
+      if (!appActive) return;
+      if (music?.player.paused) safe(() => music!.player.play());
+      applyMusic();
+    };
+    if (!audioOff) return resume();
+    audioOff = false;
+    setIsAudioActiveAsync(true).then(resume, resume);
   });
 }
+
+/**
+ * Every player keeps the iOS audio session on after it finishes. Otherwise
+ * expo-audio switches the session off whenever nothing is playing (between
+ * two radio phrases, or two effects): the volume buttons then change the
+ * ringer instead of the game, and switching it on again can stutter the next
+ * sound's start.
+ */
+export const KEEP_SESSION = { keepAudioSessionActive: true } as const;
 
 const safe = (f: () => void) => {
   try {
@@ -55,7 +81,7 @@ export const setEffectsEnabled = (on: boolean) => {
 export function playSound(moment: SoundMoment) {
   if (!effectsOn) return;
   const spec = SOUND_FOR[moment];
-  playEffect(spec.id, spec.volume);
+  playEffect(spec.id, spec.volume * effectsVolume);
 }
 
 /** Plays an effect whatever the Sound effects setting (the radio's own clicks follow the Radio voice setting). */
@@ -65,7 +91,7 @@ export function playEffect(id: EffectId, volume: number) {
     start();
     let p = effects.get(id);
     if (!p) {
-      p = createAudioPlayer(EFFECT_FILES[id]);
+      p = createAudioPlayer(EFFECT_FILES[id], KEEP_SESSION);
       effects.set(id, p);
     }
     const player = p;
@@ -84,6 +110,19 @@ let fade: { outgoing: AudioPlayer | null; timer: ReturnType<typeof setInterval> 
 let duck = 1;
 const DUCKED = 0.35;
 const FADE_TICK_MS = 50;
+
+const musicLevel = () => MUSIC_VOLUME * musicVolume * duck;
+
+/** The player's sound effects volume, 0–1. */
+export function setEffectsVolume(v: number) {
+  effectsVolume = v;
+}
+
+/** The player's music volume, 0–1: the track playing follows at once. */
+export function setMusicVolume(v: number) {
+  musicVolume = v;
+  if (music && !fade) safe(() => (music!.player.volume = musicLevel()));
+}
 
 export function setMusicEnabled(on: boolean) {
   musicOn = on;
@@ -112,7 +151,7 @@ function applyMusic() {
     const outFrom = outgoing ? outgoing.volume : 0;
     let incoming: AudioPlayer | null = null;
     if (target) {
-      incoming = createAudioPlayer(MUSIC_FILES[target]);
+      incoming = createAudioPlayer(MUSIC_FILES[target], KEEP_SESSION);
       incoming.loop = true;
       incoming.volume = 0;
       if (appActive) incoming.play();
@@ -123,7 +162,7 @@ function applyMusic() {
       const v = crossfade(Date.now() - began, MUSIC_FADE_MS);
       safe(() => {
         if (outgoing) outgoing.volume = outFrom * v.out;
-        if (incoming) incoming.volume = MUSIC_VOLUME * duck * v.in;
+        if (incoming) incoming.volume = musicLevel() * v.in;
       });
       if (v.in >= 1) {
         clearInterval(timer);
@@ -139,7 +178,7 @@ function applyMusic() {
 export function duckMusic(on: boolean) {
   duck = on ? DUCKED : 1;
   // A fade in progress picks the new level up on its next tick.
-  if (music && !fade) safe(() => (music!.player.volume = MUSIC_VOLUME * duck));
+  if (music && !fade) safe(() => (music!.player.volume = musicLevel()));
 }
 
 function stop(p: AudioPlayer) {

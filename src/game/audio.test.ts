@@ -15,11 +15,15 @@ interface FakePlayer {
 }
 const players: FakePlayer[] = [];
 const modes: unknown[] = [];
+const sessionActive: boolean[] = [];
+const playerOptions: unknown[] = [];
 let appStateListener: ((s: string) => void) | null = null;
 
 vi.mock('expo-audio', () => ({
   setAudioModeAsync: (m: unknown) => (modes.push(m), Promise.resolve()),
-  createAudioPlayer: (src: unknown) => {
+  setIsAudioActiveAsync: (on: boolean) => (sessionActive.push(on), Promise.resolve()),
+  createAudioPlayer: (src: unknown, options?: unknown) => {
+    playerOptions.push(options);
     const p: FakePlayer = {
       src,
       volume: 1,
@@ -67,6 +71,8 @@ afterEach(() => {
   players.length = 0;
   audio.setEffectsEnabled(true);
   audio.setMusicEnabled(true);
+  audio.setEffectsVolume(1);
+  audio.setMusicVolume(1);
 });
 
 describe('effects', () => {
@@ -87,6 +93,12 @@ describe('effects', () => {
     expect(step.plays).toBe(2);
     audio.playSound('landingConfirmed');
     expect(players.some((p) => p.src === 'fx:cleared')).toBe(true);
+  });
+
+  it("follows the player's effects volume, on top of each effect's own", () => {
+    audio.setEffectsVolume(0.5);
+    audio.playSound('landed');
+    expect(players.find((p) => p.src === 'fx:landed')!.volume).toBeCloseTo(SOUND_FOR.landed.volume * 0.5);
   });
 
   it('plays nothing with effects switched off', () => {
@@ -114,6 +126,20 @@ describe('music', () => {
     vi.advanceTimersByTime(MUSIC_FADE_MS);
     expect(zen.volume).toBeCloseTo(MUSIC_VOLUME);
     expect(menu.removed).toBe(true);
+  });
+
+  it("follows the player's music volume, at once and through a fade, and under a radio call", () => {
+    audio.setMusicTrack('menu');
+    vi.advanceTimersByTime(MUSIC_FADE_MS + 100);
+    const menu = tracks()[0];
+    audio.setMusicVolume(0.5);
+    expect(menu.volume).toBeCloseTo(MUSIC_VOLUME * 0.5);
+    audio.duckMusic(true);
+    expect(menu.volume).toBeLessThan(MUSIC_VOLUME * 0.5);
+    audio.duckMusic(false);
+    audio.setMusicTrack('zen');
+    vi.advanceTimersByTime(MUSIC_FADE_MS + 100);
+    expect(tracks()[1].volume).toBeCloseTo(MUSIC_VOLUME * 0.5);
   });
 
   it('asking for the track already playing changes nothing', () => {
@@ -147,7 +173,7 @@ describe('music', () => {
     expect(menu2.volume).toBeCloseTo(MUSIC_VOLUME);
   });
 
-  it('pauses in the background and resumes when the app is back', () => {
+  it('pauses in the background and resumes when the app is back, once audio is on again', async () => {
     audio.setMusicTrack('menu');
     const menu = tracks()[0];
     appStateListener!('background');
@@ -155,6 +181,31 @@ describe('music', () => {
     audio.playSound('select');
     expect(players.some((p) => p.src === 'fx:select' && p.plays > 0)).toBe(false);
     appStateListener!('active');
+    expect(menu.paused).toBe(true); // expo-audio would ignore play() until then
+    await Promise.resolve();
+    await Promise.resolve();
     expect(menu.paused).toBe(false);
+  });
+
+  it("a moment's 'inactive' (launch, Control Centre) pauses and resumes at once, without switching audio off", () => {
+    audio.setMusicTrack('menu');
+    const menu = tracks()[0];
+    sessionActive.length = 0;
+    appStateListener!('inactive');
+    expect(menu.paused).toBe(true);
+    appStateListener!('active');
+    expect(menu.paused).toBe(false);
+    expect(sessionActive).toEqual([]);
+  });
+
+  it('keeps the audio session on while the app is open (so the volume buttons control the game, not the ringer), and lets it go in the background', () => {
+    audio.setMusicTrack('menu');
+    audio.playSound('select');
+    expect(playerOptions.length).toBeGreaterThan(1);
+    for (const o of playerOptions) expect(o).toEqual({ keepAudioSessionActive: true });
+    sessionActive.length = 0;
+    appStateListener!('background');
+    appStateListener!('active');
+    expect(sessionActive).toEqual([false, true]);
   });
 });
